@@ -61,9 +61,9 @@ def stats_filter(tmplt, world, verbose=False, **kwargs):
     world_feats = compute_features(world, channels=tmplt.channels,
                                    is_cand_any=is_cand_any)
 
-    # TODO: index into tmplt.is_cand[:, is_cand_any] once before the loop
-    # for each template node, update its candidates
     for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
         tmplt_node_feats = tmplt_feats[:, tmplt_node_idx]
         new_is_cand = np.all(world_feats >= tmplt_node_feats, axis=0)
-        tmplt.is_cand[tmplt_node_idx][is_cand_any] &= new_is_cand.flat
+        
+        # TODO: transpose the features so we don't need this .flat
+        tmplt.is_cand[tmplt_node_idx,is_cand_any] &= new_is_cand.flat
