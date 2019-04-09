@@ -45,6 +45,7 @@ tmplt.summarize()
 
 uclasm.stats_filter(tmplt, world)
 uclasm.topology_filter(tmplt, world)
+uclasm.permutation_filter(tmplt, world)
 
 tmplt.summarize()
 
