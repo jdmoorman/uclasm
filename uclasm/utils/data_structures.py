@@ -20,10 +20,11 @@ class _Graph:
         self.nodes = np.array(nodes)
         self.node_idxs = index_map(nodes)
         
-        # TODO: How often do we even need this?
-        # do we only use it for iterating over connected pairs of nodes?
-        self.composite_adj = sum(adjs)
-        self.sym_composite_adj = self.composite_adj + self.composite_adj.T
+        # Square boolean array of size len(self.nodes). Entries take value 1
+        # if i is neighbors with j and 0 otherwise. Two nodes are neighbors if
+        # they are connected by an edge
+        composite_adj = sum(adjs)
+        self.is_nbr = (composite_adj + composite_adj.T) > 0
     
     @property
     def channels(self):
@@ -32,19 +33,26 @@ class _Graph:
     @property
     def adjs(self):
         return self.ch_to_adj.values()
+    
+    @property
+    def nbr_idx_pairs(self):
+        """
+        Returns a 2d array with 2 columns. Each row contains the node idxs of
+        a pair of neighbors in the graph. Each pair is only returned once, so
+        for example only one of (0,3) and (3,0) could appear as rows.
+        """
+        pairs = np.argwhere(self.is_nbr)
+        pairs.sort()
+        return np.unique(pairs, axis=0)
 
-    def subgraph(self, subgraph_nodes):
+    def subgraph(self, node_idxs):
         """
         Returns the subgraph induced by candidates
         """
-
-        # 1d boolean array with 1s in entries corresponding to nodes which
-        # participate in the desired subgraph
-        in_subgraph = np.isin(self.nodes, subgraph_nodes)
         
         # throw out nodes not belonging to the desired subgraph
-        nodes = self.nodes[in_subgraph]
-        adjs = [adj[in_subgraph, :][:, in_subgraph] for adj in self.adjs]
+        nodes = self.nodes[node_idxs]
+        adjs = [adj[node_idxs, :][:, node_idxs] for adj in self.adjs]
 
         # Return a new graph object for the induced subgraph
         return self.__class__(subgraph_nodes, self.channels, adjs)

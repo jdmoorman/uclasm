@@ -43,7 +43,10 @@ world = uclasm.World(world_nodes, channels, world_adj_mats)
 
 tmplt.summarize()
 
+uclasm.stats_filter(tmplt, world)
+uclasm.topology_filter(tmplt, world)
 
+tmplt.summarize()
 
 # At this point, the template and world networks have been constructed and we
 # can start the real work
