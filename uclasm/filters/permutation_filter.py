@@ -10,7 +10,7 @@ def permutation_filter(tmplt, world, changed_nodes=None, verbose=False):
     
     for node_idx, cand_count in enumerate(cand_counts):
         # Any set of candidates larger than the template can be skipped
-        if cand_count >= len(tmplt.nodes):
+        if cand_count >= tmplt.n_nodes:
             continue
             
         is_cand_row = tmplt.is_cand[node_idx]

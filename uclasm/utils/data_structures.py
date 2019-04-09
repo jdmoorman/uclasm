@@ -18,13 +18,17 @@ class _Graph:
     def __init__(self, nodes, channels, adjs):
         self.ch_to_adj = {ch: adj for ch, adj in zip(channels, adjs)}
         self.nodes = np.array(nodes)
+        self.n_nodes = len(nodes)
         self.node_idxs = index_map(nodes)
         
-        # Square boolean array of size len(self.nodes). Entries take value 1
+        # TODO: don't bother computing the things below until/unless needed
+        
+        # Square boolean array of size self.n_nodes. Entries take value 1
         # if i is neighbors with j and 0 otherwise. Two nodes are neighbors if
         # they are connected by an edge
-        composite_adj = sum(adjs)
-        self.is_nbr = (composite_adj + composite_adj.T) > 0
+        self.composite_adj = sum(adjs)
+        self.sym_composite_adj = self.composite_adj + self.composite_adj.T
+        self.is_nbr = self.sym_composite_adj > 0
     
     @property
     def channels(self):
