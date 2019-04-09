@@ -8,7 +8,7 @@ def permutation_filter(tmplt, world, changed_nodes=None, verbose=False):
     # The i'th element of this array is the number of cands for tmplt.nodes[i]
     cand_counts = np.sum(tmplt.is_cand, axis=1)
     
-    for node_idx, cand_count in enumerate(cand_counts):
+    for node_idx, cand_count in sorted(enumerate(cand_counts), key=lambda x: -x[1]):
         # Any set of candidates larger than the template can be skipped
         if cand_count >= tmplt.n_nodes:
             continue
@@ -29,7 +29,7 @@ def permutation_filter(tmplt, world, changed_nodes=None, verbose=False):
         if match_count == cand_count:
             # Eliminate the candidates for all other template nodes
             for non_match_idx in np.argwhere(~matches).flat:
-                tmplt.is_cand[non_match_idx, cand_idxs] = False
+                tmplt.is_cand[non_match_idx, is_cand_row] = False
             
         # If more template nodes share the candidates than there are candidates
         # to be shared there can't be any isomorphisms.

@@ -45,6 +45,13 @@ tmplt.summarize()
 
 uclasm.stats_filter(tmplt, world)
 uclasm.topology_filter(tmplt, world)
+
+tmplt.is_cand[[0,1],:] = False
+tmplt.is_cand[:,[0,1]] = True
+tmplt.is_cand[0,1] = False
+
+tmplt.summarize()
+
 uclasm.permutation_filter(tmplt, world)
 
 tmplt.summarize()
