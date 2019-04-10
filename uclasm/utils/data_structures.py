@@ -149,7 +149,7 @@ class _GraphWithCandidates(_Graph):
         The only things we bother copying are the is_cand matrix and the
         adjacency matrices. Everything else gets passed by reference.
         """
-        return self.__class__(self.candidates, self.nodes, self.channels,
+        return self.__class__(self.cands, self.nodes, self.channels,
                               [adj.copy() for adj in self.adjs],
                               is_cand=self.is_cand.copy())
     

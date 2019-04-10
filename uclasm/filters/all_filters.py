@@ -10,8 +10,8 @@ def all_filters(tmplt, world,
                 permutation=True,
                 verbose=False,
                 reduce_world=True,
-                max_iter=None,
-                changed_nodes=None):
+                max_iter=-1,
+                initial_changed_nodes=None):
     """
     
     """
@@ -26,9 +26,9 @@ def all_filters(tmplt, world,
     # if neighborhood:
     #     from .neighborhood_filter import neighborhood_filter
     #     filters.append(neighborhood_filter)
-    # if elimination:
-    #     from .elimination_filter import elimination_filter
-    #     filters.append(process_of_elimination_filter)
+    if elimination:
+        from .elimination_filter import elimination_filter
+        filters.append(elimination_filter)
         
     # Permutation filter runs after every other filter, so no need to append
     # it to the list of filters
@@ -46,7 +46,10 @@ def all_filters(tmplt, world,
     # time the corresponding filter was run.
     old_cand_counts_list = [None for filter in filters]
     
-    while filter_idx != len(filters):
+    if initial_changed_nodes is None:
+        initial_changed_nodes = np.ones(tmplt.nodes.shape, dtype=np.bool)
+    
+    while filter_idx != len(filters) and len(filters_so_far) != max_iter:
         filter = filters[filter_idx]
 
         cand_counts = tmplt.get_cand_counts()
@@ -58,21 +61,13 @@ def all_filters(tmplt, world,
         
         # Update the cand counts for the current filter for next time it runs
         old_cand_counts = old_cand_counts_list[filter_idx]
-        old_cand_counts_list[filter_idx] = cand_counts
         
         # Find the nodes whose candidates have changed since last time this
         # filter was run
         if old_cand_counts is not None:
             changed_nodes = old_cand_counts > cand_counts
-        elif changed_nodes is None:
-            changed_nodes = np.ones(cand_counts.shape, dtype=np.bool)
-
-        # If any candidates have changed, start over from the first filter.
-        # Otherwise, move on to the next filter in the list on the next pass.
-        if np.any(changed_nodes):
-            filter_idx = 0
         else:
-            filter_idx += 1
+            changed_nodes = initial_changed_nodes
         
         # TODO: create an object we can use like `with Timer()`
         start_time = time.time()
@@ -89,6 +84,15 @@ def all_filters(tmplt, world,
             permutation_filter(tmplt, world)
             # Omit permutation filter from the list of filters run so far
             
+        old_cand_counts_list[filter_idx] = tmplt.get_cand_counts()
+
+        # If any candidates have changed, start over from the first filter.
+        # Otherwise, move on to the next filter in the list on the next pass.
+        if np.any(changed_nodes):
+            filter_idx = 0
+        else:
+            filter_idx += 1
+            
         # TODO: make logging less cumbersome
         if verbose:
             end_time = time.time()
@@ -97,9 +101,6 @@ def all_filters(tmplt, world,
                   "on iteration", len(filters_so_far),
                   "took", end_time - start_time, "seconds")
             print("filters so far: {}".format(" ".join(filters_so_far)))
-        
-        if (max_iter is not None) and (len(filters_so_far) >= max_iter):
-            break
 
     if verbose:
         print("filters are done.")

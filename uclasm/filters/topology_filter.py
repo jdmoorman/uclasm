@@ -33,7 +33,7 @@ def topology_filter(tmplt, world, changed_nodes=None, **kwargs):
         dst_is_cand = tmplt.is_cand[dst_idx]
 
         # figure out which candidates have enough edges between them in world
-        enough_edges_list = []
+        enough_edges = None
         for tmplt_adj, world_adj in iter_adj_pairs(tmplt, world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
 
@@ -44,10 +44,15 @@ def topology_filter(tmplt, world, changed_nodes=None, **kwargs):
             # sub adjacency matrix corresponding to edges from the source
             # candidates to the destination candidates
             world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
-            enough_edges_list.append(world_sub_adj >= tmplt_adj_val)
             
-        # i,j element is 1 if cands i and j have enough edges between them
-        enough_edges = reduce(mul, enough_edges_list, 1)
+            partial_enough_edges = world_sub_adj >= tmplt_adj_val
+            if enough_edges is None:
+                enough_edges = partial_enough_edges
+            else:
+                enough_edges = enough_edges.multiply(partial_enough_edges)
+        
+        # # i,j element is 1 if cands i and j have enough edges between them
+        # enough_edges = reduce(mul, enough_edges_list, 1)
 
         # srcs with at least one reasonable dst
         src_matches = enough_edges.getnnz(axis=1) > 0

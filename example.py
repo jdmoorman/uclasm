@@ -41,7 +41,7 @@ for channel in channels:
 tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)
 world = uclasm.World(world_nodes, channels, world_adj_mats)
 
-uclasm.all_filters(tmplt, world, verbose=True)
+uclasm.all_filters(tmplt, world, elimination=True, verbose=True)
 
 # At this point, the template and world networks have been constructed and we
 # can start the real work

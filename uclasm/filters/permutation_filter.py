@@ -19,8 +19,6 @@ def permutation_filter(tmplt, world, changed_nodes=None, verbose=False):
         # or whose cands are a subset of node_idx's cands
         matches = np.sum(tmplt.is_cand[:, is_cand_row], axis=1) == cand_counts
         
-        print(list(np.argwhere(matches).flat))
-        
         # How many template nodes share these cands?
         match_count = np.sum(matches)
             
