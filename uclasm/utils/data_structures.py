@@ -3,7 +3,7 @@ Filtering algorithms expect data to come in the form of Template, World
 objects.
 """
 
-from .utils import index_map
+from .misc import index_map
 import matplotlib.pyplot as plt
 import scipy.sparse as sparse
 import numpy as np
@@ -75,6 +75,7 @@ class _GraphWithCandidates(_Graph):
         
         # Typically these correspond to the nodes of another graph
         self.cands = np.array(candidates)
+        self.n_cands = len(candidates)
         self.cand_idxs = index_map(candidates)
         
         if is_cand is None:

@@ -45,27 +45,22 @@ def all_filters(tmplt, world,
     # Each element of this list is a copy tmplt.is_cand from before the last
     # time the corresponding filter was run.
     old_cand_counts_list = [None for filter in filters]
+    cand_counts = tmplt.get_cand_counts()
     
     if initial_changed_nodes is None:
         initial_changed_nodes = np.ones(tmplt.nodes.shape, dtype=np.bool)
     
     while filter_idx != len(filters) and len(filters_so_far) != max_iter:
         filter = filters[filter_idx]
-
-        cand_counts = tmplt.get_cand_counts()
-
-        # If some template node has no candidates, there are no isomorphisms
-        if np.any(cand_counts == 0):
-            tmplt.is_cand[:,:] = False
-            break
         
+        # TODO: rename old_cand_counts to something more descriptive
         # Update the cand counts for the current filter for next time it runs
         old_cand_counts = old_cand_counts_list[filter_idx]
         
         # Find the nodes whose candidates have changed since last time this
         # filter was run
         if old_cand_counts is not None:
-            changed_nodes = old_cand_counts > cand_counts
+            changed_nodes = cand_counts < old_cand_counts
         else:
             changed_nodes = initial_changed_nodes
         
@@ -83,15 +78,23 @@ def all_filters(tmplt, world,
         if permutation:
             permutation_filter(tmplt, world)
             # Omit permutation filter from the list of filters run so far
-            
-        old_cand_counts_list[filter_idx] = tmplt.get_cand_counts()
+        
+        cand_counts_after_filter = tmplt.get_cand_counts()
+        old_cand_counts_list[filter_idx] = cand_counts_after_filter
 
         # If any candidates have changed, start over from the first filter.
         # Otherwise, move on to the next filter in the list on the next pass.
-        if np.any(changed_nodes):
+        if np.any(cand_counts_after_filter < cand_counts):
             filter_idx = 0
         else:
             filter_idx += 1
+            
+        cand_counts = cand_counts_after_filter
+
+        # If some template node has no candidates, there are no isomorphisms
+        if np.any(cand_counts == 0):
+            tmplt.is_cand[:,:] = False
+            break
             
         # TODO: make logging less cumbersome
         if verbose:

@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 from .all_filters import all_filters
+from ..utils.misc import one_hot
 
 def centrality_ordered_node_idxs(tmplt):
     """
@@ -40,9 +41,6 @@ def elimination_filter(tmplt, world,
     results in all of the candidates disappearing, that candidate is
     eliminated
     """
-    print("#######################################################")
-    print(changed_nodes)
-
     nbr_counts = tmplt.is_nbr.sum(axis=1).flat
 
     n_skipped = 0
@@ -52,9 +50,8 @@ def elimination_filter(tmplt, world,
         
         n_candidates = np.sum(tmplt.is_cand[node_idx])
         # If the node only has one candidate, there is no need to check it
-        # TODO: is the following statement true? (next 2 lines of comments)
-        # If the node only has one neighbor, topology filter would already
-        # have filtered it out.
+        # If the node only has one neighbor, there is no point in filtering on
+        # it since it will be taken care of by filtering on its one neighbor
         if n_candidates == 1 or nbr_counts[node_idx] == 1:
             # print("skipping", tmplt.nodes[node_idx])
             n_skipped += 1
@@ -64,32 +61,29 @@ def elimination_filter(tmplt, world,
             print("trying", tmplt.nodes[node_idx], "which has",
                   n_candidates, "candidates")
                   
-        outer_changed_nodes = np.zeros(tmplt.nodes.shape)
+        changed_nodes = np.zeros(tmplt.nodes.shape)
 
         cand_idxs = np.argwhere(tmplt.is_cand[node_idx]).flat
         for i, cand_idx in enumerate(cand_idxs):
             # Don't modify the original template unless you mean to
             tmplt_copy = tmplt.copy()
-            tmplt_copy.is_cand[node_idx, :] = False
-            tmplt_copy.is_cand[node_idx, cand_idx] = True
-            changed_nodes = np.zeros(tmplt.nodes.shape)
-            changed_nodes[node_idx] = 1
+            tmplt_copy.is_cand[node_idx, :] = one_hot(cand_idx, tmplt.n_cands)
                 
             if verbose and i % 10 == 0:
                 print("cand {} of {}".format(i, len(cand_idxs)))
                 
-            all_filters(tmplt_copy, world, elimination=False,
-                        initial_changed_nodes=changed_nodes, verbose=False)
+            all_filters(tmplt_copy, world, elimination=False, verbose=False,
+                        initial_changed_nodes=one_hot(node_idx, tmplt.n_nodes))
 
             # TODO: add something to the data structure so we can check this
             # without have to do the summation every time
             if np.sum(tmplt_copy.is_cand) == 0:
                 tmplt.is_cand[node_idx, cand_idx] = False
-                outer_changed_nodes[node_idx] = True
+                changed_nodes[node_idx] = True
 
-        if np.any(outer_changed_nodes):
+        if np.any(changed_nodes):
             all_filters(tmplt, world, elimination=False,
-                        initial_changed_nodes=outer_changed_nodes, verbose=False)
+                        initial_changed_nodes=changed_nodes, verbose=False)
             if verbose:
                 tmplt.summarize()
     if verbose:
