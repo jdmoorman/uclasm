@@ -12,22 +12,20 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj, world_adj)
         yield (tmplt_adj.T, world_adj.T)
 
-def topology_filter(tmplt, world, changed_node_idxs=None, **kwargs):
+def topology_filter(tmplt, world, changed_nodes=None, **kwargs):
     """
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
     it is connected by sufficiently many edges in each channel and direction.
     
-    changed_node_idxs: idxs of nodes in the template whose candidates have
-                       changed since the last time this filter ran
+    changed_nodes: boolean array indicating which nodes in the template have 
+                   candidates that have changed since last time this ran
     """
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
-        if changed_node_idxs is not None:
+        if changed_nodes is not None:
             # If neither the source nor destination has changed, there is no
-            # in filtering on this pair of nodes
-            src_changed = src_idx in changed_node_idxs
-            dst_changed = dst_idx in changed_node_idxs
-            if not (src_changed or dst_changed):
+            # point in filtering on this pair of nodes
+            if not (changed_nodes[src_idx] or changed_nodes[dst_idx]):
                 continue
 
         # get indicators of candidate nodes in the world adjacency matrices

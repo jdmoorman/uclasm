@@ -41,20 +41,7 @@ for channel in channels:
 tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)
 world = uclasm.World(world_nodes, channels, world_adj_mats)
 
-tmplt.summarize()
-
-uclasm.stats_filter(tmplt, world)
-uclasm.topology_filter(tmplt, world)
-
-tmplt.is_cand[[0,1],:] = False
-tmplt.is_cand[:,[0,1]] = True
-tmplt.is_cand[0,1] = False
-
-tmplt.summarize()
-
-uclasm.permutation_filter(tmplt, world)
-
-tmplt.summarize()
+uclasm.all_filters(tmplt, world, verbose=True)
 
 # At this point, the template and world networks have been constructed and we
 # can start the real work

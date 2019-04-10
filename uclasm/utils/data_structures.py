@@ -90,6 +90,13 @@ class _GraphWithCandidates(_Graph):
         """
         node_idx = self.node_idxs[node]
         return self.cands[self.is_cand[node_idx]]
+        
+    # TODO: use this function anywhere it is currently being calculated manually
+    def get_cand_counts(self):
+        """
+        Returns a 1d array of the number of candidates for each node
+        """
+        return self.is_cand.sum(axis=1)
 
     def reduce_cands(self, node, candidates):
         """
