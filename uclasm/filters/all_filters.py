@@ -13,7 +13,7 @@ def all_filters(tmplt, world,
                 max_iter=-1,
                 initial_changed_nodes=None):
     """
-    
+    Repeatedly run the desired filters until the candidates converge
     """
     # Construct a list of the desired filters from least to most expensive
     filters = []
