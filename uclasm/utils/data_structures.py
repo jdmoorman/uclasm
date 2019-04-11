@@ -20,15 +20,31 @@ class _Graph:
         self.nodes = np.array(nodes)
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(nodes)
-        
-        # TODO: don't bother computing the things below until/unless needed
-        
-        # Square boolean array of size self.n_nodes. Entries take value 1
-        # if i is neighbors with j and 0 otherwise. Two nodes are neighbors if
-        # they are connected by an edge
-        self.composite_adj = sum(adjs)
-        self.sym_composite_adj = self.composite_adj + self.composite_adj.T
-        self.is_nbr = self.sym_composite_adj > 0
+
+        self._composite_adj = None
+        self._sym_composite_adj = None
+        self._is_nbr = None
+    
+    @property
+    def composite_adj(self):
+        if self._composite_adj is None:
+            self._composite_adj = sum(self.ch_to_adj.values())
+
+        return self._composite_adj
+    
+    @property
+    def sym_composite_adj(self):
+        if self._sym_composite_adj is None:
+            self._sym_composite_adj = self.composite_adj + self.composite_adj.T
+
+        return self._sym_composite_adj
+    
+    @property
+    def is_nbr(self):
+        if self._is_nbr is None:
+            self._is_nbr = self.sym_composite_adj > 0
+            
+        return self._is_nbr
     
     @property
     def channels(self):
