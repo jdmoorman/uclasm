@@ -6,9 +6,10 @@ def one_hot(idx, length):
     return one_hot
 
 def index_map(arg_list):
-    # return a dict mapping elements of the list to their indices
+    """return a dict mapping elements of the list to their indices"""
     return {elm: idx for idx, elm in enumerate(arg_list)}
 
+# TODO: change the name of this function
 def invert(dict_of_sets):
     new_dict = {}
     for k,v in dict_of_sets.items():

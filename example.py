@@ -9,8 +9,8 @@ from scipy import sparse
 n_channels = 2
 n_tmplt_nodes = 5
 n_world_nodes = 100
-tmplt_p = 0.9
-world_p = 0.9
+tmplt_p = 0.85
+world_p = 0.8
 
 # Now generate world and template graphs, inserting a signal in the top left
 
@@ -36,17 +36,12 @@ for channel in channels:
 
     tmplt_adj_mats.append(sparse.csc_matrix(tmplt_adj))
     world_adj_mats.append(sparse.csc_matrix(world_adj))
+    
 
 # initial candidate set for template nodes is the full set of world nodes
 tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)
 world = uclasm.World(world_nodes, channels, world_adj_mats)
 
-uclasm.all_filters(tmplt, world, elimination=True, verbose=True)
+n_isomorphisms = uclasm.count_isomorphisms(tmplt, world)
 
-# At this point, the template and world networks have been constructed and we
-# can start the real work
-
-
-# all_filters(tmplt, world, verbose=True)
-# 
-# print("\nThere are {} isomorphisms\n".format(count_isomorphisms(tmplt, world)))
+print("\nFound", n_isomorphisms, "isomorphisms")

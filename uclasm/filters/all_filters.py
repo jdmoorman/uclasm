@@ -63,22 +63,34 @@ def all_filters(tmplt, world,
             changed_nodes = cand_counts < old_cand_counts
         else:
             changed_nodes = initial_changed_nodes
-        
-        # TODO: create an object we can use like `with Timer()`
-        start_time = time.time()
-        
-        # TODO: we could get rid of the `verbose` flag using a singleton
-        # logger that stores a global `verbose` property
-        if verbose:
-            print("running", filter.__name__)
             
-        # Run whatever filter and the permutation filter
-        filter(tmplt, world, changed_nodes=changed_nodes, verbose=verbose)
-        filters_so_far.append(filter.__name__.replace("_filter", ""))
-        if permutation:
-            permutation_filter(tmplt, world)
-            # Omit permutation filter from the list of filters run so far
-        
+        # If any template nodes have candidates that have changed since the 
+        # last time this filter was run, go ahead and run the filter.
+        if np.any(changed_nodes):
+            # TODO: create an object we can use like `with Timer()`
+            start_time = time.time()
+            
+            # TODO: we could get rid of the `verbose` flag using a singleton
+            # logger that stores a global `verbose` property
+            if verbose:
+                print("running", filter.__name__)
+            
+            # Run whatever filter and the permutation filter
+            filter(tmplt, world, changed_nodes=changed_nodes, verbose=verbose)
+            filters_so_far.append(filter.__name__.replace("_filter", ""))
+            if permutation:
+                permutation_filter(tmplt, world)
+                # Omit permutation filter from the list of filters run so far
+            
+            # TODO: make logging less cumbersome
+            if verbose:
+                end_time = time.time()
+                tmplt.summarize()
+                print("after", filter.__name__,
+                      "on iteration", len(filters_so_far),
+                      "took", end_time - start_time, "seconds")
+                print("filters so far: {}".format(" ".join(filters_so_far)))
+            
         cand_counts_after_filter = tmplt.get_cand_counts()
         old_cand_counts_list[filter_idx] = cand_counts_after_filter
 
@@ -95,15 +107,6 @@ def all_filters(tmplt, world,
         if np.any(cand_counts == 0):
             tmplt.is_cand[:,:] = False
             break
-            
-        # TODO: make logging less cumbersome
-        if verbose:
-            end_time = time.time()
-            tmplt.summarize()
-            print("after", filter.__name__,
-                  "on iteration", len(filters_so_far),
-                  "took", end_time - start_time, "seconds")
-            print("filters so far: {}".format(" ".join(filters_so_far)))
 
     if verbose:
         print("filters are done.")

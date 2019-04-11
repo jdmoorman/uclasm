@@ -70,6 +70,8 @@ class _Graph:
 
 
 class _GraphWithCandidates(_Graph):
+    # TODO: add flag to indicate whether any node has any candidates
+    
     def __init__(self, candidates, nodes, channels, adjs, is_cand=None):
         super().__init__(nodes, channels, adjs)
         
@@ -98,15 +100,6 @@ class _GraphWithCandidates(_Graph):
         Returns a 1d array of the number of candidates for each node
         """
         return self.is_cand.sum(axis=1)
-
-    def reduce_cands(self, node, candidates):
-        """
-        New candidates for `node` are the intersection of its old candidates
-        and the candidates passed in `candidates`
-        """
-        node_idx = self.node_idxs(node)
-        is_cand = np.isin(self.cands, candidates)
-        self.is_cand[node_idx] &= is_cand
 
     def summarize(self):
         # Nodes that have only one candidate

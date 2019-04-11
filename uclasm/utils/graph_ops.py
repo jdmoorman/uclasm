@@ -1,27 +1,27 @@
+from .misc import one_hot
+import numpy as np
 
-
-
-# TODO: get rid of reliance on networkx through nxgraph
-
+# TODO: return the indices in the order they were found. most to least neighbors
+# TODO: make a function for getting a node cover, use that function here.
 def get_unspec_cover(tmplt):
     """
     get a reasonably small set of template nodes which, if removed, would cause
     all of the remaining template nodes with multiple candidates to become
     disconnected
     """
-
-    unspec_node_idxs = [list(tmplt.nodes).index(node)
-                    for node, cands in tmplt.candidate_sets.items()
-                    if len(cands) > 1]
-    unspec_subgraph = tmplt._nxgraph.subgraph(unspec_node_idxs)
-    nxgraph = unspec_subgraph.to_undirected()
-    node_cover = []
-    while nxgraph.number_of_edges() > 0:
-        degrees = {n: d for n, d in nxgraph.degree()}
-        max_nbr_node = max(nxgraph.nodes,
-                           key=lambda n:
-                                (len(list(nxgraph.neighbors(n))),
-                                 -len(tmplt.candidate_sets[tmplt.nodes[n]])))
-        node_cover.append(max_nbr_node)
-        nxgraph.remove_node(max_nbr_node)
-    return tmplt.nodes[node_cover]
+    # Ones correspond to template nodes with at least one candidate
+    unspec = tmplt.get_cand_counts() > 1
+    
+    # Initially there are no nodes in the cover. We add them one by one below.
+    uncovered = unspec.copy()
+    
+    # Until the cover disconnects the unspec nodes, add a node to the cover
+    while tmplt.is_nbr[uncovered, :][:, uncovered].count_nonzero():
+        # Add the unspec node with the most neighbors to the cover
+        nbr_counts = np.sum(tmplt.is_nbr[uncovered, :][:, uncovered], axis=0)
+        
+        # TODO: make this line less ugly
+        uncovered[uncovered] = ~one_hot(np.argmax(nbr_counts),
+                                        np.sum(uncovered))
+    
+    return np.argwhere(unspec ^ uncovered).flat
