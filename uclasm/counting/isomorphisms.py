@@ -45,7 +45,7 @@ def recursive_isomorphism_counter(
     return n_isomorphisms
 
 
-def count_isomorphisms(tmplt, world, verbose=True):
+def count_isomorphisms(tmplt, world, verbose=True, filter_first=False):
     """
     counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -55,10 +55,16 @@ def count_isomorphisms(tmplt, world, verbose=True):
     if the set of unspecified template nodes is too large or too densely
     connected, this code may never finish.
     """
-    all_filters(tmplt, world, elimination=True, verbose=verbose)
+    
+    if filter_first:
+        all_filters(tmplt, world, elimination=True, verbose=verbose)
+        initial_changed_nodes = np.zeros(tmplt.nodes.shape)
+    else:
+        initial_changed_nodes = np.ones(tmplt.nodes.shape)
+        
     unspec_cover = get_unspec_cover(tmplt)
     
     # Send zeros to initial_changed_nodes since we already just ran the filters
     return recursive_isomorphism_counter(
         tmplt, world, verbose=verbose, unspec_cover=unspec_cover,
-        initial_changed_nodes=np.zeros(tmplt.nodes.shape))
+        initial_changed_nodes=initial_changed_nodes)

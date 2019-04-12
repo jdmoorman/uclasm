@@ -46,9 +46,6 @@ def count_alldiffs(var_to_vals):
     count the number of ways to assign vars to vals without using any val for
     more than one var. ie. count solns to alldiff problem, where the variables
     are the keys of var_to_vals, and the domains are the values.
-
-    exact_cand_count: Avoids overcounting by keeping track of previously used
-        sets of candidates and adjusting the count down
     """
     
     # TODO: can this function be vectorized?
