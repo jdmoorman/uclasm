@@ -24,5 +24,5 @@ def values_map_to_same_key(dict_of_sets):
     for key, value_set in dict_of_sets.items():
         frozen_value_set = frozenset(value_set)
         matches[frozen_value_set] = matches.get(frozen_value_set, set()) | {key}
-    
+
     return matches

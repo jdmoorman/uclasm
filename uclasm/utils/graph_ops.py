@@ -11,17 +11,17 @@ def get_unspec_cover(tmplt):
     """
     # Ones correspond to template nodes with at least one candidate
     unspec = tmplt.get_cand_counts() > 1
-    
+
     # Initially there are no nodes in the cover. We add them one by one below.
     uncovered = unspec.copy()
-    
+
     # Until the cover disconnects the unspec nodes, add a node to the cover
     while tmplt.is_nbr[uncovered, :][:, uncovered].count_nonzero():
         # Add the unspec node with the most neighbors to the cover
         nbr_counts = np.sum(tmplt.is_nbr[uncovered, :][:, uncovered], axis=0)
-        
+
         # TODO: make this line less ugly
         uncovered[uncovered] = ~one_hot(np.argmax(nbr_counts),
                                         np.sum(uncovered))
-    
+
     return np.argwhere(unspec ^ uncovered).flat

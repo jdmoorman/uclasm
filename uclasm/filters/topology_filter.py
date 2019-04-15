@@ -17,8 +17,8 @@ def topology_filter(tmplt, world, changed_nodes=None, **kwargs):
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
     it is connected by sufficiently many edges in each channel and direction.
-    
-    changed_nodes: boolean array indicating which nodes in the template have 
+
+    changed_nodes: boolean array indicating which nodes in the template have
                    candidates that have changed since last time this ran
     """
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
@@ -44,13 +44,13 @@ def topology_filter(tmplt, world, changed_nodes=None, **kwargs):
             # sub adjacency matrix corresponding to edges from the source
             # candidates to the destination candidates
             world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
-            
+
             partial_enough_edges = world_sub_adj >= tmplt_adj_val
             if enough_edges is None:
                 enough_edges = partial_enough_edges
             else:
                 enough_edges = enough_edges.multiply(partial_enough_edges)
-        
+
         # # i,j element is 1 if cands i and j have enough edges between them
         # enough_edges = reduce(mul, enough_edges_list, 1)
 

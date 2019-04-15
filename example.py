@@ -36,7 +36,7 @@ for channel in channels:
 
     tmplt_adj_mats.append(sparse.csc_matrix(tmplt_adj))
     world_adj_mats.append(sparse.csc_matrix(world_adj))
-    
+
 
 # initial candidate set for template nodes is the full set of world nodes
 tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)

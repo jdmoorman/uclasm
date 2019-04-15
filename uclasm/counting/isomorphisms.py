@@ -18,7 +18,7 @@ def recursive_isomorphism_counter(
                     initial_changed_nodes=initial_changed_nodes)
         node_to_cands = {node: tmplt.get_cands(node) for node in tmplt.nodes}
         return count_alldiffs(node_to_cands)
-        
+
     all_filters(tmplt, world, elimination=True, verbose=False,
                 initial_changed_nodes=initial_changed_nodes)
 
@@ -55,15 +55,15 @@ def count_isomorphisms(tmplt, world, verbose=True, filter_first=False):
     if the set of unspecified template nodes is too large or too densely
     connected, this code may never finish.
     """
-    
+
     if filter_first:
         all_filters(tmplt, world, elimination=True, verbose=verbose)
         initial_changed_nodes = np.zeros(tmplt.nodes.shape)
     else:
         initial_changed_nodes = np.ones(tmplt.nodes.shape)
-        
+
     unspec_cover = get_unspec_cover(tmplt)
-    
+
     # Send zeros to initial_changed_nodes since we already just ran the filters
     return recursive_isomorphism_counter(
         tmplt, world, verbose=verbose, unspec_cover=unspec_cover,
