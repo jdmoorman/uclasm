@@ -61,9 +61,7 @@ class _Graph:
         a pair of neighbors in the graph. Each pair is only returned once, so
         for example only one of (0,3) and (3,0) could appear as rows.
         """
-        pairs = np.argwhere(self.is_nbr)
-        pairs.sort()
-        return np.unique(pairs, axis=0)
+        return np.argwhere(sparse.tril(self.is_nbr))
 
     def subgraph(self, node_idxs):
         """
