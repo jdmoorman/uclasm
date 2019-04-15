@@ -7,7 +7,7 @@ def centrality_ordered_node_idxs(tmplt):
     """
     Use some arbitrary heuristics to sort the idxs of the template nodes.
     """
-    
+
     # construct a dict mapping node_idx to the largest k for which it appears
     # in the k-core of the template
     node_idx_to_max_k = {}
@@ -24,7 +24,7 @@ def centrality_ordered_node_idxs(tmplt):
 
     # The higher the max-k-core of the node, the more important it is
     metric_nbr_count = lambda node_idx: -nbr_counts[node_idx]
-    
+
     # TODO: optimize over metric orders
     # Put the metrics in some arbitrary order
     metrics = [metric_cand_count, metric_nbr_count, metric_degree]
@@ -45,9 +45,6 @@ def elimination_filter(tmplt, world,
 
     n_skipped = 0
     for node_idx in centrality_ordered_node_idxs(tmplt):
-        if (changed_nodes is not None) and not changed_nodes[node_idx]:
-            continue
-        
         n_candidates = np.sum(tmplt.is_cand[node_idx])
         # If the node only has one candidate, there is no need to check it
         # If the node only has one neighbor, there is no point in filtering on
@@ -56,22 +53,22 @@ def elimination_filter(tmplt, world,
             # print("skipping", tmplt.nodes[node_idx])
             n_skipped += 1
             continue
-        
+
         if verbose:
             print("trying", tmplt.nodes[node_idx], "which has",
                   n_candidates, "candidates")
-                  
-        changed_nodes = np.zeros(tmplt.nodes.shape)
+
+        initial_changed_nodes = np.zeros(tmplt.nodes.shape)
 
         cand_idxs = np.argwhere(tmplt.is_cand[node_idx]).flat
         for i, cand_idx in enumerate(cand_idxs):
             # Don't modify the original template unless you mean to
             tmplt_copy = tmplt.copy()
             tmplt_copy.is_cand[node_idx, :] = one_hot(cand_idx, tmplt.n_cands)
-                
+
             if verbose and i % 10 == 0:
                 print("cand {} of {}".format(i, len(cand_idxs)))
-                
+
             all_filters(tmplt_copy, world, elimination=False, verbose=False,
                         initial_changed_nodes=one_hot(node_idx, tmplt.n_nodes))
 
@@ -79,12 +76,12 @@ def elimination_filter(tmplt, world,
             # without have to do the summation every time
             if np.sum(tmplt_copy.is_cand) == 0:
                 tmplt.is_cand[node_idx, cand_idx] = False
-                changed_nodes[node_idx] = True
+                initial_changed_nodes[node_idx] = True
 
-        if np.any(changed_nodes):
+        if np.any(initial_changed_nodes):
             all_filters(tmplt, world, elimination=False,
-                        initial_changed_nodes=changed_nodes, verbose=False)
-            if verbose:
-                tmplt.summarize()
+                        initial_changed_nodes=initial_changed_nodes,
+                        verbose=False)
+
     if verbose:
         print("Elimination filter finished, skipped {} nodes".format(n_skipped))
