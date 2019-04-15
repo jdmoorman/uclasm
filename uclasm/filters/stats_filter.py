@@ -22,30 +22,30 @@ def compute_features(graph, channels=None, is_cand_any=None):
             adj = adj[is_cand_any, :][:, is_cand_any]
 
         # in degree
-        features.append(adj.sum(axis=0))
+        features.append(adj.sum(axis=0).A)
 
         # out degree
-        features.append(adj.sum(axis=1).T)
+        features.append(adj.sum(axis=1).T.A)
 
         # max in edge multiplicity
-        features.append(adj.max(axis=0).todense())
+        features.append(adj.max(axis=0).A)
 
         # max out edge multiplicity
-        features.append(adj.max(axis=1).todense().T)
+        features.append(adj.max(axis=1).todense().T.A)
 
         # neighbors coming in
-        features.append((adj > 0).sum(axis=0))
+        features.append((adj > 0).sum(axis=0).A)
 
         # neighbors going out
-        features.append((adj > 0).sum(axis=1).T)
+        features.append((adj > 0).sum(axis=1).T.A)
 
         # self edges
         features.append(np.reshape(adj.diagonal(), (1, -1)))
 
         # reciprocated edges
-        features.append(adj.multiply(adj.T).sum(axis=0))
+        features.append(adj.multiply(adj.T).sum(axis=0).A)
 
-    return np.stack(features)
+    return np.concatenate(features, axis=0)
 
 def stats_filter(tmplt, world, verbose=False, **kwargs):
     # Boolean array indicating if a given world node is a candidate for any
@@ -62,8 +62,7 @@ def stats_filter(tmplt, world, verbose=False, **kwargs):
                                    is_cand_any=is_cand_any)
 
     for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
-        tmplt_node_feats = tmplt_feats[:, tmplt_node_idx]
+        tmplt_node_feats = tmplt_feats[:, [tmplt_node_idx]]
         new_is_cand = np.all(world_feats >= tmplt_node_feats, axis=0)
 
-        # TODO: transpose the features so we don't need this .flat
-        tmplt.is_cand[tmplt_node_idx,is_cand_any] &= new_is_cand.flat
+        tmplt.is_cand[tmplt_node_idx,is_cand_any] &= new_is_cand
