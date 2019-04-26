@@ -5,6 +5,7 @@ import numpy as np
 def all_filters(tmplt, world, 
                 stats=True,
                 topology=True,
+                neighborhood=False,
                 elimination=False, 
                 permutation=True,
                 verbose=False,
@@ -21,6 +22,9 @@ def all_filters(tmplt, world,
     if topology:
         from .topology_filter import topology_filter
         filters.append(topology_filter)
+    if neighborhood:
+        from .neighborhood_filter import neighborhood_filter
+        filters.append(neighborhood_filter)
     if elimination:
         from .elimination_filter import elimination_filter
         filters.append(elimination_filter)
