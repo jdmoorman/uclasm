@@ -9,12 +9,6 @@ import time
 # TODO: utilize `changed_nodes`
 
 def get_edge_seqs(graph, channels=None, nodes=None):
-    """
-    Returns a map keyed by node ids, values are 2-tuples. first element of
-    each value is a list of nbrs, second value is the edges to and from
-    each neighbor.
-    """
-    
     if channels is None:
         channels = graph.ch_to_adj.keys()
 
