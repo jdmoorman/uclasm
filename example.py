@@ -42,7 +42,7 @@ for channel in channels:
 tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)
 world = uclasm.World(world_nodes, channels, world_adj_mats)
 
-uclasm.run_filters(tmplt, world, elimination=True, verbose=True)
+uclasm.run_filters(tmplt, world, uclasm.all_filters, verbose=True)
 n_isomorphisms = uclasm.count_isomorphisms(tmplt, world, verbose=False)
 
 print("\nFound", n_isomorphisms, "isomorphisms")

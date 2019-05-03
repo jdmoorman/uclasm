@@ -1,34 +1,15 @@
 import copy
 import time
 import numpy as np
+from .permutation_filter import permutation_filter
 
-def run_filters(tmplt, world, 
-                stats=True,
-                topology=True,
-                elimination=False,
-                permutation=True,
+def run_filters(tmplt, world, filters,
                 verbose=False,
                 max_iter=-1,
                 initial_changed_nodes=None):
     """
     Repeatedly run the desired filters until the candidates converge
     """
-    # Construct a list of the desired filters from least to most expensive
-    filters = []
-    if stats:
-        from .stats_filter import stats_filter
-        filters.append(stats_filter)
-    if topology:
-        from .topology_filter import topology_filter
-        filters.append(topology_filter)
-    if elimination:
-        from .elimination_filter import elimination_filter
-        filters.append(elimination_filter)
-
-    # Permutation filter runs after every other filter, so no need to append
-    # it to the list of filters
-    if permutation:
-        from .permutation_filter import permutation_filter
 
     # Construct a list of the filters that have been run for reference when
     # evaluating performance. This is appended to repeatedly in the loop below
@@ -73,9 +54,7 @@ def run_filters(tmplt, world,
             # Run whatever filter and the permutation filter
             filter(tmplt, world, changed_nodes=changed_nodes, verbose=verbose)
             filters_so_far.append(filter.__name__.replace("_filter", ""))
-            if permutation:
-                permutation_filter(tmplt, world)
-                # Omit permutation filter from the list of filters run so far
+            permutation_filter(tmplt, world)
 
             # TODO: make logging less cumbersome
             if verbose:

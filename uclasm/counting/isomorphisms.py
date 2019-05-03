@@ -1,4 +1,4 @@
-from ..filters.run_filters import run_filters
+from ..filters import run_filters, cheap_filters, all_filters
 from ..utils.misc import invert, values_map_to_same_key, one_hot
 from ..utils.graph_ops import get_unspec_cover
 from .alldiffs import count_alldiffs
@@ -14,12 +14,12 @@ def recursive_isomorphism_counter(
     # can skip straight to counting solutions to the alldiff constraint problem
     if len(unspec_cover) == 0:
         # Elimination filter is not needed here and would be a waste of time
-        run_filters(tmplt, world, verbose=False,
+        run_filters(tmplt, world, cheap_filters, verbose=False,
                     initial_changed_nodes=initial_changed_nodes)
         node_to_cands = {node: tmplt.get_cands(node) for node in tmplt.nodes}
         return count_alldiffs(node_to_cands)
 
-    run_filters(tmplt, world, elimination=True, verbose=False,
+    run_filters(tmplt, world, all_filters, verbose=False,
                 initial_changed_nodes=initial_changed_nodes)
 
     # Since the node cover is not empty, we first choose some valid
@@ -57,7 +57,7 @@ def count_isomorphisms(tmplt, world, verbose=True, filter_first=False):
     """
 
     if filter_first:
-        run_filters(tmplt, world, elimination=True, verbose=verbose)
+        run_filters(tmplt, world, all_filters, verbose=verbose)
         initial_changed_nodes = np.zeros(tmplt.nodes.shape)
     else:
         initial_changed_nodes = np.ones(tmplt.nodes.shape)
