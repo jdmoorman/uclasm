@@ -36,13 +36,13 @@ for channel in channels:
 
     tmplt_adj_mats.append(sparse.csc_matrix(tmplt_adj))
     world_adj_mats.append(sparse.csc_matrix(world_adj))
-    
+
 
 # initial candidate set for template nodes is the full set of world nodes
 tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)
 world = uclasm.World(world_nodes, channels, world_adj_mats)
 
-uclasm.all_filters(tmplt, world, elimination=True, verbose=True)
+uclasm.run_filters(tmplt, world, elimination=True, verbose=True)
 n_isomorphisms = uclasm.count_isomorphisms(tmplt, world, verbose=False)
 
 print("\nFound", n_isomorphisms, "isomorphisms")

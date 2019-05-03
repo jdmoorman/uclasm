@@ -1,6 +1,6 @@
 import numpy as np
 import networkx as nx
-from .all_filters import all_filters
+from .run_filters import run_filters
 from ..utils.misc import one_hot
 
 def centrality_ordered_node_idxs(tmplt):
@@ -69,7 +69,7 @@ def elimination_filter(tmplt, world,
             if verbose and i % 10 == 0:
                 print("cand {} of {}".format(i, len(cand_idxs)))
 
-            all_filters(tmplt_copy, world, elimination=False, verbose=False,
+            run_filters(tmplt_copy, world, elimination=False, verbose=False,
                         initial_changed_nodes=one_hot(node_idx, tmplt.n_nodes))
 
             # TODO: add something to the data structure so we can check this
@@ -79,7 +79,7 @@ def elimination_filter(tmplt, world,
                 initial_changed_nodes[node_idx] = True
 
         if np.any(initial_changed_nodes):
-            all_filters(tmplt, world, elimination=False,
+            run_filters(tmplt, world, elimination=False,
                         initial_changed_nodes=initial_changed_nodes,
                         verbose=False)
 
