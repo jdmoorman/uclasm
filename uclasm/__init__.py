@@ -1,3 +1,3 @@
-from .utils.data_structures import Template, World
+from .utils import *
 from .filters import *
-from .counting.isomorphisms import count_isomorphisms
+from .counting import *

@@ -1,0 +1,17 @@
+Source,Destination,Channel
+a,b,0
+a,b,0
+b,c,1
+c,b,1
+c,d,0
+c,d,0
+d,e,1
+e,d,1
+e,f,0
+e,f,0
+f,g,1
+g,f,1
+g,h,0
+g,h,0
+h,a,1
+a,h,1
