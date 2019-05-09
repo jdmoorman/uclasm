@@ -32,6 +32,7 @@ def run_filters(tmplt, world, filters,
         # TODO: rename old_cand_counts to something more descriptive
         # Update the cand counts for the current filter for next time it runs
         old_cand_counts = old_cand_counts_list[filter_idx]
+        old_cand_counts_list[filter_idx] = cand_counts
 
         # Find the nodes whose candidates have changed since last time this
         # filter was run
@@ -66,7 +67,6 @@ def run_filters(tmplt, world, filters,
                 print("filters so far: {}".format(" ".join(filters_so_far)))
 
         cand_counts_after_filter = tmplt.get_cand_counts()
-        old_cand_counts_list[filter_idx] = cand_counts_after_filter
 
         # If any candidates have changed, start over from the first filter.
         # Otherwise, move on to the next filter in the list on the next pass.
