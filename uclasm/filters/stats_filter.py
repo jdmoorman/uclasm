@@ -17,7 +17,7 @@ def compute_features(graph, channels=None, is_cand_any=None):
     # for each channel, compute some featurers
     for channel in channels:
         adj = graph.ch_to_adj[channel]
-        
+
         if is_cand_any is not None:
             adj = adj[is_cand_any, :][:, is_cand_any]
 
@@ -52,9 +52,9 @@ def stats_filter(tmplt, world, verbose=False, **kwargs):
     # template node. If a world node is not a candidate for any template nodes,
     # we shouldn't bother calculating its features.
     is_cand_any = np.any(tmplt.is_cand, axis=0)
-    
+
     # No candidates for any template node
-    if np.sum(is_cand_any) == 0: 
+    if np.sum(is_cand_any) == 0:
         return
 
     tmplt_feats = compute_features(tmplt)
@@ -64,6 +64,6 @@ def stats_filter(tmplt, world, verbose=False, **kwargs):
     for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
         tmplt_node_feats = tmplt_feats[:, tmplt_node_idx]
         new_is_cand = np.all(world_feats >= tmplt_node_feats, axis=0)
-        
+
         # TODO: transpose the features so we don't need this .flat
         tmplt.is_cand[tmplt_node_idx,is_cand_any] &= new_is_cand.flat

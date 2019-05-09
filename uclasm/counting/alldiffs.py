@@ -28,7 +28,7 @@ def recursive_alldiff_counter(var_to_vars_list, vars_to_val_counts):
         # assign the rest
         n_ways_to_assign_rest = recursive_alldiff_counter(
             var_to_vars_list, vars_to_val_counts)
-                                            
+
         count += n_vals * n_ways_to_assign_rest
 
         # put the count back so we don't mess up the recursion
@@ -47,7 +47,7 @@ def count_alldiffs(var_to_vals):
     more than one var. ie. count solns to alldiff problem, where the variables
     are the keys of var_to_vals, and the domains are the values.
     """
-    
+
     # TODO: can this function be vectorized?
     # TODO: does scipy have a solver for this already?
 
