@@ -9,4 +9,5 @@ Given a pair of multi-channel networks, template and background, attempt to find
     1. `cd [repository directory name]`
     2. `conda env create -f environment.yml`
 4. Activate the environment `conda activate uclasm` or possibly `source activate uclasm`
-5. Try running the example code `python example.py`
+5. Move to the examples directory `cd examples`
+5. Try running the example code `python count_isomorphisms.py`
