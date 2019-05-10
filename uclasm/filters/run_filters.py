@@ -5,6 +5,8 @@ from . import label_filter
 from . import permutation_filter
 from ..utils import summarize
 
+# TODO: logging
+
 def run_filters(tmplt, world, *,
                 candidates=None,
                 filters=None,
@@ -68,10 +70,12 @@ def run_filters(tmplt, world, *,
                 print("running", filter.__name__)
 
             # Run whatever filter and the permutation filter
-            filter(tmplt, world, candidates,
-                   changed_cands=changed_cands, verbose=verbose)
+            tmplt, world, candidates = filter(
+                tmplt, world, candidates, changed_cands=changed_cands,
+                verbose=verbose)
             filters_so_far.append(filter.__name__.replace("_filter", ""))
-            permutation_filter(tmplt, world, candidates)
+            tmplt, world, candidates = permutation_filter(
+                tmplt, world, candidates)
 
             # TODO: make logging less cumbersome
             if verbose:

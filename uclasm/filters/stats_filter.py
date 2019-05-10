@@ -52,3 +52,5 @@ def stats_filter(tmplt, world, candidates, *, verbose=False, **kwargs):
         tmplt_node_feats = tmplt_feats[:, [tmplt_node_idx]]
         new_is_cand = np.all(world_feats >= tmplt_node_feats, axis=0)
         candidates[tmplt_node_idx] &= new_is_cand
+
+    return tmplt, world, candidates

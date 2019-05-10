@@ -35,3 +35,5 @@ def permutation_filter(tmplt, world, candidates, *,
         if match_count > cand_count:
             candidates[:,:] = False
             return
+
+    return tmplt, world, candidates

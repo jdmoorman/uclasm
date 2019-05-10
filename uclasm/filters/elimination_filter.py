@@ -8,10 +8,6 @@ def centrality_ordered_node_idxs(tmplt, world, candidates):
     Use some arbitrary heuristics to sort the idxs of the template nodes.
     """
 
-    # construct a dict mapping node_idx to the largest k for which it appears
-    # in the k-core of the template
-    node_idx_to_max_k = {}
-
     cand_counts = candidates.sum(axis=1)
     degrees = tmplt.sym_composite_adj.sum(axis=1)
     nbr_counts = tmplt.is_nbr.sum(axis=1)
@@ -60,6 +56,7 @@ def elimination_filter(tmplt, world, candidates, *,
 
         init_changed_cands = np.zeros(tmplt.nodes.shape)
 
+        elim_count = 0
         cand_idxs = np.argwhere(candidates[node_idx]).flat
         for i, cand_idx in enumerate(cand_idxs):
             # Don't modify the original template unless you mean to
@@ -69,20 +66,25 @@ def elimination_filter(tmplt, world, candidates, *,
             if verbose and i % 10 == 0:
                 print("cand {} of {}".format(i, len(cand_idxs)))
 
-            run_filters(tmplt, world, candidates=candidates_copy,
-                        filters=cheap_filters, verbose=False,
-                        init_changed_cands=one_hot(node_idx, tmplt.n_nodes))
+            _, _, result_candidates = run_filters(
+                tmplt, world, candidates=candidates_copy, filters=cheap_filters,
+                init_changed_cands=one_hot(node_idx, tmplt.n_nodes),
+                verbose=False)
 
             # TODO: add something to the data structure so we can check this
             # without have to do the summation every time
-            if ~np.all(candidates_copy.any(axis=1)):
+            if ~np.all(result_candidates.any(axis=1)):
+                elim_count += 1
                 candidates[node_idx, cand_idx] = False
                 init_changed_cands[node_idx] = True
 
         if np.any(init_changed_cands):
-            run_filters(tmplt, world, candidates=candidates,
-                        filters=cheap_filters, verbose=False,
-                        init_changed_cands=init_changed_cands)
+            tmplt, world, candidates = run_filters(
+                tmplt, world, candidates=candidates, filters=cheap_filters,
+                init_changed_cands=init_changed_cands, verbose=False)
+        print("Eliminating", elim_count, "of", n_candidates, ";world now has", world.n_nodes, "nodes")
 
     if verbose:
         print("Elimination filter finished, skipped {} nodes".format(n_skipped))
+
+    return tmplt, world, candidates

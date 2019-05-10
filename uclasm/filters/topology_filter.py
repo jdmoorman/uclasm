@@ -63,3 +63,5 @@ def topology_filter(tmplt, world, candidates, *,
             # dsts with at least one reasonable src
             dst_matches = enough_edges.getnnz(axis=0) > 0
             candidates[dst_idx][dst_is_cand] = dst_matches
+            
+    return tmplt, world, candidates
