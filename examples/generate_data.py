@@ -42,5 +42,5 @@ for channel in channels:
 
 
 # initial candidate set for template nodes is the full set of world nodes
-tmplt = uclasm.Template(world_nodes, tmplt_nodes, channels, tmplt_adj_mats)
-world = uclasm.World(world_nodes, channels, world_adj_mats)
+tmplt = uclasm.Graph(tmplt_nodes, channels, tmplt_adj_mats)
+world = uclasm.Graph(world_nodes, channels, world_adj_mats)

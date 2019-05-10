@@ -3,7 +3,7 @@ import networkx as nx
 from . import run_filters, cheap_filters
 from ..utils.misc import one_hot
 
-def centrality_ordered_node_idxs(tmplt):
+def centrality_ordered_node_idxs(tmplt, world, candidates):
     """
     Use some arbitrary heuristics to sort the idxs of the template nodes.
     """
@@ -12,7 +12,7 @@ def centrality_ordered_node_idxs(tmplt):
     # in the k-core of the template
     node_idx_to_max_k = {}
 
-    cand_counts = tmplt.is_cand.sum(axis=1)
+    cand_counts = candidates.sum(axis=1)
     degrees = tmplt.sym_composite_adj.sum(axis=1)
     nbr_counts = tmplt.is_nbr.sum(axis=1)
 
@@ -32,8 +32,8 @@ def centrality_ordered_node_idxs(tmplt):
 
     return sorted(range(tmplt.n_nodes), key=metric_tuple)
 
-def elimination_filter(tmplt, world,
-                       changed_nodes=None,
+def elimination_filter(tmplt, world, candidates, *,
+                       changed_cands=None,
                        verbose=False,
                        **kwargs):
     """
@@ -44,8 +44,8 @@ def elimination_filter(tmplt, world,
     nbr_counts = tmplt.is_nbr.sum(axis=1).flat
 
     n_skipped = 0
-    for node_idx in centrality_ordered_node_idxs(tmplt):
-        n_candidates = np.sum(tmplt.is_cand[node_idx])
+    for node_idx in centrality_ordered_node_idxs(tmplt, world, candidates):
+        n_candidates = np.sum(candidates[node_idx])
         # If the node only has one candidate, there is no need to check it
         # If the node only has one neighbor, there is no point in filtering on
         # it since it will be taken care of by filtering on its one neighbor
@@ -58,29 +58,31 @@ def elimination_filter(tmplt, world,
             print("trying", tmplt.nodes[node_idx], "which has",
                   n_candidates, "candidates")
 
-        initial_changed_nodes = np.zeros(tmplt.nodes.shape)
+        init_changed_cands = np.zeros(tmplt.nodes.shape)
 
-        cand_idxs = np.argwhere(tmplt.is_cand[node_idx]).flat
+        cand_idxs = np.argwhere(candidates[node_idx]).flat
         for i, cand_idx in enumerate(cand_idxs):
             # Don't modify the original template unless you mean to
-            tmplt_copy = tmplt.copy()
-            tmplt_copy.is_cand[node_idx, :] = one_hot(cand_idx, tmplt.n_cands)
+            candidates_copy = candidates.copy()
+            candidates_copy[node_idx, :] = one_hot(cand_idx, world.n_nodes)
 
             if verbose and i % 10 == 0:
                 print("cand {} of {}".format(i, len(cand_idxs)))
 
-            run_filters(tmplt_copy, world, cheap_filters, verbose=False,
-                        initial_changed_nodes=one_hot(node_idx, tmplt.n_nodes))
+            run_filters(tmplt, world, candidates=candidates_copy,
+                        filters=cheap_filters, verbose=False,
+                        init_changed_cands=one_hot(node_idx, tmplt.n_nodes))
 
             # TODO: add something to the data structure so we can check this
             # without have to do the summation every time
-            if np.sum(tmplt_copy.is_cand) == 0:
-                tmplt.is_cand[node_idx, cand_idx] = False
-                initial_changed_nodes[node_idx] = True
+            if ~np.all(candidates_copy.any(axis=1)):
+                candidates[node_idx, cand_idx] = False
+                init_changed_cands[node_idx] = True
 
-        if np.any(initial_changed_nodes):
-            run_filters(tmplt, world, cheap_filters, verbose=False,
-                        initial_changed_nodes=initial_changed_nodes)
+        if np.any(init_changed_cands):
+            run_filters(tmplt, world, candidates=candidates,
+                        filters=cheap_filters, verbose=False,
+                        init_changed_cands=init_changed_cands)
 
     if verbose:
         print("Elimination filter finished, skipped {} nodes".format(n_skipped))

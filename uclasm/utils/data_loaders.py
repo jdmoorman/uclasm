@@ -76,8 +76,6 @@ def load_combo(filepath, *,
                            **kwargs)
     edgelist = edgelist[edgelist.vs != node_str][names[1:]]
 
-    print(edgelist)
-
     return edgelist_to_adjs(edgelist, nodelist)
 
 def load_nodelist(filepath, *,

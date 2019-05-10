@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-# TODO: can we use changed_nodes?
+# TODO: can we use changed_cands?
 # TODO: handle world not being reduced to candidates
 
 def compute_features(graph, channels=None, is_cand_any=None):
@@ -47,11 +47,12 @@ def compute_features(graph, channels=None, is_cand_any=None):
 
     return np.concatenate(features, axis=0)
 
-def stats_filter(tmplt, world, verbose=False, **kwargs):
+def stats_filter(tmplt, world, candidates, *,
+                 verbose=False, **kwargs):
     # Boolean array indicating if a given world node is a candidate for any
     # template node. If a world node is not a candidate for any template nodes,
     # we shouldn't bother calculating its features.
-    is_cand_any = np.any(tmplt.is_cand, axis=0)
+    is_cand_any = np.any(candidates, axis=0)
 
     # No candidates for any template node
     if np.sum(is_cand_any) == 0:
@@ -65,4 +66,4 @@ def stats_filter(tmplt, world, verbose=False, **kwargs):
         tmplt_node_feats = tmplt_feats[:, [tmplt_node_idx]]
         new_is_cand = np.all(world_feats >= tmplt_node_feats, axis=0)
 
-        tmplt.is_cand[tmplt_node_idx,is_cand_any] &= new_is_cand
+        candidates[tmplt_node_idx,is_cand_any] &= new_is_cand
