@@ -98,6 +98,15 @@ def run_filters(tmplt, world, *,
             candidates[:,:] = False
             break
 
+        # Which world nodes are candidates for at least one template node?
+        is_cand_any = candidates.any(axis=0)
+
+        # If not all world nodes are candidates for at least one template node
+        if ~is_cand_any.all():
+            # Get rid of unnecessary world nodes
+            world = world.subgraph(is_cand_any)
+            candidates = candidates[:, is_cand_any]
+
     if verbose:
         print("filters are done.")
 
