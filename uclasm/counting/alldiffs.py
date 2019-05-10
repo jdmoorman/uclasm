@@ -3,77 +3,77 @@ import numpy as np
 from functools import reduce
 
 
-# counts the number of ways to assign a particular var, recursing to
-# incorporate ways to assign the next var, and so on
-def recursive_alldiff_counter(var_to_vars_list, vars_to_val_counts):
-    # no vars left to assign
-    if len(var_to_vars_list) == 0:
+# counts the number of ways to assign a particular node, recursing to
+# incorporate ways to assign the next node, and so on
+def recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts):
+    # no nodes left to assign
+    if len(node_to_nodes_list) == 0:
         return 1
 
     count = 0
 
-    # give me an arbitrary unspecified variable
-    var, vars_list = var_to_vars_list.popitem()
+    # give me an arbitrary unspecified nodeiable
+    node, nodes_list = node_to_nodes_list.popitem()
 
-    # for each way of assigning the given variable
-    for vars in vars_list:
-        # how many ways to assign the variable in this way are there?
-        n_vals = vars_to_val_counts[vars]
-        if n_vals == 0:
+    # for each way of assigning the given nodeiable
+    for nodes in nodes_list:
+        # how many ways to assign the nodeiable in this way are there?
+        n_cands = nodes_to_cand_counts[nodes]
+        if n_cands == 0:
             continue
 
-        vars_to_val_counts[vars] -= 1
+        nodes_to_cand_counts[nodes] -= 1
 
-        # number of ways to assign current var times number of ways to
+        # number of ways to assign current node times number of ways to
         # assign the rest
         n_ways_to_assign_rest = recursive_alldiff_counter(
-            var_to_vars_list, vars_to_val_counts)
+            node_to_nodes_list, nodes_to_cand_counts)
 
-        count += n_vals * n_ways_to_assign_rest
+        count += n_cands * n_ways_to_assign_rest
 
         # put the count back so we don't mess up the recursion
-        vars_to_val_counts[vars] += 1
+        nodes_to_cand_counts[nodes] += 1
 
     # put the list back so we don't mess up the recursion
-    var_to_vars_list[var] = vars_list
+    node_to_nodes_list[node] = nodes_list
 
     return count
 
-def count_alldiffs(var_to_vals):
+def count_alldiffs(node_to_cands):
     """
-    var_to_vals: dict(item, list)
+    node_to_cands: dict(item, list)
 
-    count the number of ways to assign vars to vals without using any val for
-    more than one var. ie. count solns to alldiff problem, where the variables
-    are the keys of var_to_vals, and the domains are the values.
+    count the number of ways to assign nodes to cands without using any cand for
+    more than one node. ie. count solns to alldiff problem, where the nodeiables
+    are the keys of node_to_cands, and the domains are the values.
     """
 
     # TODO: can this function be vectorized?
     # TODO: does scipy have a solver for this already?
 
-    # Check if any var has no vals
-    if any(len(vals)==0 for vals in var_to_vals.values()):
+    # Check if any node has no cands
+    if any(len(cands)==0 for cands in node_to_cands.values()):
         return 0
 
-    # TODO: throwing out vars with only one val may not be necessary
-    # if a var has only one possible val, throw it out.
-    var_to_vals = {var: vals for var, vals in var_to_vals.items()
-                   if len(vals) > 1}
+    # TODO: throwing out nodes with only one cand may not be necessary
+    # if a node has only one possible cand, throw it out.
+    node_to_cands = {node: cands for node, cands in node_to_cands.items()
+                   if len(cands) > 1}
 
-    unspec_vars = list(var_to_vals.keys())
+    unspec_nodes = list(node_to_cands.keys())
 
-    # which vars is each val a cand for?
-    val_to_vars = invert(var_to_vals)
+    # which nodes is each cand a cand for?
+    cand_to_nodes = invert(node_to_cands)
 
-    # gather sets of vals which have the same set of possible vars.
-    vars_to_vals = values_map_to_same_key(val_to_vars)
-    vars_to_val_counts = {vars: len(vals)
-                          for vars, vals in vars_to_vals.items()}
+    # gather sets of cands which have the same set of possible nodes.
+    nodes_to_cands = values_map_to_same_key(cand_to_nodes)
+    nodes_to_cand_counts = {nodes: len(cands)
+                          for nodes, cands in nodes_to_cands.items()}
 
-    # each var can belong to multiple sets of vars which key vars_to_val_counts
-    # so here we find out which sets of vars each var belongs to
-    var_to_vars_list = {
-        var: [vars for vars in vars_to_val_counts.keys() if var in vars]
-        for var in var_to_vals}
+    # each node can belong to multiple sets of nodes which key nodes_to_cand_counts
+    # so here we find out which sets of nodes each node belongs to
+    node_to_nodes_list = {
+        node: [nodes for nodes in nodes_to_cand_counts.keys() if node in nodes]
+        for node in node_to_cands}
 
-    return recursive_alldiff_counter(var_to_vars_list, vars_to_val_counts)
+    return recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts)
