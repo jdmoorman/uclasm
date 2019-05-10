@@ -1,19 +1,10 @@
 """
-Filtering algorithms expect data to come in the form of Template, World
-objects.
+Filtering algorithms expect data to come in the form of Graph objects
 """
 
 from .misc import index_map
-import matplotlib.pyplot as plt
 import scipy.sparse as sparse
 import numpy as np
-import networkx as nx
-import pandas as pd
-import functools
-import time
-
-# TODO: get rid of _GraphWithCandidates and filter related data stuff
-# TODO: bring back functions needed for neighborhood filter
 
 class Graph:
     def __init__(self, nodes, channels, adjs, labels=None):
@@ -80,12 +71,12 @@ class Graph:
         adjs = [adj[node_idxs, :][:, node_idxs] for adj in self.adjs]
 
         # Return a new graph object for the induced subgraph
-        return self.__class__(nodes, self.channels, adjs, labels=labels)
+        return Graph(nodes, self.channels, adjs, labels=labels)
 
     def copy(self):
         """
         The only thing this bothers to copy is the adjacency matrices
         """
-        return self.__class__(
-            self.nodes, self.channels, [adj.copy() for adj in self.adjs],
-            labels=self.labels)
+        return Graph(self.nodes, self.channels,
+                     [adj.copy() for adj in self.adjs],
+                     labels=self.labels)
