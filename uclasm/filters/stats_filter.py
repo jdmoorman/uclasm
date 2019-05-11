@@ -2,7 +2,6 @@ import numpy as np
 import time
 
 # TODO: can we use changed_cands?
-# TODO: handle world not being reduced to candidates
 
 def compute_features(graph, channels=None):
     """
@@ -45,9 +44,28 @@ def compute_features(graph, channels=None):
 
     return np.concatenate(features_list, axis=0)
 
+class _cache():
+    tmplt = None
+    tmplt_feats = None
+    world = None
+    world_feats = None
+
 def stats_filter(tmplt, world, candidates, *, verbose=False, **kwargs):
-    tmplt_feats = compute_features(tmplt)
-    world_feats = compute_features(world, channels=tmplt.channels)
+    global _cache
+
+    if tmplt == _cache.tmplt:
+        tmplt_feats = _cache.tmplt_feats
+    else:
+        tmplt_feats = compute_features(tmplt)
+        _cache.tmplt = tmplt
+        _cache.tmplt_feats = tmplt_feats
+
+    if world == _cache.world:
+        world_feats = _cache.world_feats
+    else:
+        world_feats = compute_features(world, channels=tmplt.channels)
+        _cache.world = world
+        _cache.world_feats = world_feats
 
     for tmplt_node_idx, tmplt_node in enumerate(tmplt.nodes):
         tmplt_node_feats = tmplt_feats[:, [tmplt_node_idx]]
