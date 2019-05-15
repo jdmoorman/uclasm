@@ -34,6 +34,6 @@ def permutation_filter(tmplt, world, candidates, *,
         # to be shared there can't be any isomorphisms.
         if match_count > cand_count:
             candidates[:,:] = False
-            return
+            break
 
     return tmplt, world, candidates
