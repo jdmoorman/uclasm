@@ -22,6 +22,9 @@ def summarize(tmplt, world, candidates):
         cands = world.nodes[candidates[tmplt.node_idxs[node]]]
         n_cands = len(cands)
 
+        if n_cands == 1:
+            continue
+
         # TODO: abstract out the getting and setting before and after
         print_opts = np.get_printoptions()
         np.set_printoptions(threshold=10, edgeitems=6)
