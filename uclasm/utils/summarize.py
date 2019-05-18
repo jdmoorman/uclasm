@@ -1,6 +1,6 @@
 import numpy as np
 
-def summarize(tmplt, world, candidates):
+def summarize(tmplt, world, candidates, alert_missing=True):
     cand_counts = candidates.sum(axis=1)
 
     # Nodes that have only one candidate
@@ -36,6 +36,6 @@ def summarize(tmplt, world, candidates):
 
     # This message is useful for debugging datasets for which you have
     # a ground truth signal
-    if n_missing:
+    if n_missing > 0 and alert_missing:
         print(n_missing, "nodes are missing ground truth candidate:",
               missing_ground_truth)

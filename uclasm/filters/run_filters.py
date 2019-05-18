@@ -17,6 +17,8 @@ def run_filters(tmplt, world, *,
     Repeatedly run the desired filters until the candidates converge
     """
 
+    has_gt = len(set(tmplt.nodes) - set(world.nodes)) == 0
+
     # Boolean matrix with i,j entry denoting whether world node j is a candidate
     # for template node i
     if candidates is None:
@@ -83,7 +85,7 @@ def run_filters(tmplt, world, *,
             # TODO: make logging less cumbersome
             if verbose:
                 end_time = time.time()
-                summarize(tmplt, world, candidates)
+                summarize(tmplt, world, candidates, alert_missing=has_gt)
                 print("after", filter.__name__,
                       "on iteration", len(filters_so_far),
                       "took", end_time - start_time, "seconds")
