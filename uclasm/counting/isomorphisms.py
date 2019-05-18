@@ -67,4 +67,4 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
     # Send zeros to init_changed_cands since we already just ran the filters
     return recursive_isomorphism_counter(
         tmplt, world, candidates, verbose=verbose, unspec_cover=unspec_cover,
-        init_changed_cands=np.zeros(tmplt.nodes.shape))
+        init_changed_cands=np.zeros(tmplt.nodes.shape, dtype=np.bool))

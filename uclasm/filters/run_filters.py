@@ -21,7 +21,7 @@ def run_filters(tmplt, world, *,
     # for template node i
     if candidates is None:
         candidates = np.ones((tmplt.n_nodes, world.n_nodes), dtype=np.bool)
-        label_filter(tmplt, world, candidates)
+    label_filter(tmplt, world, candidates)
 
     if filters is None:
         from . import all_filters
@@ -42,6 +42,8 @@ def run_filters(tmplt, world, *,
     if init_changed_cands is None:
         init_changed_cands = np.ones(tmplt.nodes.shape, dtype=np.bool)
 
+    changed_cands = init_changed_cands
+
     while filter_idx != len(filters) and len(filters_so_far) != max_iter:
         filter = filters[filter_idx]
 
@@ -56,7 +58,7 @@ def run_filters(tmplt, world, *,
         if old_cand_counts is not None:
             changed_cands = cand_counts < old_cand_counts
         else:
-            changed_cands = init_changed_cands
+            changed_cands = init_changed_cands | changed_cands
 
         # If any template nodes have candidates that have changed since the
         # last time this filter was run, go ahead and run the filter.
