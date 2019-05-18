@@ -61,6 +61,7 @@ def elimination_filter(tmplt, world, candidates, *,
         for i, cand_idx in enumerate(cand_idxs):
             # Don't modify the original template unless you mean to
             candidates_copy = candidates.copy()
+            candidates_copy[:, cand_idx] = False
             candidates_copy[node_idx, :] = one_hot(cand_idx, world.n_nodes)
 
             if verbose and i % 10 == 0:
