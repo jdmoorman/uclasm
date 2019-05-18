@@ -38,6 +38,7 @@ def run_filters(tmplt, world, *,
     # time the corresponding filter was run.
     old_cand_counts_list = [None for filter in filters]
     cand_counts = candidates.sum(axis=1)
+    init_cand_counts = candidates.sum(axis=1)
 
     if init_changed_cands is None:
         init_changed_cands = np.ones(tmplt.nodes.shape, dtype=np.bool)
@@ -58,7 +59,7 @@ def run_filters(tmplt, world, *,
         if old_cand_counts is not None:
             changed_cands = cand_counts < old_cand_counts
         else:
-            changed_cands = init_changed_cands | changed_cands
+            changed_cands = init_changed_cands | (cand_counts < init_cand_counts)
 
         # If any template nodes have candidates that have changed since the
         # last time this filter was run, go ahead and run the filter.

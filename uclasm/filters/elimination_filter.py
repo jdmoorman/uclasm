@@ -54,7 +54,7 @@ def elimination_filter(tmplt, world, candidates, *,
             print("trying", tmplt.nodes[node_idx], "which has",
                   n_candidates, "candidates")
 
-        init_changed_cands = np.zeros(tmplt.nodes.shape)
+        init_changed_cands = np.zeros(tmplt.nodes.shape, dtype=np.bool)
 
         elim_count = 0
         cand_idxs = np.argwhere(candidates[node_idx]).flat
