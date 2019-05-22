@@ -97,8 +97,6 @@ def gac_filter(tmplt, world, candidates, *,
 
         key_sets = [x for x in cands_to_tmplt_set.keys()]
         for key_set in key_sets:
-            if cand_set.isdisjoint(key_set): # Skip disjoint sets
-                continue
             if len(cand_set | key_set) >= tmplt.n_nodes:
                 continue
             cands_to_tmplt_set[cand_set | key_set] = cands_to_tmplt_set[key_set] | {node_idx}
