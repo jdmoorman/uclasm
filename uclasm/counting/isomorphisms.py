@@ -14,13 +14,13 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
     # can skip straight to counting solutions to the alldiff constraint problem
     if len(unspec_cover) == 0:
         # Elimination filter is not needed here and would be a waste of time
-        run_filters(tmplt, world, candidates=candidates, filters=cheap_filters,
+        tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates, filters=cheap_filters,
                     verbose=False, init_changed_cands=init_changed_cands)
         node_to_cands = {node: world.nodes[candidates[idx]]
                          for idx, node in enumerate(tmplt.nodes)}
         return count_alldiffs(node_to_cands)
 
-    run_filters(tmplt, world, candidates=candidates, filters=all_filters,
+    tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates, filters=all_filters,
                 verbose=False, init_changed_cands=init_changed_cands)
 
     # Since the node cover is not empty, we first choose some valid
@@ -59,12 +59,15 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
 
     if candidates is None:
         tmplt, world, candidates = uclasm.run_filters(
-            tmplt, world, filters=uclasm.all_filters, verbose=True)
+            tmplt, world, filters=uclasm.all_filters, verbose=verbose)
 
     unspec_nodes = np.where(candidates.sum(axis=1) > 1)[0]
-    unspec_cover = get_node_cover(tmplt.subgraph(unspec_nodes))
+    tmplt_subgraph = tmplt.subgraph(unspec_nodes)
+    unspec_cover = get_node_cover(tmplt_subgraph)
+    unspec_cover_nodes = [tmplt_subgraph.nodes[node_idx] for node_idx in unspec_cover]
+    unspec_cover_idxes = [int(np.where(tmplt.nodes == node)[0]) for node in unspec_cover_nodes]
 
     # Send zeros to init_changed_cands since we already just ran the filters
     return recursive_isomorphism_counter(
-        tmplt, world, candidates, verbose=verbose, unspec_cover=unspec_cover,
+        tmplt, world, candidates, verbose=verbose, unspec_cover=unspec_cover_idxes,
         init_changed_cands=np.zeros(tmplt.nodes.shape, dtype=np.bool))
