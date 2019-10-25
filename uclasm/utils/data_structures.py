@@ -12,6 +12,8 @@ class Graph:
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(self.nodes)
         self.ch_to_adj = {ch: adj for ch, adj in zip(channels, adjs)}
+        self.channels = channels
+        self.adjs = adjs
 
         if labels is None:
             labels = [None]*len(nodes)
@@ -42,14 +44,6 @@ class Graph:
             self._is_nbr = self.sym_composite_adj > 0
 
         return self._is_nbr
-
-    @property
-    def channels(self):
-        return self.ch_to_adj.keys()
-
-    @property
-    def adjs(self):
-        return self.ch_to_adj.values()
 
     @property
     def nbr_idx_pairs(self):
