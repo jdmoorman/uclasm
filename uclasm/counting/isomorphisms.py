@@ -71,3 +71,58 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
     return recursive_isomorphism_counter(
         tmplt, world, candidates, verbose=verbose, unspec_cover=unspec_cover_idxes,
         init_changed_cands=np.zeros(tmplt.nodes.shape, dtype=np.bool))
+
+def recursive_isomorphism_finder(tmplt, world, candidates, *,
+                                 unspec_node_idxs, verbose, init_changed_cands,
+                                 found_isomorphisms):
+    if len(unspec_node_idxs) == 0:
+        # All nodes have been assigned, add the isomorphism to the list
+        new_isomorphism = {}
+        for tmplt_idx, tmplt_node in enumerate(tmplt.nodes):
+            if verbose:
+                print(str(tmplt_node)+":", world.nodes[candidates[tmplt_idx]])
+                new_isomorphism[tmplt_node] = world.nodes[candidates[tmplt_idx]]
+        found_isomorphisms.append(new_isomorphism)
+        return found_isomorphisms
+
+    tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates,
+                filters=all_filters, verbose=False,
+                init_changed_cands=init_changed_cands)
+
+    node_idx = unspec_node_idxs[0]
+    cand_idxs = np.argwhere(candidates[node_idx]).flat
+
+    for i, cand_idx in enumerate(cand_idxs):
+        candidates_copy = candidates.copy()
+        candidates_copy[node_idx] = one_hot(cand_idx, world.n_nodes)
+
+        # recurse to make assignment for the next node in the unspecified cover
+        recursive_isomorphism_finder(
+            tmplt, world, candidates_copy,
+            unspec_node_idxs=unspec_node_idxs[1:],
+            verbose=verbose,
+            init_changed_cands=one_hot(node_idx, tmplt.n_nodes),
+            found_isomorphisms=found_isomorphisms)
+    return found_isomorphisms
+
+def find_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
+    """ Returns a list of isomorphisms as dictionaries mapping template nodes to
+    world nodes. Note: this is much slower than counting, and should only be
+    done for small numbers of isomorphisms and fully filtered candidate matrices
+    """
+    if candidates is None:
+        tmplt, world, candidates = uclasm.run_filters(
+            tmplt, world, filters=uclasm.all_filters, verbose=verbose)
+    unspec_node_idxs = np.where(candidates.sum(axis=1) > 1)[0]
+    found_isomorphisms = []
+
+    return recursive_isomorphism_finder(
+        tmplt, world, candidates, verbose=verbose,
+        unspec_node_idxs=unspec_node_idxs,
+        init_changed_cands=np.zeros(tmplt.nodes.shape, dtype=np.bool),
+        found_isomorphisms=found_isomorphisms)
+
+def print_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
+    """ Prints the list of isomorphisms """
+    print(find_isomorphisms(tmplt, world, candidates=candidates,
+                            verbose=verbose))
