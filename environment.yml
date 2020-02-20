@@ -1,9 +1,0 @@
-name: uclasm
-dependencies:
-  - python
-  - numpy
-  - scipy
-  - pandas
-  - matplotlib
-  - networkx
-  - ipython
