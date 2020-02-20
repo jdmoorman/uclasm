@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ucla-subgraph-matching"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["Jacob Moorman <jacob@moorman.me>"]
 license  = "MIT"
