@@ -101,7 +101,9 @@ class Equivalence:
 
     ### QUERIES ###
     def in_same_class(self, a, b) -> bool:
-        ''' return a bool indicating if a and b are in the same classes '''
+        """
+        return a bool indicating if a and b are in the same classes
+        """
         assert a in self.parent_map, str(a) + " does not exist."
         assert b in self.parent_map, str(b) + " does not exist."
         root_of_a = self.compress_to_root(a)
