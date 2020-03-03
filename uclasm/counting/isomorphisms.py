@@ -67,7 +67,7 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
         return count_alldiffs(node_to_cands)
 
     tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates,
-                filters=all_filters, verbose=False, 
+                filters=cheap_filters, verbose=False, 
                 init_changed_cands=init_changed_cands)
 
     # Since the node cover is not empty, we first choose some valid
@@ -94,6 +94,12 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
         if verbose:
             print("depth {}: {} of {}".format(len(unspec_cover), i, 
                                               len(cand_idxs)), n_isomorphisms)
+
+        # If we are using template equivalence, we can mark for all equivalent
+        # template vertices that cand_idx cannot be a cannot be a candidate.
+        if tmplt_equivalence:
+            for eq_t_vert in tmplt.eq_classes[node_idx]:
+                candidates[eq_t_vert,cand_idx] = False
 
     return n_isomorphisms
 
