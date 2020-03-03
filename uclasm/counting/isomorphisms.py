@@ -14,14 +14,16 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
     # can skip straight to counting solutions to the alldiff constraint problem
     if len(unspec_cover) == 0:
         # Elimination filter is not needed here and would be a waste of time
-        tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates, filters=cheap_filters,
+        tmplt, world, candidates = run_filters(
+                tmplt, world, candidates=candidates, filters=cheap_filters,
                     verbose=False, init_changed_cands=init_changed_cands)
         node_to_cands = {node: world.nodes[candidates[idx]]
                          for idx, node in enumerate(tmplt.nodes)}
         return count_alldiffs(node_to_cands)
 
-    tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates, filters=all_filters,
-                verbose=False, init_changed_cands=init_changed_cands)
+    tmplt, world, candidates = run_filters(tmplt, world, candidates=candidates,
+                filters=all_filters, verbose=False, 
+                init_changed_cands=init_changed_cands)
 
     # Since the node cover is not empty, we first choose some valid
     # assignment of the unspecified nodes one at a time until the remaining
@@ -41,7 +43,8 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
 
         # TODO: more useful progress summary
         if verbose:
-            print("depth {}: {} of {}".format(len(unspec_cover), i, len(cand_idxs)), n_isomorphisms)
+            print("depth {}: {} of {}".format(len(unspec_cover), i, 
+                                              len(cand_idxs)), n_isomorphisms)
 
     return n_isomorphisms
 
