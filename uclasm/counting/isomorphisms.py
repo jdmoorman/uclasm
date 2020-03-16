@@ -1,6 +1,5 @@
 from ..filters import run_filters, cheap_filters, all_filters
 from ..utils.misc import invert, values_map_to_same_key, one_hot
-from ..utils.graph_ops import get_node_cover
 from .alldiffs import count_alldiffs
 import numpy as np
 from functools import reduce
@@ -63,7 +62,7 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
 
     unspec_nodes = np.where(candidates.sum(axis=1) > 1)[0]
     tmplt_subgraph = tmplt.subgraph(unspec_nodes)
-    unspec_cover = get_node_cover(tmplt_subgraph)
+    unspec_cover = tmplt_subgraph.node_cover()
     unspec_cover_nodes = [tmplt_subgraph.nodes[node_idx] for node_idx in unspec_cover]
     unspec_cover_idxes = [tmplt.node_idxs[node] for node in unspec_cover_nodes]
 
