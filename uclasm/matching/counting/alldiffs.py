@@ -1,4 +1,4 @@
-from ..utils.misc import invert, values_map_to_same_key
+from uclasm.utils import invert, values_map_to_same_key
 import numpy as np
 from functools import reduce
 

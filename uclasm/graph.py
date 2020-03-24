@@ -1,15 +1,14 @@
-"""
-"""
+"""Graph class for representing networks with node and edge attributes."""
 
-from .misc import index_map
 import scipy.sparse as sparse
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
-from .misc import one_hot
+
+from .utils import index_map, one_hot
+
 
 class Graph:
-    """An attributed multigraph class with support for attributes.
+    """An multigraph class with support for node and edge attributes.
 
     Parameters
     ----------
@@ -41,9 +40,23 @@ class Graph:
         A DataFrame containing node attribute information.
     edgelist : DataFrame, optional
         A DataFrame containing edge attribute information.
-
+    node_col : str
+        Column name for node identifiers in the nodelist.
+    source_col : str
+        Column name for source node identifiers in the edgelist.
+    target_col : str
+        Column name for target node identifiers in the edgelist.
+    channel_col : str
+        Column name for edge type/channel identifiers in the edgelist.
     """
+
+    node_col = "Node"
+    source_col = "Source"
+    target_col = "Target"
+    channel_col = "eType"
+
     def __init__(self, adjs, channels=None, nodelist=None, edgelist=None):
+        """TODO: Docstring."""
         self.n_nodes = adjs[0].shape[0]
         self.n_channels = len(adjs)
 
@@ -53,23 +66,25 @@ class Graph:
 
         self.channels = list(channels)
         self.adjs = list(adjs)
-        self.ch_to_adj = {ch: adj for ch, adj in zip(channels, adjs)}
+        self.ch_to_adj = dict(zip(channels, adjs))
+
+        # TODO: If an edgelist was supplied, use it to compute this stuff.
 
         # If a nodelist is not supplied, generate a basic one
         if nodelist is None:
+            # e.g. ["node 0", "node 1", ...]
             node_names = ["node {}".format(i) for i in range(self.n_nodes)]
-            nodelist = pd.DataFrame(node_names, columns=['node'])
+            nodelist = pd.DataFrame(node_names, columns=[self.node_col])
 
         self.nodelist = nodelist
-        self.nodes = self.nodelist['node']
+        self.nodes = self.nodelist[self.node_col]
         self.node_to_idx = index_map(self.nodes)
 
         # TODO: Make sure nodelist is indexed in a reasonable way
         # TODO: Make sure edgelist is indexed in a reasonable way
+        # TODO: Check dtypes of edgelist and nodelist columns.
 
         self.edgelist = edgelist
-
-
 
     @property
     def composite_adj(self):
@@ -103,8 +118,8 @@ class Graph:
 
         Each entry of this matrix indicates whether the pair of nodes
         corresponding to the row and column indices are connected by an edge in
-        either direction in any channel. The entry will be True if the nodes are
-        connected by an edge in some channel and False otherwise.
+        either direction in any channel. The entry will be True if the nodes
+        are connected by an edge in some channel and False otherwise.
         """
         if not hasattr(self, "_is_nbr"):
             self._is_nbr = self.sym_composite_adj > 0
@@ -121,12 +136,52 @@ class Graph:
         """
         return np.argwhere(sparse.tril(self.is_nbr))
 
-    def subgraph(self, node_idxs):
+    @property
+    def features(self):
+        """2darray: An [n_features, n_nodes] array of node features.
+
+        A 2darray of shape [3*n_channels, n_nodes] providing the in-degree,
+        out-degree, and number of self edges for each node in the graph.
+        """
+        if not hasattr(self, "_features"):
+            features_list = []
+
+            # For each channel, compute some features.
+            for adj in self.adjs:
+                self_edges = np.reshape(adj.diagonal(), (1, -1))
+                in_degrees = adj.sum(axis=0).A - self_edges
+                out_degrees = adj.sum(axis=1).T.A - self_edges
+
+                # features_list.extend([self_edges, in_degrees, out_degrees])
+                features_list.extend([in_degrees, out_degrees])
+
+            self._features = np.concatenate(features_list, axis=0)
+
+        return self._features
+
+    def rename_nodes(self, old_to_new):
+        """Rename nodes inplace.
+
+        TODO: Test this function.
+
+        Parameters
+        ----------
+        old_to_new : dict(str, str)
+            Map from old node names to new node names
+        """
+        self.nodelist[[self.node_col]] = self.nodelist[[self.node_col]]\
+            .applymap(self.node_to_idx.get)
+
+        node_cols = [self.source_col, self.target_col]
+        self.edgecounts[node_cols] = self.edgecounts[node_cols]\
+            .applymap(self.node_to_idx.get)
+
+    def node_subgraph(self, node_idxs):
         """Get the subgraph induced by the specified node indices.
 
         Parameters
         ----------
-        node_idxs : 1darray()
+        node_idxs : 1darray
             The indices corresponding to the nodes in the desired subgraph.
 
         Returns
@@ -134,20 +189,41 @@ class Graph:
         Graph
             The induced subgraph.
         """
-
         # throw out nodes not belonging to the desired subgraph
         adjs = [adj[node_idxs, :][:, node_idxs] for adj in self.adjs]
         nodelist = self.nodelist.iloc[node_idxs].reset_index(drop=True)
-        nodes = nodelist['node']
+        nodes = nodelist[self.node_col]
 
-        # TODO: require particular column names
-
-        _srcs = self.edgelist['src'].isin(nodes)
-        _dests = self.edgelist['dest'].isin(nodes)
-        edgelist = self.edgelist[_srcs & _dests].reset_index(drop=True)
+        # TODO: Test this to see if it works with dask DataFrames.
+        _sources = self.edgelist[self.source_col].isin(nodes)
+        _targets = self.edgelist[self.target_col].isin(nodes)
+        edgelist = self.edgelist[_sources & _targets].reset_index(drop=True)
 
         # Return a new graph object for the induced subgraph
         return Graph(adjs, self.channels, nodelist, edgelist)
+
+    def channel_subgraph(self, channels):
+        """Get the subgraph induced by the specified channels.
+
+        Parameters
+        ----------
+        channels : 1darray
+            The desired channels to keep in the subgraph.
+
+        Returns
+        -------
+        Graph
+            The induced subgraph.
+        """
+        # throw out nodes not belonging to the desired subgraph
+        adjs = [self.ch_to_adj[ch] for ch in channels]
+
+        # Drop edges that do not have types among the desired channels.
+        edge_ind = self.edgelist[self.channel_col].isin(channels)
+        edgelist = self.edgelist[edge_ind].reset_index(drop=True)
+
+        # Return a new graph object for the induced subgraph
+        return Graph(adjs, channels, self.nodelist, edgelist)
 
     def node_cover(self):
         """Get the indices of nodes for a node cover, sorted by importance.
@@ -160,7 +236,6 @@ class Graph:
         1darray
             The indices of a set of nodes in a node cover.
         """
-
         cover = []
 
         # Initially there are no nodes in the cover. Thus all of the nodes in
@@ -182,4 +257,3 @@ class Graph:
         # TODO: Remove any nodes from the node cover which are not necessary.
 
         return np.array(cover)
-

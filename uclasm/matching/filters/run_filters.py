@@ -3,7 +3,6 @@ import time
 import numpy as np
 from . import label_filter
 from . import permutation_filter
-from ..utils import summarize
 
 # TODO: logging
 
@@ -85,7 +84,8 @@ def run_filters(tmplt, world, *,
             # TODO: make logging less cumbersome
             if verbose:
                 end_time = time.time()
-                summarize(tmplt, world, candidates, alert_missing=has_gt)
+                # TODO: summarize
+                # summarize(tmplt, world, candidates, alert_missing=has_gt)
                 print("after", filter.__name__,
                       "on iteration", len(filters_so_far),
                       "took", end_time - start_time, "seconds")

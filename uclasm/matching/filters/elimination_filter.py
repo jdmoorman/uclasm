@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 from . import run_filters, cheap_filters
-from ..utils.misc import one_hot
+from uclasm.utils import one_hot
 
 def centrality_ordered_node_idxs(tmplt, world, candidates):
     """

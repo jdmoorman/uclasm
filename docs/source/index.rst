@@ -2,7 +2,7 @@ Overview of UCLA subgraph matching (uclasm)
 ===========================================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Contents:
 
    installation

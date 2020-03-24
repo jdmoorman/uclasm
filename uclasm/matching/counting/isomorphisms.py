@@ -1,5 +1,5 @@
-from ..filters import run_filters, cheap_filters, all_filters
-from ..utils.misc import invert, values_map_to_same_key, one_hot
+from .. import run_filters, cheap_filters, all_filters
+from uclasm.utils import invert, values_map_to_same_key, one_hot
 from .alldiffs import count_alldiffs
 import numpy as np
 from functools import reduce

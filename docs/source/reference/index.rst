@@ -1,6 +1,12 @@
 Reference
 =========
 
-.. automodule:: uclasm.utils.data_structures
-   :members:
-   :member-order: bysource
+.. toctree::
+   :maxdepth: 1
+   :caption: Contents:
+
+   graph
+   matching_problems
+   readwrite
+   utils
+
