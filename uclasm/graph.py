@@ -140,6 +140,9 @@ class Graph:
     def features(self):
         """2darray: An [n_features, n_nodes] array of node features.
 
+        TODO: Add clustering coefficient: The number of edges between adjacent
+        nodes (not including edges to the node being evaluated).
+
         A 2darray of shape [3*n_channels, n_nodes] providing the in-degree,
         out-degree, and number of self edges for each node in the graph.
         """
@@ -152,8 +155,7 @@ class Graph:
                 in_degrees = adj.sum(axis=0).A - self_edges
                 out_degrees = adj.sum(axis=1).T.A - self_edges
 
-                # features_list.extend([self_edges, in_degrees, out_degrees])
-                features_list.extend([in_degrees, out_degrees])
+                features_list.extend([self_edges, in_degrees, out_degrees])
 
             self._features = np.concatenate(features_list, axis=0)
 
