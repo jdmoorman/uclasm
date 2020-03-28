@@ -1,15 +1,23 @@
 Tutorial
 ========
 
-TODO: Provide edgelists for tutorial.
-
 First, import :code:`uclasm`, the subgraph matching library.
 
 .. code-block:: python
 
     >>> import uclasm
 
-Load your template and world graphs from edgelist files.
+You will need to express your template and world graphs as edgelist files such as these.
+
+.. literalinclude:: ../../tutorial/template.csv
+   :language: text
+   :caption: template.csv
+
+.. literalinclude:: ../../tutorial/world.csv
+   :language: text
+   :caption: world.csv
+
+Load your template and world graphs from the edgelist files.
 
 .. code-block:: python
 
