@@ -9,9 +9,6 @@ class MatchingProblem:
     """A class representing any subgraph matching problem, noisy or otherwise.
 
     TODO: costs -> structural_costs.
-    TODO: Switch candidates back to being a property, add a setter for the old
-    interface. In the setter, modify the costs to infinity as needed. Don't
-    forget to worry about setting slices.
     TODO: describe the class in more detail.
     TODO: optionally accept ground truth map argument.
     TODO: Is it okay to describe the tmplt and world attributes using the same
@@ -47,7 +44,7 @@ class MatchingProblem:
     tmplt : Graph
         Template graph to be matched.
     world : Graph
-        World graph to be searched for.
+        World graph to be searched.
     costs : 2darray
         Each entry of this matrix denotes the minimum local cost of matching
         the template node corresponding to the row to the world node
@@ -56,7 +53,7 @@ class MatchingProblem:
 
     def __init__(self,
                  tmplt, world,
-                 ground_truth_provided=True,
+                 ground_truth_provided=False,
                  cost_threshold=0,
                  candidate_print_limit=10):
         self.tmplt = tmplt
@@ -69,6 +66,7 @@ class MatchingProblem:
         self.world = world
 
         self.costs = np.zeros((tmplt.n_nodes, world.n_nodes))
+        self._cost_sum = 0  # self.costs.sum()
         self._ground_truth_provided = ground_truth_provided
         self._cost_threshold = cost_threshold
         self._candidate_print_limit = candidate_print_limit
@@ -87,20 +85,13 @@ class MatchingProblem:
             corresponding to the column is a candidate for the template node
             corresponding to the row.
         """
-        # TODO: Avoid recomputing this sum too frequently. Perhaps in the
-        # update_costs function we could set a flag if the costs are modified.
-        cost_sum = self.costs.sum()
-
-        # Cache the results by checking the sum of the costs against the sum
-        # from the last time the candidates were computed. If the sum has
-        # changed, the candidates will need to be recomputed.
-        if hasattr(self, "_candidates") and hasattr(self, "_cost_sum"):
-            if cost_sum == self._cost_sum:
-                return self._candidates
+        # Checked if cached results are available. self._candidates will be
+        # deleted if it needs to be recomputed.
+        if hasattr(self, "_candidates"):
+            return self._candidates
 
         total_costs = constrained_lsap_costs(self.costs)
 
-        self._cost_sum = cost_sum
         self._candidates = total_costs <= self._cost_threshold
         return self._candidates
 
@@ -122,20 +113,25 @@ class MatchingProblem:
         else:
             self.costs[indexer] = np.maximum(self.costs[indexer], new_costs)
 
+        if hasattr(self, "_candidates"):
+            # Delete the cached candidates if the costs have changed.
+            old_cost_sum = self._cost_sum
+            self._cost_sum = self.costs.sum()
+            if old_cost_sum != self._cost_sum:
+                del self._candidates
+
     def stats_filter(self):
         """Compare local features such as degrees between nodes.
 
-        TODO: The particular features are important in order to preserve the
-        interpretation of self.costs as a lower bound on the local number of
-        missing edges under a particular assignment. If double counting occurs
-        or features such as the number of reciprocated edges are used, the
-        interpretation will be lost. Thus, it could be wise to move the
-        features to the MatchingProblem class rather than the Graph class.
+        TODO: Switch features to a function on the graphs rather than property,
+        add options to the function for which features to compute.
         TODO: Describe this function in more detail.
         TODO: This should take candidacy into account when computing features.
+        TODO: Bring back reciprocated edges, carefully.
         """
         for idx in range(self.tmplt.n_nodes):
             tmplt_node_feats = self.tmplt.features[:, [idx]]
+            # TODO: Insert generic loss function between features here:
             missing = np.maximum(tmplt_node_feats - self.world.features, 0)
             self.update_costs(np.sum(missing, axis=0), indexer=idx)
 

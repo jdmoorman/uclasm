@@ -20,7 +20,6 @@ numpy = "^1.18.1"
 scipy = "^1.4.1"
 pandas = "^1.0.1"
 networkx = "^2.4"
-python-igraph = "^0.8.0"
 dask = {version = "^2.12.0", extras = ["complete"]}
 loguru = "^0.4.1"
 tqdm = "^4.43.0"

@@ -978,17 +978,6 @@ version = "1.0.4"
 
 [[package]]
 category = "main"
-description = "High performance graph data structures and algorithms"
-name = "python-igraph"
-optional = false
-python-versions = "*"
-version = "0.8.0"
-
-[package.dependencies]
-texttable = ">=1.6.2"
-
-[[package]]
-category = "main"
 description = "World timezone definitions, modern and historical"
 name = "pytz"
 optional = false
@@ -1221,14 +1210,6 @@ version = "1.6.0"
 
 [[package]]
 category = "main"
-description = "module for creating simple ASCII tables"
-name = "texttable"
-optional = false
-python-versions = "*"
-version = "1.6.2"
-
-[[package]]
-category = "main"
 description = "List processing tools and functional utilities"
 name = "toolz"
 optional = false
@@ -1385,7 +1366,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "cc7e0567b1588a5d77a075402a92726413a9a21702f824146cb9c21ea9b783d6"
+content-hash = "7b41b52075537cd503a0c7654343feaa8b718612fecb8419d8c0585993372434"
 python-versions = "^3.6.1"
 
 [metadata.files]
@@ -1859,35 +1840,6 @@ python-editor = [
     {file = "python_editor-1.0.4-py3-none-any.whl", hash = "sha256:1bf6e860a8ad52a14c3ee1252d5dc25b2030618ed80c022598f00176adc8367d"},
     {file = "python_editor-1.0.4-py3.5.egg", hash = "sha256:c3da2053dbab6b29c94e43c486ff67206eafbe7eb52dbec7390b5e2fb05aac77"},
 ]
-python-igraph = [
-    {file = "python-igraph-0.8.0.tar.gz", hash = "sha256:47e6bb48ec7dbfddbd89cf064a24b271783a1490fc688ebce17fbd652bcdab8e"},
-    {file = "python_igraph-0.8.0-cp27-cp27m-macosx_10_6_intel.whl", hash = "sha256:609631473bac3d95fe7fabd24a9ac1d73d61aada145eede031d5008544bdc29d"},
-    {file = "python_igraph-0.8.0-cp27-cp27m-manylinux2010_i686.whl", hash = "sha256:51d7c78bbdce4d54b3ee59d424787d2b9a8a95f75f7f75d97c48c11611032731"},
-    {file = "python_igraph-0.8.0-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:939025bd0f2c58747f16c57d8a8a808f66723f2c8ca27a2eb0f9a058fed4f485"},
-    {file = "python_igraph-0.8.0-cp27-cp27m-win_amd64.whl", hash = "sha256:ab0d07f0111c5a8e06f039e7d2ca50fc35f9ed7405fd68789211c9068d638805"},
-    {file = "python_igraph-0.8.0-cp27-cp27mu-manylinux2010_i686.whl", hash = "sha256:4791c2d7921d465b8e975907d25559d9a8f7ca0b30f4cc791dfa644ed9b4f80d"},
-    {file = "python_igraph-0.8.0-cp27-cp27mu-manylinux2010_x86_64.whl", hash = "sha256:6a6e7fc7a88dcfce239079f501b6aabea8a477e406124abfaed4b314431e6016"},
-    {file = "python_igraph-0.8.0-cp35-cp35m-macosx_10_6_intel.whl", hash = "sha256:d56d6693a69ad9e076ae4b76fc2ed565d9d75f5b56c2341061aa0ffff783a53f"},
-    {file = "python_igraph-0.8.0-cp35-cp35m-manylinux2010_i686.whl", hash = "sha256:500808878bcfafd79fa4107a18cf8fd70e710dd1062ec6c21019be2c6d00ba9f"},
-    {file = "python_igraph-0.8.0-cp35-cp35m-manylinux2010_x86_64.whl", hash = "sha256:27b0f259d1377bb9f0ccf831d52fcaba395d031b7d9eaa624152edf718095c96"},
-    {file = "python_igraph-0.8.0-cp35-cp35m-win32.whl", hash = "sha256:8acf8dd0f6dfb3babe76811fb7d7e718aadd2145f6a1c5c532e42465ee4b863a"},
-    {file = "python_igraph-0.8.0-cp35-cp35m-win_amd64.whl", hash = "sha256:83886808c18606e3b137b649cf816e6aa549997a598d18aa0594422ca22500af"},
-    {file = "python_igraph-0.8.0-cp36-cp36m-macosx_10_6_intel.whl", hash = "sha256:6ab21e23f7cab9f56639ab40853ba0db7e642c960c79f9afaacd580a869e2b6d"},
-    {file = "python_igraph-0.8.0-cp36-cp36m-manylinux2010_i686.whl", hash = "sha256:b7e6c68dad73fe77c7f69f880b53e938f90b313eaeed73883025abe8ff8dce1b"},
-    {file = "python_igraph-0.8.0-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:4041c960a0e78582ba1cddbf2ed3262948cd8b7f48717c577e35485cc5417101"},
-    {file = "python_igraph-0.8.0-cp36-cp36m-win32.whl", hash = "sha256:56be80354f60e3a5e5852321f9f6981eabcdcda7e2663bf557467f34edaf83e4"},
-    {file = "python_igraph-0.8.0-cp36-cp36m-win_amd64.whl", hash = "sha256:ba46085d4d20038148d84da48b64045ada5d099523976c02a014460f2de37158"},
-    {file = "python_igraph-0.8.0-cp37-cp37m-macosx_10_6_intel.whl", hash = "sha256:c5eeab39d21f316218c9e9b76a5f0b9491fae842729478c43cbd3f20531b9cd2"},
-    {file = "python_igraph-0.8.0-cp37-cp37m-manylinux2010_i686.whl", hash = "sha256:14a56648e44c175486270d25953122ba093717c2ad18aef14a1fa16b4ec4d354"},
-    {file = "python_igraph-0.8.0-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:7a0babdf82609a0eb3d49da36415ec89ca64d798a62f30869a057f9de71b85ec"},
-    {file = "python_igraph-0.8.0-cp37-cp37m-win32.whl", hash = "sha256:aa3b7659e0b849362c6c70389086ce8ad18f43eb81586bef6e183301651ee479"},
-    {file = "python_igraph-0.8.0-cp37-cp37m-win_amd64.whl", hash = "sha256:beab38490ad5fe8811f50c355071c12d9d837dd2dcf76f0e7b7dff805619af9f"},
-    {file = "python_igraph-0.8.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:48e9bd38626fd7b3ea502e526281167ba261231c1336062cdaa5f7f070e85082"},
-    {file = "python_igraph-0.8.0-cp38-cp38-manylinux2010_i686.whl", hash = "sha256:aa148f9eab211fc1dd49e6b191341447706c2ace68327b8bb4e4f21ed4a1a159"},
-    {file = "python_igraph-0.8.0-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:c2ab4bedc2a847812811c08071bc6dcd509024560a15674b76458c9c719217ee"},
-    {file = "python_igraph-0.8.0-cp38-cp38-win32.whl", hash = "sha256:7e079bd4b90dab028dfeac7ae20fe092b7d6c5786214284858dbe068831cbf52"},
-    {file = "python_igraph-0.8.0-cp38-cp38-win_amd64.whl", hash = "sha256:9e1dffc2b4d73b5e660f9b77dd5d9b72aaae7e92e34bd8fcc5e2af1cebecbce3"},
-]
 pytz = [
     {file = "pytz-2019.3-py2.py3-none-any.whl", hash = "sha256:1c557d7d0e871de1f5ccd5833f60fb2550652da6be2693c1e02300743d21500d"},
     {file = "pytz-2019.3.tar.gz", hash = "sha256:b02c06db6cf09c12dd25137e563b31700d3b80fcc4ad23abb7a315f2789819be"},
@@ -2028,10 +1980,6 @@ tabulate = [
 tblib = [
     {file = "tblib-1.6.0-py2.py3-none-any.whl", hash = "sha256:e222f44485d45ed13fada73b57775e2ff9bd8af62160120bbb6679f5ad80315b"},
     {file = "tblib-1.6.0.tar.gz", hash = "sha256:229bee3754cb5d98b4837dd5c4405e80cfab57cb9f93220410ad367f8b352344"},
-]
-texttable = [
-    {file = "texttable-1.6.2-py2.py3-none-any.whl", hash = "sha256:7dc282a5b22564fe0fdc1c771382d5dd9a54742047c61558e071c8cd595add86"},
-    {file = "texttable-1.6.2.tar.gz", hash = "sha256:eff3703781fbc7750125f50e10f001195174f13825a92a45e9403037d539b4f4"},
 ]
 toolz = [
     {file = "toolz-0.10.0.tar.gz", hash = "sha256:08fdd5ef7c96480ad11c12d472de21acd32359996f69a5259299b540feba4560"},

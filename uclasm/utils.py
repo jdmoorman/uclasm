@@ -1,4 +1,4 @@
-"""Miscellaneous functions for the uclasm package."""
+"""Miscellaneous functions and helpers for the uclasm package."""
 import numpy as np
 
 

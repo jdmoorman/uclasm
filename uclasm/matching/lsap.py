@@ -7,9 +7,9 @@ from scipy.optimize import linear_sum_assignment as lap
 
 from uclasm.utils import one_hot
 
+# ASCII matches the progress bar of dask.
 tqdm = functools.partial(tqdm, ascii=True)
 
-np.set_printoptions(precision=2, floatmode='fixed')
 
 def constrained_lsap_cost(i, j, costs):
     """Compute the total cost of a constrained linear sum assignment problem.
