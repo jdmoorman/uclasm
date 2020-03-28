@@ -46,6 +46,15 @@ def constrained_lsap_costs(costs):
 
     TODO: More thorough testing of this function.
 
+    The output of this function is equivalent to, but significantly more
+    efficient than,
+
+    >>> def constrained_lsap_costs(costs):
+    ...     total_costs = np.empty_like(costs)
+    ...     for i, j in np.ndindex(*costs.shape):
+    ...         total_costs[i, j] = constrained_lsap_cost(i, j, costs)
+    ...     return total_costs
+
     Parameters
     ----------
     costs : 2darray

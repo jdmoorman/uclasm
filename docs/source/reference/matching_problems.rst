@@ -1,4 +1,4 @@
-Matching Problems
+Subgraph Matching
 =================
 
 .. automodule:: uclasm.matching.matching_problem
