@@ -67,6 +67,6 @@ html_favicon = 'favicon.ico'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# # -- Hack from the internet --------------------------------------------------
-#
-# master_doc = 'index'
+# -- Hack from the internet --------------------------------------------------
+
+master_doc = 'index'
