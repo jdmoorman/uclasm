@@ -1,26 +1,15 @@
-import numpy as np
-from functools import reduce
-from operator import mul
+"""TODO: Docstring."""
 
-# TODO: parallelize?
-# TODO: get set of values taken by tmplt edges?
 
-# TODO: better name for this helper function
-def iter_adj_pairs(tmplt, world):
-    for channel, tmplt_adj in tmplt.ch_to_adj.items():
-        world_adj = world.ch_to_adj[channel]
-        yield (tmplt_adj, world_adj)
-        yield (tmplt_adj.T, world_adj.T)
+def edgewise_cost_bound(smp):
+    """TODO: Docstring.
 
-def topology_filter(tmplt, world, candidates, *,
-                    changed_cands=None, **kwargs):
-    """
-    For each pair of neighbors in the template, ensure that any candidate for
-    one neighbor has a corresponding candidate for the other neighbor to which
-    it is connected by sufficiently many edges in each channel and direction.
+    TODO: Cite paper from REU.
 
-    changed_cands: boolean array indicating which nodes in the template have
-                   candidates that have changed since last time this ran
+    Parameters
+    ----------
+    smp : MatchingProblem
+        A subgraph matching problem on which to compute nodewise cost bounds.
     """
     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
         if changed_cands is not None:

@@ -8,7 +8,6 @@ from .lsap import constrained_lsap_costs
 class MatchingProblem:
     """A class representing any subgraph matching problem, noisy or otherwise.
 
-    TODO: costs -> structural_costs.
     TODO: describe the class in more detail.
     TODO: optionally accept ground truth map argument.
     TODO: Is it okay to describe the tmplt and world attributes using the same
@@ -26,6 +25,9 @@ class MatchingProblem:
         Template graph to be matched.
     world : Graph
         World graph to be searched.
+    fixed_costs : 2darray
+        Cost of assigning a template node to a world node, ignoring structure.
+        One row for each template node, one column for each world node.
     ground_truth_provided : bool, optional
         A flag indicating whether a signal has been injected into the world
         graph with node identifiers that match those in the template.
@@ -45,16 +47,26 @@ class MatchingProblem:
         Template graph to be matched.
     world : Graph
         World graph to be searched.
-    costs : 2darray
+    fixed_costs : 2darray
+        Cost of assigning a template node to a world node, ignoring structure.
+        One row for each template node, one column for each world node.
+    structural_costs : 2darray
         Each entry of this matrix denotes the minimum local cost of matching
         the template node corresponding to the row to the world node
         corresponding to the column.
+    cost_threshold : int, optional
+        A subgraph whose cost againt the template exceeds this threshold will
+        not be considered a match. It can also be used to eliminate candidates
+        from the world graph. A cost of 0 corresponds to an exact match for the
+        template, whereas a cost of 1 means that the match may be missing a
+        single edge which is present in the template but not in the world.
     """
 
     def __init__(self,
                  tmplt, world,
-                 ground_truth_provided=False,
+                 fixed_costs=None,
                  cost_threshold=0,
+                 ground_truth_provided=False,
                  candidate_print_limit=10):
         self.tmplt = tmplt
         tmplt_channels = set(self.tmplt.channels)
@@ -65,11 +77,43 @@ class MatchingProblem:
         world = world.channel_subgraph(self.tmplt.channels)
         self.world = world
 
-        self.costs = np.zeros((tmplt.n_nodes, world.n_nodes))
-        self._cost_sum = 0  # self.costs.sum()
+        shape = (tmplt.n_nodes, world.n_nodes)
+        self.structural_costs = np.zeros(shape)
+        if fixed_costs is None:
+            self.fixed_costs = np.zeros(shape)
+            self._total_costs = np.zeros(shape)
+        else:
+            self.fixed_costs = fixed_costs
+            self._total_costs = self._compute_total_costs()
+        self._structural_cost_sum = 0  # self.costs.sum()
+        self.cost_threshold = cost_threshold
         self._ground_truth_provided = ground_truth_provided
-        self._cost_threshold = cost_threshold
         self._candidate_print_limit = candidate_print_limit
+
+    def _have_costs_changed(self):
+        """Check if the structural costs have changed since last call."""
+        old_structural_cost_sum = self._structural_cost_sum
+        self._structural_cost_sum = self.structural_costs.sum()
+        return old_structural_cost_sum != self._structural_cost_sum
+
+    def _compute_total_costs(self):
+        """Compute total costs from structural and fixed costs."""
+        costs = self.structural_costs / 2 + self.fixed_costs
+        return constrained_lsap_costs(costs)
+
+    @property
+    def total_costs(self):
+        """2darray: A matrix of minimum costs under assignment constraints.
+
+        Each entry of this 2darray is a lower bound on the total assignment
+        cost that will be incurred by a subgraph match in which the template
+        node corresponding to the row is assigned to the world node
+        corresponding to the column.
+        """
+        if self._have_costs_changed():
+            self._total_costs = self._compute_total_costs()
+
+        return self._total_costs
 
     def candidates(self):
         """Get the matrix of compatibility between template and world nodes.
@@ -78,6 +122,8 @@ class MatchingProblem:
         there exists an assignment from template nodes to world nodes in which
         i is assigned to j whose cost does not exceed the desired threshold.
 
+        This could be a property, but it is not particularly cheap to compute.
+
         Returns
         -------
         2darray
@@ -85,114 +131,28 @@ class MatchingProblem:
             corresponding to the column is a candidate for the template node
             corresponding to the row.
         """
-        # Checked if cached results are available. self._candidates will be
-        # deleted if it needs to be recomputed.
-        if hasattr(self, "_candidates"):
-            return self._candidates
+        return self.total_costs <= self.cost_threshold
 
-        total_costs = constrained_lsap_costs(self.costs)
+    def update_costs(self, new_structural_costs, indexer=None):
+        """Update the structural costs with the larger of the old and the new.
 
-        self._candidates = total_costs <= self._cost_threshold
-        return self._candidates
-
-    def update_costs(self, new_costs, indexer=None):
-        """Update the costs with the larger of the old costs and the new.
-
-        Each entry of self.costs is monotonically increasing in time.
+        Each entry of self.structural_costs is monotonically increasing.
 
         Parameters
         ----------
-        new_costs : ndarray
-            Costs to update with. Any current costs that are larger than the
-            corresponding new costs are kept.
+        new_structural_costs : ndarray
+            Costs to update with. Any current structural_costs that are larger
+            than thecorresponding new structural_costs are kept.
         indexer : ndarray
-            The elements of self.costs that are to be updated.
+            The elements of self.structural_costs that are to be updated.
         """
         if indexer is None:
-            self.costs = np.maximum(self.costs, new_costs)
+            self.structural_costs = np.maximum(self.structural_costs,
+                                               new_structural_costs)
         else:
-            self.costs[indexer] = np.maximum(self.costs[indexer], new_costs)
-
-        if hasattr(self, "_candidates"):
-            # Delete the cached candidates if the costs have changed.
-            old_cost_sum = self._cost_sum
-            self._cost_sum = self.costs.sum()
-            if old_cost_sum != self._cost_sum:
-                del self._candidates
-
-    def stats_filter(self):
-        """Compare local features such as degrees between nodes.
-
-        TODO: Switch features to a function on the graphs rather than property,
-        add options to the function for which features to compute.
-        TODO: Describe this function in more detail.
-        TODO: This should take candidacy into account when computing features.
-        TODO: Bring back reciprocated edges, carefully.
-        """
-        for idx in range(self.tmplt.n_nodes):
-            tmplt_node_feats = self.tmplt.features[:, [idx]]
-            # TODO: Insert generic loss function between features here:
-            missing = np.maximum(tmplt_node_feats - self.world.features, 0)
-            self.update_costs(np.sum(missing, axis=0), indexer=idx)
-
-        # # The implementation above is faster and uses less memory than the
-        # # one below.
-        # # [n_features, n_tmplt_nodes, n_world_nodes] array of differences
-        # feature_diffs = self.tmplt.features[:, :, None] - \
-        #                 self.world.features[:, None, :]
-        # missing = np.maximum(feature_diffs, 0)
-
-    # def topology_filter(self):
-    #     """Compare edges between each pair of nodes."""
-    #     for src_idx, dst_idx in tmplt.nbr_idx_pairs:
-    #         if changed_cands is not None:
-    #             # If neither the source nor destination has changed, there is no
-    #             # point in filtering on this pair of nodes
-    #             if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-    #                 continue
-    #
-    #         # get indicators of candidate nodes in the world adjacency matrices
-    #         src_is_cand = candidates[src_idx]
-    #         dst_is_cand = candidates[dst_idx]
-    #
-    #         # figure out which candidates have enough edges between them in world
-    #         enough_edges = None
-    #         for tmplt_adj, world_adj in iter_adj_pairs(tmplt, world):
-    #             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
-    #
-    #             # if there are no edges in this channel of the template, skip it
-    #             if tmplt_adj_val == 0:
-    #                 continue
-    #
-    #             # sub adjacency matrix corresponding to edges from the source
-    #             # candidates to the destination candidates
-    #             world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
-    #
-    #             partial_enough_edges = world_sub_adj >= tmplt_adj_val
-    #             if enough_edges is None:
-    #                 enough_edges = partial_enough_edges
-    #             else:
-    #                 enough_edges = enough_edges.multiply(partial_enough_edges)
-    #
-    #         # # i,j element is 1 if cands i and j have enough edges between them
-    #         # enough_edges = reduce(mul, enough_edges_list, 1)
-    #
-    #         # srcs with at least one reasonable dst
-    #         src_matches = enough_edges.getnnz(axis=1) > 0
-    #         candidates[src_idx][src_is_cand] = src_matches
-    #         if not any(src_matches):
-    #             candidates[:,:] = False
-    #             break
-    #
-    #         if src_idx != dst_idx:
-    #             # dsts with at least one reasonable src
-    #             dst_matches = enough_edges.getnnz(axis=0) > 0
-    #             candidates[dst_idx][dst_is_cand] = dst_matches
-    #             if not any(dst_matches):
-    #                 candidates[:,:] = False
-    #                 break
-    #
-    #     return tmplt, world, candidates
+            self.structural_costs[indexer] = \
+                np.maximum(self.structural_costs[indexer],
+                           new_structural_costs)
 
     def __str__(self):
         """Summarize the state of the matching problem.
