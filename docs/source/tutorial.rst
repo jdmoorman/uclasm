@@ -41,7 +41,7 @@ Run various filters to reduce the search space.
 
 .. code-block:: python
 
-    >>> smp.stats_filter()
+    >>> uclasm.nodewise_cost_bound(smp)
 
 View the state of the matching problem.
 
