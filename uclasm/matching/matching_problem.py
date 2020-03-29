@@ -12,6 +12,7 @@ class MatchingProblem:
     TODO: optionally accept ground truth map argument.
     TODO: Is it okay to describe the tmplt and world attributes using the same
     descriptions as were used for the corresponding parameters?
+    TODO: Remove self edges from the graphs and add them back as fixed costs.
 
     Examples
     --------

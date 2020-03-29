@@ -138,12 +138,12 @@ class Graph:
 
     @property
     def features(self):
-        """2darray: An [n_features, n_nodes] array of node features.
+        """2darray: An [n_nodes, n_features] array of node features.
 
         TODO: Add clustering coefficient: The number of edges between adjacent
         nodes (not including edges to the node being evaluated).
 
-        A 2darray of shape [3*n_channels, n_nodes] providing the in-degree,
+        A 2darray of shape [n_nodes, 3*n_channels] providing the in-degree,
         out-degree, and number of self edges for each node in the graph.
         """
         if not hasattr(self, "_features"):
@@ -151,13 +151,14 @@ class Graph:
 
             # For each channel, compute some features.
             for adj in self.adjs:
-                self_edges = np.reshape(adj.diagonal(), (1, -1))
-                in_degrees = adj.sum(axis=0).A - self_edges
-                out_degrees = adj.sum(axis=1).T.A - self_edges
+                self_edges = np.reshape(adj.diagonal(), (-1, 1))
+                in_degrees = adj.sum(axis=0).T.A - self_edges
+                out_degrees = adj.sum(axis=1).A - self_edges
 
                 features_list.extend([self_edges, in_degrees, out_degrees])
 
-            self._features = np.concatenate(features_list, axis=0)
+            self._features = np.concatenate(features_list, axis=1)
+            print(self._features.shape)
 
         return self._features
 
@@ -180,6 +181,9 @@ class Graph:
 
     def node_subgraph(self, node_idxs):
         """Get the subgraph induced by the specified node indices.
+
+        TODO: Any of the composite adjacency matrices should be subgraphed if
+        they have been computed.
 
         Parameters
         ----------
