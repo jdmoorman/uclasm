@@ -31,8 +31,6 @@ class Graph:
         Types of edge present in the graph.
     adjs : list(spmatrix)
         Adjacency matrices corresponding to each channel.
-    ch_to_adj : dict(str, spmatrix)
-        A map from channel names to corresponding adjacency matrices.
     nodes : Series
         A Series containing node identifiers. These are particularly
         useful for keeping track of nodes when taking subgraphs.
@@ -66,7 +64,6 @@ class Graph:
 
         self.channels = list(channels)
         self.adjs = list(adjs)
-        self.ch_to_adj = dict(zip(channels, adjs))
 
         # TODO: If an edgelist was supplied, use it to compute this stuff.
 
@@ -95,7 +92,7 @@ class Graph:
         corresponding to the column.
         """
         if not hasattr(self, "_composite_adj"):
-            self._composite_adj = sum(self.ch_to_adj.values())
+            self._composite_adj = sum(self.adjs)
 
         return self._composite_adj
 
@@ -137,47 +134,76 @@ class Graph:
         return np.argwhere(sparse.tril(self.is_nbr))
 
     @property
+    def self_edges(self):
+        """2darray: An array of self-edge counts in each channel.
+
+        A 2darray of shape [n_nodes, n_channels]. Each entry provides the
+        number of self edges of the node corresponding to the row in the
+        channel corresponding to the channel.
+        """
+        if not hasattr(self, "_self_edges"):
+            self_edges_list = [adj.diagonal() for adj in self.adjs]
+            self._self_edges = np.stack(self_edges_list, axis=1)
+
+        return self._self_edges
+
+    @property
+    def in_degrees(self):
+        """2darray: An array of in degrees in each channel.
+
+        A 2darray of shape [n_nodes, n_channels]. Each entry provides the
+        in-degree of the node corresponding to the row in the channel
+        corresponding to the channel.
+        """
+        if not hasattr(self, "_in_degrees"):
+            in_degrees_list = [adj.sum(axis=0).T.A for adj in self.adjs]
+            in_degrees_array = np.concatenate(in_degrees_list, axis=1)
+            self._in_degrees = in_degrees_array - self.self_edges
+
+        return self._in_degrees
+
+    @property
+    def out_degrees(self):
+        """2darray: An array of out degrees in each channel.
+
+        A 2darray of shape [n_nodes, n_channels]. Each entry provides the
+        out-degree of the node corresponding to the row in the channel
+        corresponding to the channel.
+        """
+        if not hasattr(self, "_out_degrees"):
+            out_degrees_list = [adj.sum(axis=1).A for adj in self.adjs]
+            out_degrees_array = np.concatenate(out_degrees_list, axis=1)
+            self._out_degrees = out_degrees_array - self.self_edges
+
+        return self._out_degrees
+
+    @property
+    def in_out_degrees(self):
+        """2darray: An array of in and out degrees in each channel.
+
+        A 2darray of shape [n_nodes, 2 * n_channels]. The first n_channels
+        entries of each row are the in-degrees of the nodes corresponding to
+        the row in each channel. The remaining n_channels entries of each row
+        are the out-degrees.
+        """
+        if not hasattr(self, "_in_out_degrees"):
+            deglist = [self.in_degrees, self.out_degrees]
+            self._in_out_degrees = np.concatenate(deglist, axis=1)
+
+        return self._in_out_degrees
+
+    @property
     def features(self):
         """2darray: An [n_nodes, n_features] array of node features.
-
-        TODO: Add clustering coefficient: The number of edges between adjacent
-        nodes (not including edges to the node being evaluated).
 
         A 2darray of shape [n_nodes, 3*n_channels] providing the in-degree,
         out-degree, and number of self edges for each node in the graph.
         """
         if not hasattr(self, "_features"):
-            features_list = []
-
-            # For each channel, compute some features.
-            for adj in self.adjs:
-                self_edges = np.reshape(adj.diagonal(), (-1, 1))
-                in_degrees = adj.sum(axis=0).T.A - self_edges
-                out_degrees = adj.sum(axis=1).A - self_edges
-
-                features_list.extend([self_edges, in_degrees, out_degrees])
-
-            self._features = np.concatenate(features_list, axis=1)
-            print(self._features.shape)
+            flist = [self.self_edges, self.in_degrees, self.out_degrees]
+            self._features = np.concatenate(flist, axis=1)
 
         return self._features
-
-    def rename_nodes(self, old_to_new):
-        """Rename nodes inplace.
-
-        TODO: Test this function.
-
-        Parameters
-        ----------
-        old_to_new : dict(str, str)
-            Map from old node names to new node names
-        """
-        self.nodelist[[self.node_col]] = self.nodelist[[self.node_col]]\
-            .applymap(self.node_to_idx.get)
-
-        node_cols = [self.source_col, self.target_col]
-        self.edgecounts[node_cols] = self.edgecounts[node_cols]\
-            .applymap(self.node_to_idx.get)
 
     def node_subgraph(self, node_idxs):
         """Get the subgraph induced by the specified node indices.
@@ -222,7 +248,7 @@ class Graph:
             The induced subgraph.
         """
         # throw out nodes not belonging to the desired subgraph
-        adjs = [self.ch_to_adj[ch] for ch in channels]
+        adjs = [self.adjs[self.channels.index(ch)] for ch in channels]
 
         # Drop edges that do not have types among the desired channels.
         edge_ind = self.edgelist[self.channel_col].isin(channels)

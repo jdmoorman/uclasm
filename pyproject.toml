@@ -23,6 +23,7 @@ networkx = "^2.4"
 dask = {version = "^2.12.0", extras = ["complete"]}
 loguru = "^0.4.1"
 tqdm = "^4.43.0"
+numba = "^0.48.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
