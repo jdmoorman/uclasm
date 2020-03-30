@@ -3,6 +3,7 @@
 import scipy.sparse as sparse
 import numpy as np
 import pandas as pd
+from lazy_property import LazyProperty as lazyproperty
 
 from .utils import index_map, one_hot
 
@@ -83,7 +84,7 @@ class Graph:
 
         self.edgelist = edgelist
 
-    @property
+    @lazyproperty
     def composite_adj(self):
         """spmatrix: Composite adjacency matrix of the graph.
 
@@ -91,12 +92,9 @@ class Graph:
         of any type going from the node corresponding to the row to the node
         corresponding to the column.
         """
-        if not hasattr(self, "_composite_adj"):
-            self._composite_adj = sum(self.adjs)
+        return sum(self.adjs)
 
-        return self._composite_adj
-
-    @property
+    @lazyproperty
     def sym_composite_adj(self):
         """spmatrix: Symmetrized composite adjacency matrix of the graph.
 
@@ -104,12 +102,9 @@ class Graph:
         of any type between the pair of nodes indicated by the row and column
         indices, ignoring the direction of the edges.
         """
-        if not hasattr(self, "_sym_composite_adj"):
-            self._sym_composite_adj = self.composite_adj + self.composite_adj.T
+        return self.composite_adj + self.composite_adj.T
 
-        return self._sym_composite_adj
-
-    @property
+    @lazyproperty
     def is_nbr(self):
         """spmatrix: Boolean adjacency matrix of the graph.
 
@@ -118,12 +113,20 @@ class Graph:
         either direction in any channel. The entry will be True if the nodes
         are connected by an edge in some channel and False otherwise.
         """
-        if not hasattr(self, "_is_nbr"):
-            self._is_nbr = self.sym_composite_adj > 0
+        return self.sym_composite_adj > 0
 
-        return self._is_nbr
+    @lazyproperty
+    def edge_seqs(self):
+        """list(spmatrix): Local adjacency of each node.
 
-    @property
+        Each element of the list is an [n_nodes, 2 * n_channels] sparse matrix
+        each row of which corresponds to the edges to and from another node in
+        each channel. The self edges of node i are in edge_seqs[i][i, :] and
+        are repeated because they are considered both in and out edges.
+        """
+        return None
+
+    @lazyproperty
     def nbr_idx_pairs(self):
         """2darray: A [N, 2] array of adjacent pairs of node indices.
 
@@ -133,7 +136,7 @@ class Graph:
         """
         return np.argwhere(sparse.tril(self.is_nbr))
 
-    @property
+    @lazyproperty
     def self_edges(self):
         """2darray: An array of self-edge counts in each channel.
 
@@ -141,13 +144,10 @@ class Graph:
         number of self edges of the node corresponding to the row in the
         channel corresponding to the channel.
         """
-        if not hasattr(self, "_self_edges"):
-            self_edges_list = [adj.diagonal() for adj in self.adjs]
-            self._self_edges = np.stack(self_edges_list, axis=1)
+        self_edges_list = [adj.diagonal() for adj in self.adjs]
+        return np.stack(self_edges_list, axis=1)
 
-        return self._self_edges
-
-    @property
+    @lazyproperty
     def in_degrees(self):
         """2darray: An array of in degrees in each channel.
 
@@ -155,14 +155,11 @@ class Graph:
         in-degree of the node corresponding to the row in the channel
         corresponding to the channel.
         """
-        if not hasattr(self, "_in_degrees"):
-            in_degrees_list = [adj.sum(axis=0).T.A for adj in self.adjs]
-            in_degrees_array = np.concatenate(in_degrees_list, axis=1)
-            self._in_degrees = in_degrees_array - self.self_edges
+        in_degrees_list = [adj.sum(axis=0).T.A for adj in self.adjs]
+        in_degrees_array = np.concatenate(in_degrees_list, axis=1)
+        return in_degrees_array - self.self_edges
 
-        return self._in_degrees
-
-    @property
+    @lazyproperty
     def out_degrees(self):
         """2darray: An array of out degrees in each channel.
 
@@ -170,14 +167,11 @@ class Graph:
         out-degree of the node corresponding to the row in the channel
         corresponding to the channel.
         """
-        if not hasattr(self, "_out_degrees"):
-            out_degrees_list = [adj.sum(axis=1).A for adj in self.adjs]
-            out_degrees_array = np.concatenate(out_degrees_list, axis=1)
-            self._out_degrees = out_degrees_array - self.self_edges
+        out_degrees_list = [adj.sum(axis=1).A for adj in self.adjs]
+        out_degrees_array = np.concatenate(out_degrees_list, axis=1)
+        return out_degrees_array - self.self_edges
 
-        return self._out_degrees
-
-    @property
+    @lazyproperty
     def in_out_degrees(self):
         """2darray: An array of in and out degrees in each channel.
 
@@ -186,11 +180,8 @@ class Graph:
         the row in each channel. The remaining n_channels entries of each row
         are the out-degrees.
         """
-        if not hasattr(self, "_in_out_degrees"):
-            deglist = [self.in_degrees, self.out_degrees]
-            self._in_out_degrees = np.concatenate(deglist, axis=1)
-
-        return self._in_out_degrees
+        deglist = [self.in_degrees, self.out_degrees]
+        return np.concatenate(deglist, axis=1)
 
     def node_subgraph(self, node_idxs):
         """Get the subgraph induced by the specified node indices.
