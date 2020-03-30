@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix
 
 from .graph import Graph
 from .convert import nodelist_from_edgelist
+from .utils import apply_index_map_to_cols
 
 
 # TODO: Make channel column optional
@@ -65,7 +66,7 @@ def load_edgelist(filepath, *,
     edgecounts.rename(columns={0: count_col}, inplace=True)
 
     # Get all the distinct types of edge.
-    channels = edgecounts[Graph.channel_col].unique()
+    channels = sorted(edgecounts[Graph.channel_col].unique())
 
     # Get a node list from the source and target nodes of the edgelist.
     if nodelist is None:
@@ -75,9 +76,8 @@ def load_edgelist(filepath, *,
 
     # Swap node names for their indices so we can construct matrices.
     nodes = nodelist[Graph.node_col]
-    node_to_idx = {node: idx for idx, node in enumerate(nodes)}
     node_cols = [Graph.source_col, Graph.target_col]
-    edgecounts[node_cols] = edgecounts[node_cols].applymap(node_to_idx.get)
+    apply_index_map_to_cols(edgecounts, node_cols, nodes)
 
     # Extract adjacency matrices from the edge counts.
     adjs = []
@@ -88,6 +88,6 @@ def load_edgelist(filepath, *,
         ch_targets = ch_edgecounts[Graph.target_col]
 
         adjs.append(csr_matrix((ch_counts, (ch_sources, ch_targets)),
-                    shape=(n_nodes, n_nodes)))
+                               shape=(n_nodes, n_nodes)))
 
     return Graph(adjs, channels, nodelist, edgelist)

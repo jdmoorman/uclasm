@@ -75,8 +75,7 @@ class MatchingProblem:
         if tmplt_channels != world_channels:
             logger.warning("World channels {} do not appear in template.",
                            world_channels - tmplt_channels)
-        world = world.channel_subgraph(self.tmplt.channels)
-        self.world = world
+        self.world = world.channel_subgraph(self.tmplt.channels)
 
         shape = (tmplt.n_nodes, world.n_nodes)
         self.structural_costs = np.zeros(shape)
