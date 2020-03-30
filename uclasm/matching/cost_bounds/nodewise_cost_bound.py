@@ -66,4 +66,3 @@ def nodewise_cost_bound(smp):
     """
     smp.update_costs(feature_disagreements(smp.tmplt.in_out_degrees,
                                            smp.world.in_out_degrees))
-    feature_disagreements.parallel_diagnostics(level=4)

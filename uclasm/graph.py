@@ -192,19 +192,6 @@ class Graph:
 
         return self._in_out_degrees
 
-    @property
-    def features(self):
-        """2darray: An [n_nodes, n_features] array of node features.
-
-        A 2darray of shape [n_nodes, 3*n_channels] providing the in-degree,
-        out-degree, and number of self edges for each node in the graph.
-        """
-        if not hasattr(self, "_features"):
-            flist = [self.self_edges, self.in_degrees, self.out_degrees]
-            self._features = np.concatenate(flist, axis=1)
-
-        return self._features
-
     def node_subgraph(self, node_idxs):
         """Get the subgraph induced by the specified node indices.
 
