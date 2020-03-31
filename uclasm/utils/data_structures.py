@@ -2,6 +2,7 @@
 Filtering algorithms expect data to come in the form of Graph objects
 """
 
+from .equivalence.partition_sparse import bfs_partition_graph
 from .misc import index_map
 import scipy.sparse as sparse
 import numpy as np
@@ -23,6 +24,7 @@ class Graph:
         self._composite_adj = None
         self._sym_composite_adj = None
         self._is_nbr = None
+        self._eq_classes = None
 
     @property
     def composite_adj(self):
@@ -53,6 +55,15 @@ class Graph:
         for example only one of (0,3) and (3,0) could appear as rows.
         """
         return np.argwhere(sparse.tril(self.is_nbr))
+
+    @property
+    def eq_classes(self):
+        """
+        Return the Equivalence object associated with the graph.
+        """
+        if self._eq_classes is None:
+            self._eq_classes = bfs_partition_graph(self.ch_to_adj)
+        return self._eq_classes
 
     def subgraph(self, node_idxs):
         """
