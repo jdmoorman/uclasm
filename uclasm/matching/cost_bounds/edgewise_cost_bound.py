@@ -3,7 +3,7 @@ import numpy as np
 
 
 def iter_adj_pairs(tmplt, world):
-    """Generate for pairs of adjacency matrices.
+    """Generator for pairs of adjacency matrices.
 
     Each pair of adjacency matrices corresponds to the same channel in both
     the template and the world.
