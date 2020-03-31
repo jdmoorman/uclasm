@@ -3,7 +3,14 @@
 import scipy.sparse as sparse
 import numpy as np
 import pandas as pd
-from lazy_property import LazyProperty as lazyproperty
+import sys
+
+# functools.cached_property was introduced in python 3.8.
+# https://docs.python.org/3/library/functools.html#functools.cached_property
+if sys.version_info >= (3, 8):
+    from functools import cached_property
+else:
+    from lazy_property import LazyProperty as cached_property
 
 from .utils import index_map, one_hot
 
@@ -87,7 +94,7 @@ class Graph:
 
         self.edgelist = edgelist
 
-    @lazyproperty
+    @cached_property
     def composite_adj(self):
         """spmatrix: Composite adjacency matrix of the graph.
 
@@ -97,7 +104,7 @@ class Graph:
         """
         return sum(self.adjs)
 
-    @lazyproperty
+    @cached_property
     def sym_composite_adj(self):
         """spmatrix: Symmetrized composite adjacency matrix of the graph.
 
@@ -107,7 +114,7 @@ class Graph:
         """
         return self.composite_adj + self.composite_adj.T
 
-    @lazyproperty
+    @cached_property
     def is_nbr(self):
         """spmatrix: Boolean adjacency matrix of the graph.
 
@@ -118,7 +125,7 @@ class Graph:
         """
         return self.sym_composite_adj > 0
 
-    @lazyproperty
+    @cached_property
     def edge_seqs(self):
         """list(spmatrix): Local adjacency of each node.
 
@@ -126,19 +133,26 @@ class Graph:
         each row of which corresponds to the edges to and from another node in
         each channel. The self edges of node i are in edge_seqs[i][i, :] and
         are repeated because they are considered both in and out edges.
-        """
-        edge_seqs = []
-        for idx in range(self.n_nodes):
-            in_edge_counts = [adj[:, idx] for adj in self.adjs]
-            out_edge_counts = [adj.T[:, idx] for adj in self.adjs]
-            all_edge_counts = in_edge_counts + out_edge_counts  # concatenate
 
-            # TODO: Explore formats here. Maybe COO could be faster?
-            edge_seqs.append(sparse.hstack(all_edge_counts, format="csr"))
+        Notes
+        -----
+        Be careful to take advantage of the CSR format.
+        """
+        from tqdm import tqdm
+        edge_seqs = []
+        for idx in tqdm(range(self.n_nodes)):
+            # in_edge_counts = [adj.T[idx, :] for adj in self.adjs]
+            # out_edge_counts = [adj[idx, :] for adj in self.adjs]
+            # all_edge_counts = in_edge_counts + out_edge_counts  # concatenate
+
+            all_edge_counts = [adj[idx, :] for adj in self.adjs]
+
+            # # TODO: Explore formats here.
+            edge_seqs.append(sparse.vstack(all_edge_counts, format="csr"))
 
         return edge_seqs
 
-    @lazyproperty
+    @cached_property
     def nbr_idx_pairs(self):
         """2darray: A [N, 2] array of adjacent pairs of node indices.
 
@@ -148,7 +162,7 @@ class Graph:
         """
         return np.argwhere(sparse.tril(self.is_nbr))
 
-    @lazyproperty
+    @cached_property
     def self_edges(self):
         """2darray: An array of self-edge counts in each channel.
 
@@ -158,7 +172,7 @@ class Graph:
         """
         return np.stack([adj.diagonal() for adj in self.adjs], axis=1)
 
-    @lazyproperty
+    @cached_property
     def in_degrees(self):
         """2darray: An array of in degrees in each channel.
 
@@ -170,7 +184,7 @@ class Graph:
         in_degrees_array = np.concatenate(in_degrees_list, axis=1)
         return in_degrees_array - self.self_edges
 
-    @lazyproperty
+    @cached_property
     def out_degrees(self):
         """2darray: An array of out degrees in each channel.
 
@@ -182,7 +196,7 @@ class Graph:
         out_degrees_array = np.concatenate(out_degrees_list, axis=1)
         return out_degrees_array - self.self_edges
 
-    @lazyproperty
+    @cached_property
     def in_out_degrees(self):
         """2darray: An array of in and out degrees in each channel.
 
