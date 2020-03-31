@@ -1,15 +1,20 @@
-"""Provide a function for bounding node assignment costs with edgewise info"""
+"""Provide a function for bounding node assignment costs with edgewise info."""
 import numpy as np
 
+
 def iter_adj_pairs(tmplt, world):
-    """ Generator for pairs of template and world adjacency matrices that
-    correspond to the same channel
+    """Generate for pairs of adjacency matrices.
+
+    Each pair of adjacency matrices corresponds to the same channel in both
+    the template and the world.
+
     Parameters
     ----------
     tmplt : Graph
         Template graph to be matched.
     world : Graph
         World graph to be searched.
+
     Yields
     -------
     (spmatrix, spmatrix)
@@ -20,11 +25,14 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj, world_adj)
         yield (tmplt_adj.T, world_adj.T)
 
+
 def edgewise_cost_bound(smp):
-    """ Computes a lower bound on the local cost of assignment by iterating
+    """Bound local assignment costs by edge disagreements between candidates.
+
+    Computes a lower bound on the local cost of assignment by iterating
     over template edges and comparing candidates for the endpoints.
-    The lower bound for a given assignment (u, u') is the sum over all neighbors
-    v of u of the minimum number of missing missing edges between (u', v') over
+    The lower bound for an assignment (u, u') is the sum over all neighbors
+    v of u of the minimum number of missing edges between (u', v') over
     all v' where v' is a candidate for v.
 
     TODO: Cite paper from REU.
