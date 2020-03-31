@@ -32,7 +32,7 @@ def pick_minimum_domain_vertex(candidates):
 
     return t_vert
 
-def recursive_isomorphism_counter(tmplt, world, candidates, *,
+def recursive_isomorphism_counter(tmplt, world, candidates, matching, *,
         unspec_cover, verbose, init_changed_cands, tmplt_equivalence=False, 
         world_equivalence=False):
     """
@@ -42,6 +42,8 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
         tmplt (Graph): The template graph
         world (Graph): The world graph
         candidates (np.array): The candidate matrix
+        matching (list): A list of tuples which designate what each template
+            vertex is matched to
         unspec_cover (np.array): Array of the indices of the nodes with
             more than 1 candidate
         verbose (bool): Verbosity flag
@@ -82,13 +84,17 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
         candidates_copy = candidates.copy()
         candidates_copy[node_idx] = one_hot(cand_idx, world.n_nodes)
 
+    `   matching.append((node_idx, cand_idx))
         # Remove matched node from the unspecified list
         new_unspec_cover = unspec_cover[:node_idx] + unspec_cover[node_idx+1:]
 
         # recurse to make assignment for the next node in the unspecified cover
         n_isomorphisms += recursive_isomorphism_counter(
-            tmplt, world, candidates_copy, unspec_cover=new_unspec_cover,
+            tmplt, world, candidates_copy, matching, unspec_cover=new_unspec_cover,
             verbose=verbose, init_changed_cands=one_hot(node_idx, tmplt.n_nodes))
+
+        # Unmatch template vertex
+        matching.pop()
 
         # TODO: more useful progress summary
         if verbose:
@@ -132,10 +138,17 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True,
         tmplt, world, candidates = uclasm.run_filters(
             tmplt, world, filters=uclasm.all_filters, verbose=verbose)
 
+    matching = []
+    spec_nodes = np.where(candidates.sum(axis=1) == 1)[0]
+    for t_vert in spec_nodes:
+        w_vert = np.where(candidates[t_vert,:])[0][0]
+        matching.append((t_vert, w_vert))
+
     unspec_nodes = np.where(candidates.sum(axis=1) > 1)[0]
     tmplt_subgraph = tmplt.subgraph(unspec_nodes)
     unspec_cover = get_node_cover(tmplt_subgraph)
-    unspec_cover_nodes = [tmplt_subgraph.nodes[node_idx] for node_idx in unspec_cover]
+    unspec_cover_nodes = [tmplt_subgraph.nodes[node_idx]
+                          for node_idx in unspec_cover]
     unspec_cover_idxes = [tmplt.node_idxs[node] for node in unspec_cover_nodes]
 
     # Send zeros to init_changed_cands since we already just ran the filters

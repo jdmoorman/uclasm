@@ -5,7 +5,7 @@ from functools import reduce
 
 # counts the number of ways to assign a particular node, recursing to
 # incorporate ways to assign the next node, and so on
-def recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts):
+def recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts, matching):
     # no nodes left to assign
     if len(node_to_nodes_list) == 0:
         return 1
@@ -39,7 +39,7 @@ def recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts):
 
     return count
 
-def count_alldiffs(node_to_cands):
+def count_alldiffs(node_to_cands, matching):
     """
     node_to_cands: dict(item, list)
 
@@ -55,12 +55,14 @@ def count_alldiffs(node_to_cands):
     if any(len(cands)==0 for cands in node_to_cands.values()):
         return 0
 
+    # For debugging purposes, keep track of the current matching.
+    matches = [(node, cands[0]) for node, cands in node_to_cands.items()
+               if len(cands) == 1]
+    matching += matches
     # TODO: throwing out nodes with only one cand may not be necessary
     # if a node has only one possible cand, throw it out.
     node_to_cands = {node: cands for node, cands in node_to_cands.items()
-                   if len(cands) > 1}
-
-    unspec_nodes = list(node_to_cands.keys())
+                     if len(cands) > 1}
 
     # which nodes is each cand a cand for?
     cand_to_nodes = invert(node_to_cands)
@@ -76,4 +78,10 @@ def count_alldiffs(node_to_cands):
         node: [nodes for nodes in nodes_to_cand_counts.keys() if node in nodes]
         for node in node_to_cands}
 
-    return recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts)
+    count = recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts)
+    
+    # Unmatch all the matchings made in this function call.
+    for _ in matches:
+        matching.pop()
+
+    return count
