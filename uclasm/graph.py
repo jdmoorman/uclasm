@@ -126,33 +126,6 @@ class Graph:
         return self.sym_composite_adj > 0
 
     @cached_property
-    def edge_seqs(self):
-        """list(spmatrix): Local adjacency of each node.
-
-        Each element of the list is an [n_nodes, 2 * n_channels] sparse matrix
-        each row of which corresponds to the edges to and from another node in
-        each channel. The self edges of node i are in edge_seqs[i][i, :] and
-        are repeated because they are considered both in and out edges.
-
-        Notes
-        -----
-        Be careful to take advantage of the CSR format.
-        """
-        from tqdm import tqdm
-        edge_seqs = []
-        for idx in tqdm(range(self.n_nodes)):
-            # in_edge_counts = [adj.T[idx, :] for adj in self.adjs]
-            # out_edge_counts = [adj[idx, :] for adj in self.adjs]
-            # all_edge_counts = in_edge_counts + out_edge_counts  # concatenate
-
-            all_edge_counts = [adj[idx, :] for adj in self.adjs]
-
-            # # TODO: Explore formats here.
-            edge_seqs.append(sparse.vstack(all_edge_counts, format="csr"))
-
-        return edge_seqs
-
-    @cached_property
     def nbr_idx_pairs(self):
         """2darray: A [N, 2] array of adjacent pairs of node indices.
 
