@@ -70,10 +70,7 @@ def edgewise_cost_bound(smp):
                 supported_edges = world_sub_adj.minimum(tmplt_adj_val)
             else:
                 supported_edges += world_sub_adj.minimum(tmplt_adj_val)
-            print(total_tmplt_edges, supported_edges)
 
-        print("supported_edges", supported_edges)
-        print("n_total", total_tmplt_edges)
         src_support = supported_edges.max(axis=1)
         src_least_cost = total_tmplt_edges - src_support.A
         src_least_cost = np.array(src_least_cost).flatten()
@@ -85,13 +82,8 @@ def edgewise_cost_bound(smp):
         #                             structural_costs[dst_idx][dst_is_cand]).min(axis=1)
 
         # Update the structural cost bound
-        print("src_idx", src_idx)
         new_structural_costs[src_idx][src_is_cand] += src_least_cost
-        print("src_least_cost", src_least_cost)
-        print("structural_costs", new_structural_costs)
-        print("candidates", smp.candidates())
         # smp.update_costs(src_least_cost, indexer=(src_idx, src_is_cand))
-
 
         if src_idx != dst_idx:
             dst_support = supported_edges.max(axis=0)
@@ -99,4 +91,3 @@ def edgewise_cost_bound(smp):
             dst_least_cost = np.array(dst_least_cost).flatten()
             new_structural_costs[dst_idx][dst_is_cand] += dst_least_cost
     smp.update_costs(new_structural_costs)
-    print("candidates", smp.candidates())
