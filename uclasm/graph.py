@@ -32,6 +32,8 @@ class Graph:
         Types of edge present in the graph.
     adjs : list(spmatrix)
         Adjacency matrices corresponding to each channel.
+    ch_to_adj : dict(str, spmatrix)
+        Map from channels to their corresponding adjacency matrix
     nodes : Series
         A Series containing node identifiers. These are particularly
         useful for keeping track of nodes when taking subgraphs.
@@ -65,6 +67,7 @@ class Graph:
 
         self.channels = list(channels)
         self.adjs = list(adjs)
+        self.ch_to_adj = dict(zip(self.channels, self.adjs))
 
         # TODO: If an edgelist was supplied, use it to compute this stuff.
 

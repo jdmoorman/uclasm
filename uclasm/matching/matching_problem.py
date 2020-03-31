@@ -167,9 +167,15 @@ class MatchingProblem:
             self.structural_costs = np.maximum(self.structural_costs,
                                                new_structural_costs)
         else:
-            self.structural_costs[indexer] = \
-                np.maximum(self.structural_costs[indexer],
-                           new_structural_costs)
+            if isinstance(indexer, tuple) and len(indexer) == 2:
+                row_indexer, col_indexer = indexer
+                self.structural_costs[row_indexer][col_indexer] = \
+                    np.maximum(self.structural_costs[row_indexer][col_indexer],
+                            new_structural_costs)
+            else:
+                self.structural_costs[indexer] = \
+                    np.maximum(self.structural_costs[indexer],
+                            new_structural_costs)
 
     def __str__(self):
         """Summarize the state of the matching problem.
