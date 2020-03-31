@@ -55,7 +55,7 @@ class Graph:
     channel_col = "eType"
 
     def __init__(self, adjs, channels=None, nodelist=None, edgelist=None):
-        """TODO: Docstring."""
+        """Derive attributes from parameters."""
         self.n_nodes = adjs[0].shape[0]
         self.n_channels = len(adjs)
 
@@ -124,7 +124,16 @@ class Graph:
         each channel. The self edges of node i are in edge_seqs[i][i, :] and
         are repeated because they are considered both in and out edges.
         """
-        return None
+        edge_seqs = []
+        for idx in range(self.n_nodes):
+            in_edge_counts = [adj[:, idx] for adj in self.adjs]
+            out_edge_counts = [adj.T[:, idx] for adj in self.adjs]
+            all_edge_counts = in_edge_counts + out_edge_counts  # concatenate
+
+            # TODO: Explore formats here. Maybe COO could be faster?
+            edge_seqs.append(sparse.hstack(all_edge_counts, format="csr"))
+
+        return edge_seqs
 
     @lazyproperty
     def nbr_idx_pairs(self):
@@ -144,8 +153,7 @@ class Graph:
         number of self edges of the node corresponding to the row in the
         channel corresponding to the channel.
         """
-        self_edges_list = [adj.diagonal() for adj in self.adjs]
-        return np.stack(self_edges_list, axis=1)
+        return np.stack([adj.diagonal() for adj in self.adjs], axis=1)
 
     @lazyproperty
     def in_degrees(self):
@@ -182,6 +190,28 @@ class Graph:
         """
         deglist = [self.in_degrees, self.out_degrees]
         return np.concatenate(deglist, axis=1)
+
+    def loopless_subgraph(self):
+        """Get a subgraph containing no self-edges.
+
+        Returns
+        -------
+        Graph
+            A graph with the same nodes and edges as self, omitting self-edges.
+        """
+        adjs = [adj.copy() for adj in self.adjs]
+        for adj in adjs:
+            # manually zero only the non-zero diagonal elements
+            nonzero, = adj.diagonal().nonzero()
+            adj[nonzero, nonzero] = 0
+
+        # TODO: Test this to see if it works with dask DataFrames.
+        _sources = self.edgelist[self.source_col]
+        _targets = self.edgelist[self.target_col]
+        edgelist = self.edgelist[_sources != _targets].reset_index(drop=True)
+
+        # Return a new graph object for the subgraph
+        return Graph(adjs, self.channels, self.nodelist, edgelist)
 
     def node_subgraph(self, node_idxs):
         """Get the subgraph induced by the specified node indices.

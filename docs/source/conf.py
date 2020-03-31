@@ -34,6 +34,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.coverage',
+    'sphinx.ext.doctest',
     'sphinx.ext.todo'
 ]
 

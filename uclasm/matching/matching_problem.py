@@ -12,7 +12,6 @@ class MatchingProblem:
     TODO: optionally accept ground truth map argument.
     TODO: Is it okay to describe the tmplt and world attributes using the same
     descriptions as were used for the corresponding parameters?
-    TODO: Remove self edges from the graphs and add them back as fixed costs.
 
     Examples
     --------
@@ -84,20 +83,38 @@ class MatchingProblem:
             self._total_costs = np.zeros(shape)
         else:
             self.fixed_costs = fixed_costs
-            self._total_costs = self._compute_total_costs()
+
+        self._total_costs = self._compute_total_costs()
         self._structural_cost_sum = 0  # self.costs.sum()
         self.cost_threshold = cost_threshold
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
     def _have_costs_changed(self):
-        """Check if the structural costs have changed since last call."""
+        """Check if the structural costs have changed since last call.
+
+        Returns
+        -------
+        bool
+            True if any of self.structural_costs have changed since last time
+            this function was called. False otherwise.
+        """
         old_structural_cost_sum = self._structural_cost_sum
         self._structural_cost_sum = self.structural_costs.sum()
         return old_structural_cost_sum != self._structural_cost_sum
 
     def _compute_total_costs(self):
-        """Compute total costs from structural and fixed costs."""
+        """Compute total costs from structural and fixed costs.
+
+        Returns
+        -------
+        2darray
+            [self.tmplt.n_nodes, self.world.n_nodes] array of total costs.
+            Each entry constrains the template node corresponding to the row
+            to be assigned to the world node corresponding to the column. The
+            value of the entry is the minimum assignment cost under the
+            corresponding constraint.
+        """
         costs = self.structural_costs / 2 + self.fixed_costs
         return constrained_lsap_costs(costs)
 
@@ -157,7 +174,12 @@ class MatchingProblem:
     def __str__(self):
         """Summarize the state of the matching problem.
 
-        Includes information about candidates for each template node.
+        Returns
+        -------
+        str
+            Information includes number of candidates for each template node,
+            number of template nodes which have exactly one candidate,
+            and size of the template and world graphs.
         """
         # Append info strings to this list throughout the function.
         info_strs = []
