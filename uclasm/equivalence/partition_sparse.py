@@ -154,7 +154,7 @@ def partition_neighbors(neighbors, adj_mat_csrs, adj_mat_cscs,
     return eq_classes
 
 
-def bfs_partition_graph(graph):
+def bfs_partition_graph(ch_to_adj):
     """
     This performs a breadth first search approach to computing the equivalence
     classes. This function works by performing a breadth first search of the
@@ -168,7 +168,8 @@ def bfs_partition_graph(graph):
     in.
 
     Args:
-        graph (Graph): The graph to determine equivalence classes for
+        ch_to_adj (dict): A dictionary from channels to adjacency matrices
+            of the graph
     Returns:
         Equivalence: The equivalence structure of the graph
     """
