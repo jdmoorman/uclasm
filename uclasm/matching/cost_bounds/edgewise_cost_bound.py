@@ -51,6 +51,8 @@ def edgewise_cost_bound(smp):
 
         # This sparse matrix stores the number of supported template edges
         # between each pair of candidates for src and dst
+        # i.e. the number of template edges between src and dst that also exist
+        # between their candidates in the world
         supported_edges = None
         # Number of total edges in the template between src and dst
         total_tmplt_edges = 0
@@ -83,7 +85,6 @@ def edgewise_cost_bound(smp):
 
         # Update the structural cost bound
         new_structural_costs[src_idx][src_is_cand] += src_least_cost
-        # smp.update_costs(src_least_cost, indexer=(src_idx, src_is_cand))
 
         if src_idx != dst_idx:
             dst_support = supported_edges.max(axis=0)
