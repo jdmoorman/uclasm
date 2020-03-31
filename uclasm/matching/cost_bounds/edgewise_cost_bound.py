@@ -1,31 +1,62 @@
-"""TODO: Docstring."""
+"""Provide a function for bounding node assignment costs with edgewise info"""
+import numpy as np
 
+def iter_adj_pairs(tmplt, world):
+    """ Generator for pairs of template and world adjacency matrices that
+    correspond to the same channel
+    Parameters
+    ----------
+    tmplt : Graph
+        Template graph to be matched.
+    world : Graph
+        World graph to be searched.
+    Yields
+    -------
+    (spmatrix, spmatrix)
+        A tuple of sparse adjacency matrices
+    """
+    for channel, tmplt_adj in tmplt.ch_to_adj.items():
+        world_adj = world.ch_to_adj[channel]
+        yield (tmplt_adj, world_adj)
+        yield (tmplt_adj.T, world_adj.T)
 
 def edgewise_cost_bound(smp):
-    """TODO: Docstring.
+    """ Computes a lower bound on the local cost of assignment by iterating
+    over template edges and comparing candidates for the endpoints.
+    The lower bound for a given assignment (u, u') is the sum over all neighbors
+    v of u of the minimum number of missing missing edges between (u', v') over
+    all v' where v' is a candidate for v.
 
     TODO: Cite paper from REU.
+    TODO: add changed_cands back in
 
     Parameters
     ----------
     smp : MatchingProblem
-        A subgraph matching problem on which to compute nodewise cost bounds.
+        A subgraph matching problem on which to compute edgewise cost bounds.
     """
-    for src_idx, dst_idx in tmplt.nbr_idx_pairs:
-        if changed_cands is not None:
-            # If neither the source nor destination has changed, there is no
-            # point in filtering on this pair of nodes
-            if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-                continue
+    new_structural_costs = np.zeros(smp.structural_costs.shape)
+
+    for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
+        # if changed_cands is not None:
+        #     # If neither the source nor destination has changed, there is no
+        #     # point in filtering on this pair of nodes
+        #     if not (changed_cands[src_idx] or changed_cands[dst_idx]):
+        #         continue
 
         # get indicators of candidate nodes in the world adjacency matrices
+        candidates = smp.candidates()
         src_is_cand = candidates[src_idx]
         dst_is_cand = candidates[dst_idx]
 
-        # figure out which candidates have enough edges between them in world
-        enough_edges = None
-        for tmplt_adj, world_adj in iter_adj_pairs(tmplt, world):
+        # This sparse matrix stores the number of supported template edges
+        # between each pair of candidates for src and dst
+        supported_edges = None
+        # Number of total edges in the template between src and dst
+        total_tmplt_edges = 0
+        for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
+            total_tmplt_edges += tmplt_adj_val
 
             # if there are no edges in this channel of the template, skip it
             if tmplt_adj_val == 0:
@@ -34,29 +65,38 @@ def edgewise_cost_bound(smp):
             # sub adjacency matrix corresponding to edges from the source
             # candidates to the destination candidates
             world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
-
-            partial_enough_edges = world_sub_adj >= tmplt_adj_val
-            if enough_edges is None:
-                enough_edges = partial_enough_edges
+            # Edges are supported up to the number of edges in the template
+            if supported_edges is None:
+                supported_edges = world_sub_adj.minimum(tmplt_adj_val)
             else:
-                enough_edges = enough_edges.multiply(partial_enough_edges)
+                supported_edges += world_sub_adj.minimum(tmplt_adj_val)
+            print(total_tmplt_edges, supported_edges)
 
-        # # i,j element is 1 if cands i and j have enough edges between them
-        # enough_edges = reduce(mul, enough_edges_list, 1)
+        print("supported_edges", supported_edges)
+        print("n_total", total_tmplt_edges)
+        src_support = supported_edges.max(axis=1)
+        src_least_cost = total_tmplt_edges - src_support.A
+        src_least_cost = np.array(src_least_cost).flatten()
 
-        # srcs with at least one reasonable dst
-        src_matches = enough_edges.getnnz(axis=1) > 0
-        candidates[src_idx][src_is_cand] = src_matches
-        if not any(src_matches):
-            candidates[:,:] = False
-            break
+        # Different algorithm from REU
+        # Main idea: assigning u' to u and v' to v causes cost for u to increase
+        # based on minimum between cost of v and missing edges between u and v
+        # src_least_cost = np.maximum(total_tmplt_edges - supported_edges.A,
+        #                             structural_costs[dst_idx][dst_is_cand]).min(axis=1)
+
+        # Update the structural cost bound
+        print("src_idx", src_idx)
+        new_structural_costs[src_idx][src_is_cand] += src_least_cost
+        print("src_least_cost", src_least_cost)
+        print("structural_costs", new_structural_costs)
+        print("candidates", smp.candidates())
+        # smp.update_costs(src_least_cost, indexer=(src_idx, src_is_cand))
+
 
         if src_idx != dst_idx:
-            # dsts with at least one reasonable src
-            dst_matches = enough_edges.getnnz(axis=0) > 0
-            candidates[dst_idx][dst_is_cand] = dst_matches
-            if not any(dst_matches):
-                candidates[:,:] = False
-                break
-
-    return tmplt, world, candidates
+            dst_support = supported_edges.max(axis=0)
+            dst_least_cost = total_tmplt_edges - dst_support.A
+            dst_least_cost = np.array(dst_least_cost).flatten()
+            new_structural_costs[dst_idx][dst_is_cand] += dst_least_cost
+    smp.update_costs(new_structural_costs)
+    print("candidates", smp.candidates())
