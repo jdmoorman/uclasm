@@ -39,6 +39,7 @@ class MatchingProblem:
     TODO: optionally accept ground truth map argument.
     TODO: Is it okay to describe the tmplt and world attributes using the same
     descriptions as were used for the corresponding parameters?
+    TODO: Introduce local_cost threshold.
 
     Examples
     --------
@@ -52,13 +53,16 @@ class MatchingProblem:
         Template graph to be matched.
     world : Graph
         World graph to be searched.
-    fixed_costs : 2darray
+    fixed_costs : 2darray, optional
         Cost of assigning a template node to a world node, ignoring structure.
         One row for each template node, one column for each world node.
     ground_truth_provided : bool, optional
         A flag indicating whether a signal has been injected into the world
         graph with node identifiers that match those in the template.
-    cost_threshold : int, optional
+    local_cost_threshold : int, optional
+        A template node cannot be assigned to a world node if it will result
+        in more than this number of its edges missing in an eventual match.
+    global_cost_threshold : int, optional
         A subgraph whose cost againt the template exceeds this threshold will
         not be considered a match. It can also be used to eliminate candidates
         from the world graph. A cost of 0 corresponds to an exact match for the
@@ -81,7 +85,10 @@ class MatchingProblem:
         Each entry of this matrix denotes the minimum local cost of matching
         the template node corresponding to the row to the world node
         corresponding to the column.
-    cost_threshold : int, optional
+    local_cost_threshold : int, optional
+        A template node cannot be assigned to a world node if it will result
+        in more than this number of its edges missing in an eventual match.
+    global_cost_threshold : int, optional
         A subgraph whose cost againt the template exceeds this threshold will
         not be considered a match. It can also be used to eliminate candidates
         from the world graph. A cost of 0 corresponds to an exact match for the
@@ -92,7 +99,8 @@ class MatchingProblem:
     def __init__(self,
                  tmplt, world,
                  fixed_costs=None,
-                 cost_threshold=0,
+                 local_cost_threshold=0,
+                 global_cost_threshold=0,
                  ground_truth_provided=False,
                  candidate_print_limit=10):
 
@@ -118,7 +126,8 @@ class MatchingProblem:
         self.tmplt = tmplt.loopless_subgraph()
         self.world = world.loopless_subgraph()
 
-        self.cost_threshold = cost_threshold
+        self.local_cost_threshold = local_cost_threshold
+        self.global_cost_threshold = global_cost_threshold
 
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
@@ -181,12 +190,14 @@ class MatchingProblem:
             corresponding to the column is a candidate for the template node
             corresponding to the row.
         """
-        return self.total_costs <= self.cost_threshold
+        return self.total_costs <= self.global_cost_threshold
 
     def update_costs(self, new_structural_costs, indexer=None):
         """Update the structural costs with the larger of the old and the new.
 
         Each entry of self.structural_costs is monotonically increasing.
+
+        TODO: Is this really necessary? There has to be a better way.
 
         Parameters
         ----------
