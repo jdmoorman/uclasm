@@ -3,6 +3,33 @@ import numpy as np
 from loguru import logger
 
 from .lsap import constrained_lsap_costs
+from .cost_bounds.nodewise_cost_bound import feature_disagreements
+
+
+def inspect_channels(tmplt, world):
+    """Check if the channels of the template and world graph are compatible.
+
+    In particular, the channels of the template should be a subset of those in
+    the world. Otherwise, there cannot possibly be a match.
+
+    TODO: Should we pad with empty channels?
+
+    Parameters
+    ----------
+    tmplt : Graph
+        Template graph to be matched.
+    world : Graph
+        World graph to be searched.
+    """
+    tmplt_channels = set(tmplt.channels)
+    world_channels = set(world.channels)
+    if tmplt_channels != world_channels:
+        logger.warning("World channels {} do not appear in template.",
+                       world_channels - tmplt_channels)
+
+    if not tmplt_channels.issubset(world_channels):
+        logger.error("Template channels {} do not appear in world.",
+                     tmplt_channels - world_channels)
 
 
 class MatchingProblem:
@@ -68,25 +95,31 @@ class MatchingProblem:
                  cost_threshold=0,
                  ground_truth_provided=False,
                  candidate_print_limit=10):
-        self.tmplt = tmplt
-        tmplt_channels = set(self.tmplt.channels)
-        world_channels = set(world.channels)
-        if tmplt_channels != world_channels:
-            logger.warning("World channels {} do not appear in template.",
-                           world_channels - tmplt_channels)
-        self.world = world.channel_subgraph(self.tmplt.channels)
 
+        inspect_channels(tmplt, world)
+        world = world.channel_subgraph(tmplt.channels)
+
+        # Various important matrices will have this shape.
         shape = (tmplt.n_nodes, world.n_nodes)
         self.structural_costs = np.zeros(shape)
-        if fixed_costs is None:
-            self.fixed_costs = np.zeros(shape)
-            self._total_costs = np.zeros(shape)
-        else:
-            self.fixed_costs = fixed_costs
+        self._structural_cost_sum = 0  # self.structural_costs.sum()
 
+        # Fixed costs depend only on nodes, not on network structure.
+        if fixed_costs is None:
+            fixed_costs = np.zeros(shape)
+        fixed_costs += feature_disagreements(tmplt.self_edges,
+                                             world.self_edges)
+        self.fixed_costs = fixed_costs
+
+        # Computed from the fixed and structural costs defined above.
         self._total_costs = self._compute_total_costs()
-        self._structural_cost_sum = 0  # self.costs.sum()
+
+        # No longer care about self-edges because they are fixed costs.
+        self.tmplt = tmplt.loopless_subgraph()
+        self.world = world.loopless_subgraph()
+
         self.cost_threshold = cost_threshold
+
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
