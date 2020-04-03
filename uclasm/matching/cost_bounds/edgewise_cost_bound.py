@@ -1,7 +1,6 @@
 """Provide a function for bounding node assignment costs with edgewise info."""
 import numpy as np
 
-
 def iter_adj_pairs(tmplt, world):
     """Generator for pairs of adjacency matrices.
 
@@ -26,8 +25,8 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj.T, world_adj.T)
 
 
-def edgewise_cost_bound(smp):
-    """Bound local assignment costs by edge disagreements between candidates.
+def edge_disagreements(smp):
+    """Compute the amount of edge disagreements a node has in its neighborhood
 
     Computes a lower bound on the local cost of assignment by iterating
     over template edges and comparing candidates for the endpoints.
@@ -46,11 +45,6 @@ def edgewise_cost_bound(smp):
     new_structural_costs = np.zeros(smp.structural_costs.shape)
 
     for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
-        # if changed_cands is not None:
-        #     # If neither the source nor destination has changed, there is no
-        #     # point in filtering on this pair of nodes
-        #     if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-        #         continue
 
         # get indicators of candidate nodes in the world adjacency matrices
         candidates = smp.candidates()
@@ -62,8 +56,10 @@ def edgewise_cost_bound(smp):
         # i.e. the number of template edges between src and dst that also exist
         # between their candidates in the world
         supported_edges = None
+
         # Number of total edges in the template between src and dst
         total_tmplt_edges = 0
+
         for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
             total_tmplt_edges += tmplt_adj_val
@@ -75,6 +71,7 @@ def edgewise_cost_bound(smp):
             # sub adjacency matrix corresponding to edges from the source
             # candidates to the destination candidates
             world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
+
             # Edges are supported up to the number of edges in the template
             if supported_edges is None:
                 supported_edges = world_sub_adj.minimum(tmplt_adj_val)
@@ -99,4 +96,10 @@ def edgewise_cost_bound(smp):
             dst_least_cost = total_tmplt_edges - dst_support.A
             dst_least_cost = np.array(dst_least_cost).flatten()
             new_structural_costs[dst_idx][dst_is_cand] += dst_least_cost
-    smp.update_costs(new_structural_costs)
+
+    return new_structural_costs
+
+
+def edgewise_cost_bound(smp):
+    """Bound local assignment costs by edge disagreements between candidates."""
+    smp.update_costs(edge_disagreements(smp))
