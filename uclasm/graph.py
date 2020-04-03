@@ -95,7 +95,7 @@ class Graph:
 
         self.nodelist = nodelist
         self.nodes = self.nodelist[self.node_col]
-        self.node_to_idx = index_map(self.nodes)
+        self.node_idxs = index_map(self.nodes)
 
         # TODO: Make sure nodelist is indexed in a reasonable way
         # TODO: Make sure edgelist is indexed in a reasonable way
