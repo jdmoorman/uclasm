@@ -69,7 +69,7 @@ class Graph:
         if channels is not None and len(adjs) != len(channels):
             # Old order is nodelist, channels, adjs
             temp = nodelist
-            nodelist = adjs
+            nodelist = pd.DataFrame(adjs, columns=[Graph.node_col])
             adjs = temp
         if channels is not None and len(adjs) != len(channels):
             raise Exception("Unable to match adjs to channels")
