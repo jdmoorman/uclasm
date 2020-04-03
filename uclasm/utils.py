@@ -57,3 +57,21 @@ def apply_index_map_to_cols(df, cols, values):
     """
     val_to_idx = index_map(values)
     df[cols] = df[cols].applymap(val_to_idx.get)
+
+
+class MonotoneArray(np.ndarray):
+    """An ndarray whose entries cannot decrease.
+
+    Example
+    -------
+    >>> A = np.zeros(3).view(MonotoneArray)
+    >>> A[0:2] = [-1, 1]
+    >>> A
+    MonotoneArray([0.,  1.,  0.])
+
+    """
+
+    def __setitem__(self, key, value):
+        """Ensure values cannot decrease."""
+        value = np.maximum(self[key], value)
+        super().__setitem__(key, value)
