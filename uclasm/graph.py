@@ -63,14 +63,16 @@ class Graph:
     target_col = "Target"
     channel_col = "eType"
 
-    def __init__(self, adjs, channels=None, nodelist=None, edgelist=None, *args):
+    def __init__(self, adjs, channels=None, nodelist=None, edgelist=None):
         """Derive attributes from parameters."""
         # Reverse compatibility with old format
-        if len(args) == 2 and channels is None and nodelist is None:
+        if channels is not None and len(adjs) != len(channels):
             # Old order is nodelist, channels, adjs
+            temp = nodelist
             nodelist = adjs
-            channels = args[0]
-            adjs = args[1]
+            adjs = temp
+        if channels is not None and len(adjs) != len(channels):
+            raise Exception("Unable to match adjs to channels")
 
         self.n_nodes = adjs[0].shape[0]
         self.n_channels = len(adjs)
