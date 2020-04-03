@@ -103,6 +103,21 @@ class Graph:
 
         self.edgelist = edgelist
 
+    def copy(self):
+        """Returns a copy of the graph.
+        Returns
+        -------
+        Graph
+            A copy of the graph.
+        """
+        adjs_copy = [adj.copy() for adj in self.adjs]
+        edgelist_copy = None
+        if self.edgelist is not None:
+            edgelist_copy = self.edgelist.copy()
+        return Graph(adjs_copy, channels=self.channels,
+                     nodelist=self.nodelist.copy(),
+                     edgelist=edgelist_copy)
+
     @cached_property
     def composite_adj(self):
         """spmatrix: Composite adjacency matrix of the graph.
