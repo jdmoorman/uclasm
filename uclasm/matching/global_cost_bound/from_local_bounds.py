@@ -1,5 +1,5 @@
 """Provide a function for bounding global assignment costs from local costs."""
-from uclasm import constrained_lsap_costs
+from ..lsap import constrained_lsap_costs
 
 
 def from_local_bounds(smp):

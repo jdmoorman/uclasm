@@ -1,8 +1,8 @@
 """This module provides a class for representing subgraph matching problems."""
 import numpy as np
 
-from .local_cost_bound import feature_disagreements
-from .matching_utils import inspect_channels, MonotoneArray
+from .matching_utils import inspect_channels, MonotoneArray, \
+    feature_disagreements
 
 
 class MatchingProblem:
