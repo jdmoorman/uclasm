@@ -126,8 +126,8 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                     new_state.matching = new_matching_tuple
                     temp_smp = smp.copy()
                     set_fixed_costs(temp_smp.fixed_costs, current_state.matching)
-                    nodewise_cost_bound(temp_smp)
-                    edgewise_cost_bound(temp_smp)
+                    nodewise(temp_smp)
+                    edgewise(temp_smp)
                     from_local_bounds(temp_smp)
                     new_state.cost = temp_smp.global_costs.min()
                     cost_map[new_matching_tuple] = new_state.cost
