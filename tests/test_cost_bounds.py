@@ -55,10 +55,12 @@ class TestEdgewiseCostBound:
     """Tests related to the edgewise cost bound """
     def test_edgewise_cost(self, smp):
         local_cost_bound.edgewise(smp)
+        global_cost_bound.from_local_bounds(smp)
         assert(np.sum(smp.candidates()) == 3)
 
     def test_edgewise_cost_noisy(self, smp_noisy):
         local_cost_bound.edgewise(smp_noisy)
+        global_cost_bound.from_local_bounds(smp_noisy)
         # First edge: increases cost for any match of a, b that isn't a:a, b:b
         # cost: [0 1 1]
         #       [1 0 1]
