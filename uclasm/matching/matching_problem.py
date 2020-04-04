@@ -118,6 +118,24 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
+    def set_costs(self, fixed_costs=None, local_costs=None, global_costs=None):
+        """Set the cost arrays by force. Override monotonicity.
+
+        Parameters
+        ----------
+        fixed_costs : 2darray, optional
+        local_costs : 2darray, optional
+        global_costs : 2darray, optional
+        """
+        if fixed_costs is not None:
+            self._fixed_costs = fixed_costs.view(MonotoneArray)
+
+        if local_costs is not None:
+            self._local_costs = local_costs.view(MonotoneArray)
+
+        if global_costs is not None:
+            self._global_costs = global_costs.view(MonotoneArray)
+
     @property
     def fixed_costs(self):
         """2darray: Fixed costs such as node attribute mismatches.

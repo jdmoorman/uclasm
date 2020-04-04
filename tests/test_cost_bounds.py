@@ -47,7 +47,7 @@ def smp_noisy():
                                                    Graph.target_col,
                                                    Graph.channel_col])
     world = Graph([adj0.copy(), adj2], ['c1', 'c2'], nodelist, edgelist2)
-    smp = MatchingProblem(tmplt, world, cost_threshold=1)
+    smp = MatchingProblem(tmplt, world, global_cost_threshold=1)
     return smp
 
 class TestEdgewiseCostBound:
