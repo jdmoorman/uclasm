@@ -53,16 +53,16 @@ def smp_noisy():
 class TestGreedySearch:
     """Tests related to the greedy search """
     def test_greedy_search(self, smp):
-        nodewise(smp)
-        edgewise(smp)
-        from_local_bounds(smp)
+        local_cost_bound.nodewise(smp)
+        local_cost_bound.edgewise(smp)
+        global_cost_bound.from_local_bounds(smp)
         solutions = greedy_best_k_matching(smp)
         assert len(solutions) == 1
 
     def test_greedy_search_noisy(self, smp_noisy):
-        nodewise(smp_noisy)
-        edgewise(smp_noisy)
-        from_local_bounds(smp_noisy)
+        local_cost_bound.nodewise(smp_noisy)
+        local_cost_bound.edgewise(smp_noisy)
+        global_cost_bound.from_local_bounds(smp_noisy)
         solutions = greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
@@ -71,9 +71,9 @@ class TestGreedySearch:
 
     def test_greedy_search_noisy_high_thresh(self, smp_noisy):
         smp_noisy.global_cost_threshold = float("inf")
-        nodewise(smp_noisy)
-        edgewise(smp_noisy)
-        from_local_bounds(smp_noisy)
+        local_cost_bound.nodewise(smp_noisy)
+        local_cost_bound.edgewise(smp_noisy)
+        global_cost_bound.from_local_bounds(smp_noisy)
         solutions = greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1

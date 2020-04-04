@@ -54,11 +54,11 @@ def smp_noisy():
 class TestEdgewiseCostBound:
     """Tests related to the edgewise cost bound """
     def test_edgewise_cost(self, smp):
-        edgewise(smp)
+        local_cost_bound.edgewise(smp)
         assert(np.sum(smp.candidates()) == 3)
 
     def test_edgewise_cost_noisy(self, smp_noisy):
-        edgewise(smp_noisy)
+        local_cost_bound.edgewise(smp_noisy)
         # First edge: increases cost for any match of a, b that isn't a:a, b:b
         # cost: [0 1 1]
         #       [1 0 1]
