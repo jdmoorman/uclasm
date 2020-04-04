@@ -3,7 +3,8 @@ total costs."""
 
 import numpy as np
 
-from uclasm.matching.cost_bounds import *
+from ..global_cost_bound import *
+from ..local_cost_bound import *
 from heapq import heappush, heappop
 
 class State:

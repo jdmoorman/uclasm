@@ -2,10 +2,7 @@
 import pytest
 import uclasm
 from uclasm import Graph, MatchingProblem
-from uclasm.matching.search import *
-from uclasm.matching.local_cost_bounds import *
-from uclasm.matching.global_cost_bounds import *
-
+from uclasm.matching import *
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
