@@ -56,14 +56,14 @@ class TestGreedySearch:
         local_cost_bound.nodewise(smp)
         local_cost_bound.edgewise(smp)
         global_cost_bound.from_local_bounds(smp)
-        solutions = greedy_best_k_matching(smp)
+        solutions = search.greedy_best_k_matching(smp)
         assert len(solutions) == 1
 
     def test_greedy_search_noisy(self, smp_noisy):
         local_cost_bound.nodewise(smp_noisy)
         local_cost_bound.edgewise(smp_noisy)
         global_cost_bound.from_local_bounds(smp_noisy)
-        solutions = greedy_best_k_matching(smp_noisy)
+        solutions = search.greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
         for i in range(3):
@@ -74,17 +74,17 @@ class TestGreedySearch:
         local_cost_bound.nodewise(smp_noisy)
         local_cost_bound.edgewise(smp_noisy)
         global_cost_bound.from_local_bounds(smp_noisy)
-        solutions = greedy_best_k_matching(smp_noisy)
+        solutions = search.greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
         for i in range(3):
             assert dict(solutions[0].matching)[i] == i
-        solutions = greedy_best_k_matching(smp_noisy, k=6)
+        solutions = search.greedy_best_k_matching(smp_noisy, k=6)
         assert len(solutions) == 6
         assert solutions[0].cost == 1
         for i in range(3):
             assert dict(solutions[0].matching)[i] == i
-        solutions = greedy_best_k_matching(smp_noisy, k=5)
+        solutions = search.greedy_best_k_matching(smp_noisy, k=5)
         assert len(solutions) == 5
         assert solutions[0].cost == 1
         for i in range(3):
