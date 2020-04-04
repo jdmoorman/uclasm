@@ -3,7 +3,8 @@ import pytest
 import uclasm
 from uclasm import Graph, MatchingProblem
 from uclasm.matching.search import *
-from uclasm.matching.cost_bounds import *
+from uclasm.matching.local_cost_bounds import *
+from uclasm.matching.global_cost_bounds import *
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -55,14 +56,16 @@ def smp_noisy():
 class TestGreedySearch:
     """Tests related to the greedy search """
     def test_greedy_search(self, smp):
-        nodewise_cost_bound(smp)
-        edgewise_cost_bound(smp)
+        nodewise(smp)
+        edgewise(smp)
+        from_local_bounds(smp)
         solutions = greedy_best_k_matching(smp)
         assert len(solutions) == 1
 
     def test_greedy_search_noisy(self, smp_noisy):
-        nodewise_cost_bound(smp_noisy)
-        edgewise_cost_bound(smp_noisy)
+        nodewise(smp_noisy)
+        edgewise(smp_noisy)
+        from_local_bounds(smp_noisy)
         solutions = greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
@@ -71,8 +74,9 @@ class TestGreedySearch:
 
     def test_greedy_search_noisy_high_thresh(self, smp_noisy):
         smp_noisy.global_cost_threshold = float("inf")
-        nodewise_cost_bound(smp_noisy)
-        edgewise_cost_bound(smp_noisy)
+        nodewise(smp_noisy)
+        edgewise(smp_noisy)
+        from_local_bounds(smp_noisy)
         solutions = greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
