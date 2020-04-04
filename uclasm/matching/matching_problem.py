@@ -55,6 +55,8 @@ class MatchingProblem:
         Template graph to be matched.
     world : Graph
         World graph to be searched.
+    shape : (int, int)
+        Size of the matching problem: Number of template nodes and world nodes.
     local_cost_threshold : int, optional
         A template node cannot be assigned to a world node if it will result
         in more than this number of its edges missing.
@@ -77,16 +79,16 @@ class MatchingProblem:
                  candidate_print_limit=10):
 
         # Various important matrices will have this shape.
-        shape = (tmplt.n_nodes, world.n_nodes)
+        self.shape = (tmplt.n_nodes, world.n_nodes)
 
         if fixed_costs is None:
-            fixed_costs = np.zeros(shape)
+            fixed_costs = np.zeros(self.shape)
 
         if local_costs is None:
-            local_costs = np.zeros(shape)
+            local_costs = np.zeros(self.shape)
 
         if global_costs is None:
-            global_costs = np.zeros(shape)
+            global_costs = np.zeros(self.shape)
 
         # Make sure graphs have the same channels in the same order.
         if tmplt.channels != world.channels:

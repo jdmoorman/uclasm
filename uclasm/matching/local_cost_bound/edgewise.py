@@ -43,7 +43,7 @@ def edgewise(smp):
     smp : MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
     """
-    new_structural_costs = np.zeros(smp.structural_costs.shape)
+    new_local_costs = np.zeros(smp.shape)
 
     for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
         # if changed_cands is not None:
@@ -89,15 +89,15 @@ def edgewise(smp):
         # Main idea: assigning u' to u and v' to v causes cost for u to increase
         # based on minimum between cost of v and missing edges between u and v
         # src_least_cost = np.maximum(total_tmplt_edges - supported_edges.A,
-        #                             structural_costs[dst_idx][dst_is_cand]).min(axis=1)
+        #                             local_costs[dst_idx][dst_is_cand]).min(axis=1)
 
-        # Update the structural cost bound
-        new_structural_costs[src_idx][src_is_cand] += src_least_cost
+        # Update the local cost bound
+        new_local_costs[src_idx][src_is_cand] += src_least_cost
 
         if src_idx != dst_idx:
             dst_support = supported_edges.max(axis=0)
             dst_least_cost = total_tmplt_edges - dst_support.A
             dst_least_cost = np.array(dst_least_cost).flatten()
-            new_structural_costs[dst_idx][dst_is_cand] += dst_least_cost
-    
-    smp.local_costs = new_structural_costs
+            new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
+
+    smp.local_costs = new_local_costs
