@@ -93,7 +93,7 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
 
     start_state = State()
     start_state.matching = tuple_from_dict(current_matching)
-    start_state.cost = smp.total_costs.min()
+    start_state.cost = smp.global_costs.min()
     cost_map[start_state.matching] = start_state.cost
 
     # Handle the case where we start in a solved state
