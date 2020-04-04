@@ -72,5 +72,5 @@ class TestEdgewiseCostBound:
                       [1, 1, 1]]
         for i in range(3):
             for j in range(3):
-                assert(final_cost[i][j] == smp_noisy.structural_costs[i][j])
+                assert(final_cost[i][j] == smp_noisy.local_costs[i][j])
         assert(np.sum(smp_noisy.candidates()) == 3)
