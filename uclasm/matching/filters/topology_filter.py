@@ -4,6 +4,8 @@ import numpy as np
 def topology_filter(smp):
     """Filtering based on topology.
 
+    TODO: Add the option of filtering just for one node
+
     Parameters
     ----------
     smp : MatchingProblem

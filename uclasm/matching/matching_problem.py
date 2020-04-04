@@ -132,8 +132,12 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
+        self._num_valid_candidates = 0
+
     def _have_costs_changed(self):
         """Check if the structural costs have changed since last call.
+
+        TODO: this might not work if some entries are set to infinity.
 
         Returns
         -------
@@ -144,6 +148,19 @@ class MatchingProblem:
         old_structural_cost_sum = self._structural_cost_sum
         self._structural_cost_sum = self.structural_costs.sum()
         return old_structural_cost_sum != self._structural_cost_sum
+
+    def _have_candidates_changed(self):
+        """Check if there are more nodes ruled out as invalid candidates.
+
+        Returns
+        -------
+        bool
+            True if any of the node-node pairs have been set to infinity since
+            last time this function was called. False otherwise.
+        """
+        num_valid_candidates = self._num_valid_candidates
+        self._num_valid_candidates = np.count_nonzero(self.structural_costs!=np.Inf)
+        return num_valid_candidates != self._num_valid_candidates
 
     def _compute_total_costs(self):
         """Compute total costs from structural and fixed costs.
@@ -286,3 +303,29 @@ class MatchingProblem:
                              .format(n_missing, missing_ground_truth))
 
         return "\n".join(info_strs)
+
+    def reduce_world(self):
+        """Reduce the size of the world graph.
+
+        Check whether there are any world nodes that are not candidates to
+        any tmplt nodes. If so, remove them from the world graph and update
+        the matching problem.
+
+        Returns
+        -------
+        bool
+            True if the size of the world is reduced. False otherwise.
+        """
+        is_cands = np.where(self.structural_costs.min(axis=0) != np.Inf)[0]
+
+        if len(is_cands) > 0:
+            self.world = self.world.node_subgraph(is_cands)
+
+            # Update parameters based on new world
+            self.structural_costs = self.structural_costs[:, is_cands]
+            self.fixed_costs = self.fixed_costs[:, is_cands]
+            self._structural_cost_sum = self.structural_costs.sum()
+            self._total_costs = self._compute_total_costs()
+            return True
+        else:
+            return False
