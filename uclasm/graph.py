@@ -5,14 +5,14 @@ import numpy as np
 import pandas as pd
 import sys
 
+from .utils import index_map, one_hot
+
 # functools.cached_property was introduced in python 3.8.
 # https://docs.python.org/3/library/functools.html#functools.cached_property
 if sys.version_info >= (3, 8):
     from functools import cached_property
 else:
     from lazy_property import LazyProperty as cached_property
-
-from .utils import index_map, one_hot
 
 
 class Graph:
@@ -63,14 +63,16 @@ class Graph:
     target_col = "Target"
     channel_col = "eType"
 
-    def __init__(self, adjs, channels=None, nodelist=None, edgelist=None, *args):
+    def __init__(self, adjs, channels=None, nodelist=None, edgelist=None):
         """Derive attributes from parameters."""
         # Reverse compatibility with old format
-        if len(args) == 2 and channels is None and nodelist is None:
+        if channels is not None and len(adjs) != len(channels):
             # Old order is nodelist, channels, adjs
-            nodelist = adjs
-            channels = args[0]
-            adjs = args[1]
+            temp = nodelist
+            nodelist = pd.DataFrame(adjs, columns=[Graph.node_col])
+            adjs = temp
+        if channels is not None and len(adjs) != len(channels):
+            raise Exception("Unable to match adjs to channels")
 
         self.n_nodes = adjs[0].shape[0]
         self.n_channels = len(adjs)
@@ -93,13 +95,36 @@ class Graph:
 
         self.nodelist = nodelist
         self.nodes = self.nodelist[self.node_col]
-        self.node_to_idx = index_map(self.nodes)
+        self.node_idxs = index_map(self.nodes)
 
         # TODO: Make sure nodelist is indexed in a reasonable way
         # TODO: Make sure edgelist is indexed in a reasonable way
         # TODO: Check dtypes of edgelist and nodelist columns.
 
         self.edgelist = edgelist
+
+    def copy(self):
+        """Returns a copy of the graph.
+        Returns
+        -------
+        Graph
+            A copy of the graph.
+        """
+        adjs_copy = [adj.copy() for adj in self.adjs]
+        edgelist_copy = None
+        if self.edgelist is not None:
+            edgelist_copy = self.edgelist.copy()
+        return Graph(adjs_copy, channels=self.channels,
+                     nodelist=self.nodelist.copy(),
+                     edgelist=edgelist_copy)
+
+    @cached_property
+    def has_loops(self):
+        """bool: Indicator of whether the graph has any self-edges."""
+        # Generates the number of nonzeros in each channel.
+        nnz_gen = (len(adj.diagonal().nonzero()[0]) for adj in self.adjs)
+
+        return any(nnz_gen)
 
     @cached_property
     def composite_adj(self):

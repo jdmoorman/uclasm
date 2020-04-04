@@ -25,8 +25,8 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj.T, world_adj.T)
 
 
-def edge_disagreements(smp):
-    """Compute the amount of edge disagreements a node has in its neighborhood
+def edgewise(smp):
+    """Bound local assignment costs by edge disagreements between candidates.
 
     Computes a lower bound on the local cost of assignment by iterating
     over template edges and comparing candidates for the endpoints.
@@ -42,7 +42,7 @@ def edge_disagreements(smp):
     smp : MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
     """
-    new_structural_costs = np.zeros(smp.structural_costs.shape)
+    new_local_costs = np.zeros(smp.shape)
 
     for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
 
@@ -86,20 +86,15 @@ def edge_disagreements(smp):
         # Main idea: assigning u' to u and v' to v causes cost for u to increase
         # based on minimum between cost of v and missing edges between u and v
         # src_least_cost = np.maximum(total_tmplt_edges - supported_edges.A,
-        #                             structural_costs[dst_idx][dst_is_cand]).min(axis=1)
+        #                             local_costs[dst_idx][dst_is_cand]).min(axis=1)
 
-        # Update the structural cost bound
-        new_structural_costs[src_idx][src_is_cand] += src_least_cost
+        # Update the local cost bound
+        new_local_costs[src_idx][src_is_cand] += src_least_cost
 
         if src_idx != dst_idx:
             dst_support = supported_edges.max(axis=0)
             dst_least_cost = total_tmplt_edges - dst_support.A
             dst_least_cost = np.array(dst_least_cost).flatten()
-            new_structural_costs[dst_idx][dst_is_cand] += dst_least_cost
+            new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
 
-    return new_structural_costs
-
-
-def edgewise_cost_bound(smp):
-    """Bound local assignment costs by edge disagreements between candidates."""
-    smp.update_costs(edge_disagreements(smp))
+    smp.local_costs = new_local_costs

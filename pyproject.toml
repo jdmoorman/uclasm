@@ -33,7 +33,6 @@ recommonmark = "^0.6.0"
 sphinx_rtd_theme = "^0.4.3"
 bump2version = "^1.0.0"
 pytest-cov = "^2.8.1"
-mlflow = "^1.6.0"
 sphinx-autobuild = "^0.7.1"
 ipython = "^7.13.0"
 

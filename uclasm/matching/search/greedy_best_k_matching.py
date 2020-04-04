@@ -3,7 +3,8 @@ total costs."""
 
 import numpy as np
 
-from uclasm.matching.cost_bounds import *
+from ..global_cost_bound import *
+from ..local_cost_bound import *
 from heapq import heappush, heappop
 
 class State:
@@ -92,7 +93,7 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
 
     start_state = State()
     start_state.matching = tuple_from_dict(current_matching)
-    start_state.cost = smp.total_costs.min()
+    start_state.cost = smp.global_costs.min()
     cost_map[start_state.matching] = start_state.cost
 
     # Handle the case where we start in a solved state
@@ -102,23 +103,20 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
 
     heappush(open_list, start_state)
 
-    # Fixed costs will be used to enforce the matching by setting non-matches
-    # to float("inf"). Store the original costs so we can reset to them.
-    fixed_costs_orig = smp.fixed_costs.copy()
-
     # Maximum cost for a matching to be considered
     max_cost = smp.global_cost_threshold
 
     while len(open_list) > 0:
+        curr_smp = smp.copy()
         current_state = heappop(open_list)
-        smp.fixed_costs = fixed_costs_orig.copy()
-        set_fixed_costs(smp.fixed_costs, current_state.matching)
-        nodewise_cost_bound(smp)
-        edgewise_cost_bound(smp)
-        total_costs = smp._compute_total_costs()
+        set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
+        nodewise(curr_smp)
+        edgewise(curr_smp)
+        from_local_bounds(curr_smp)
+        global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
         # Only push states that have a total cost bound lower than the threshold
-        for tmplt_idx, cand_idx in np.argwhere(total_costs < max_cost):
+        for tmplt_idx, cand_idx in np.argwhere(global_costs < max_cost):
             if tmplt_idx not in matching_dict:
                 new_matching = matching_dict.copy()
                 new_matching[tmplt_idx] = cand_idx
@@ -126,11 +124,12 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                 if new_matching_tuple not in cost_map:
                     new_state = State()
                     new_state.matching = new_matching_tuple
-                    smp.fixed_costs = fixed_costs_orig.copy()
-                    set_fixed_costs(smp.fixed_costs, current_state.matching)
-                    nodewise_cost_bound(smp)
-                    edgewise_cost_bound(smp)
-                    new_state.cost = smp.total_costs.min()
+                    temp_smp = smp.copy()
+                    set_fixed_costs(temp_smp.fixed_costs, current_state.matching)
+                    nodewise(temp_smp)
+                    edgewise(temp_smp)
+                    from_local_bounds(temp_smp)
+                    new_state.cost = temp_smp.global_costs.min()
                     cost_map[new_matching_tuple] = new_state.cost
                     if len(new_state.matching) == smp.tmplt.n_nodes:
                         solutions.append(new_state)
@@ -140,8 +139,6 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                             solutions.pop()
                     else:
                         heappush(open_list, new_state)
-    # Reset the fixed costs back to the original values
-    smp.fixed_costs = fixed_costs_orig
     if verbose:
         for solution in solutions:
             print(solution)

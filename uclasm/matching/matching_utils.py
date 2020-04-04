@@ -1,7 +1,51 @@
-"""Provide a function for bounding node assignment costs with nodewise info."""
-
+"""Helpers for the MatchingProblem class."""
 import numpy as np
+from loguru import logger
 import numba
+
+
+def inspect_channels(tmplt, world):
+    """Check if the channels of the template and world graph are compatible.
+
+    In particular, the channels of the template should be a subset of those in
+    the world. Otherwise, there cannot possibly be a match.
+
+    TODO: Should we pad with empty channels?
+
+    Parameters
+    ----------
+    tmplt : Graph
+        Template graph to be matched.
+    world : Graph
+        World graph to be searched.
+    """
+    tmplt_channels = set(tmplt.channels)
+    world_channels = set(world.channels)
+    if tmplt_channels != world_channels:
+        logger.warning("World channels {} do not appear in template.",
+                       world_channels - tmplt_channels)
+
+    if not tmplt_channels.issubset(world_channels):
+        logger.error("Template channels {} do not appear in world.",
+                     tmplt_channels - world_channels)
+
+
+class MonotoneArray(np.ndarray):
+    """An ndarray whose entries cannot decrease.
+
+    Example
+    -------
+    >>> A = np.zeros(3).view(MonotoneArray)
+    >>> A[0:2] = [-1, 1]
+    >>> A
+    MonotoneArray([0.,  1.,  0.])
+
+    """
+
+    def __setitem__(self, key, value):
+        """Ensure values cannot decrease."""
+        value = np.maximum(self[key], value)
+        super().__setitem__(key, value)
 
 
 @numba.njit(parallel=True)
@@ -50,19 +94,3 @@ def feature_disagreements(tmplt_features, world_features):
             disagreements[tidx, widx] = disagreement
 
     return disagreements
-
-
-def nodewise_cost_bound(smp):
-    """Bound local assignment costs by comparing in and out degrees.
-
-    TODO: Cite paper from REU.
-    TODO: Take candidacy into account when computing features.
-    TODO: Bring back reciprocated edges, carefully?
-
-    Parameters
-    ----------
-    smp : MatchingProblem
-        A subgraph matching problem on which to compute nodewise cost bounds.
-    """
-    smp.update_costs(feature_disagreements(smp.tmplt.in_out_degrees,
-                                           smp.world.in_out_degrees))

@@ -2,7 +2,8 @@
 import pytest
 import uclasm
 from uclasm import Graph, MatchingProblem
-from uclasm.matching.cost_bounds import *
+from uclasm.matching import *
+from uclasm.matching import *
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
@@ -47,17 +48,19 @@ def smp_noisy():
                                                    Graph.target_col,
                                                    Graph.channel_col])
     world = Graph([adj0.copy(), adj2], ['c1', 'c2'], nodelist, edgelist2)
-    smp = MatchingProblem(tmplt, world, cost_threshold=1)
+    smp = MatchingProblem(tmplt, world, global_cost_threshold=1)
     return smp
 
 class TestEdgewiseCostBound:
     """Tests related to the edgewise cost bound """
     def test_edgewise_cost(self, smp):
-        edgewise_cost_bound(smp)
+        local_cost_bound.edgewise(smp)
+        global_cost_bound.from_local_bounds(smp)
         assert(np.sum(smp.candidates()) == 3)
 
     def test_edgewise_cost_noisy(self, smp_noisy):
-        edgewise_cost_bound(smp_noisy)
+        local_cost_bound.edgewise(smp_noisy)
+        global_cost_bound.from_local_bounds(smp_noisy)
         # First edge: increases cost for any match of a, b that isn't a:a, b:b
         # cost: [0 1 1]
         #       [1 0 1]
@@ -71,5 +74,5 @@ class TestEdgewiseCostBound:
                       [1, 1, 1]]
         for i in range(3):
             for j in range(3):
-                assert(final_cost[i][j] == smp_noisy.structural_costs[i][j])
+                assert(final_cost[i][j] == smp_noisy.local_costs[i][j])
         assert(np.sum(smp_noisy.candidates()) == 3)

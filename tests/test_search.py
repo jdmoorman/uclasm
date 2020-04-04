@@ -2,9 +2,7 @@
 import pytest
 import uclasm
 from uclasm import Graph, MatchingProblem
-from uclasm.matching.search import *
-from uclasm.matching.cost_bounds import *
-
+from uclasm.matching import *
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
@@ -55,15 +53,17 @@ def smp_noisy():
 class TestGreedySearch:
     """Tests related to the greedy search """
     def test_greedy_search(self, smp):
-        nodewise_cost_bound(smp)
-        edgewise_cost_bound(smp)
-        solutions = greedy_best_k_matching(smp)
+        local_cost_bound.nodewise(smp)
+        local_cost_bound.edgewise(smp)
+        global_cost_bound.from_local_bounds(smp)
+        solutions = search.greedy_best_k_matching(smp)
         assert len(solutions) == 1
 
     def test_greedy_search_noisy(self, smp_noisy):
-        nodewise_cost_bound(smp_noisy)
-        edgewise_cost_bound(smp_noisy)
-        solutions = greedy_best_k_matching(smp_noisy)
+        local_cost_bound.nodewise(smp_noisy)
+        local_cost_bound.edgewise(smp_noisy)
+        global_cost_bound.from_local_bounds(smp_noisy)
+        solutions = search.greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
         for i in range(3):
@@ -71,19 +71,20 @@ class TestGreedySearch:
 
     def test_greedy_search_noisy_high_thresh(self, smp_noisy):
         smp_noisy.global_cost_threshold = float("inf")
-        nodewise_cost_bound(smp_noisy)
-        edgewise_cost_bound(smp_noisy)
-        solutions = greedy_best_k_matching(smp_noisy)
+        local_cost_bound.nodewise(smp_noisy)
+        local_cost_bound.edgewise(smp_noisy)
+        global_cost_bound.from_local_bounds(smp_noisy)
+        solutions = search.greedy_best_k_matching(smp_noisy)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
         for i in range(3):
             assert dict(solutions[0].matching)[i] == i
-        solutions = greedy_best_k_matching(smp_noisy, k=6)
+        solutions = search.greedy_best_k_matching(smp_noisy, k=6)
         assert len(solutions) == 6
         assert solutions[0].cost == 1
         for i in range(3):
             assert dict(solutions[0].matching)[i] == i
-        solutions = greedy_best_k_matching(smp_noisy, k=5)
+        solutions = search.greedy_best_k_matching(smp_noisy, k=5)
         assert len(solutions) == 5
         assert solutions[0].cost == 1
         for i in range(3):
