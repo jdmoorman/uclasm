@@ -118,6 +118,17 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
+    def copy(self):
+        """Returns a copy of the MatchingProblem."""
+        return MatchingProblem(self.tmplt.copy(), self.world.copy(),
+            fixed_costs=self._fixed_costs.copy(),
+            local_costs=self._local_costs.copy(),
+            global_costs=self._global_costs.copy(),
+            local_cost_threshold=self.local_cost_threshold,
+            global_cost_threshold=self.global_cost_threshold,
+            ground_truth_provided=self._ground_truth_provided,
+            candidate_print_limit=self._candidate_print_limit)
+
     def set_costs(self, fixed_costs=None, local_costs=None, global_costs=None):
         """Set the cost arrays by force. Override monotonicity.
 
