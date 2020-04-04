@@ -1,35 +1,8 @@
 """This module provides a class for representing subgraph matching problems."""
 import numpy as np
-from loguru import logger
 
-from .lsap import constrained_lsap_costs
-from .cost_bounds.nodewise_cost_bound import feature_disagreements
-
-
-def inspect_channels(tmplt, world):
-    """Check if the channels of the template and world graph are compatible.
-
-    In particular, the channels of the template should be a subset of those in
-    the world. Otherwise, there cannot possibly be a match.
-
-    TODO: Should we pad with empty channels?
-
-    Parameters
-    ----------
-    tmplt : Graph
-        Template graph to be matched.
-    world : Graph
-        World graph to be searched.
-    """
-    tmplt_channels = set(tmplt.channels)
-    world_channels = set(world.channels)
-    if tmplt_channels != world_channels:
-        logger.warning("World channels {} do not appear in template.",
-                       world_channels - tmplt_channels)
-
-    if not tmplt_channels.issubset(world_channels):
-        logger.error("Template channels {} do not appear in world.",
-                     tmplt_channels - world_channels)
+from .local_cost_bound import feature_disagreements
+from .matching_utils import inspect_channels, MonotoneArray
 
 
 class MatchingProblem:
@@ -56,9 +29,10 @@ class MatchingProblem:
     fixed_costs : 2darray, optional
         Cost of assigning a template node to a world node, ignoring structure.
         One row for each template node, one column for each world node.
-    ground_truth_provided : bool, optional
-        A flag indicating whether a signal has been injected into the world
-        graph with node identifiers that match those in the template.
+    local_costs : 2darray, optional
+        Initial local costs.
+    global_costs : 2darray, optional
+        Initial global costs.
     local_cost_threshold : int, optional
         A template node cannot be assigned to a world node if it will result
         in more than this number of its edges missing in an eventual match.
@@ -68,6 +42,9 @@ class MatchingProblem:
         from the world graph. A cost of 0 corresponds to an exact match for the
         template, whereas a cost of 1 means that the match may be missing a
         single edge which is present in the template but not in the world.
+    ground_truth_provided : bool, optional
+        A flag indicating whether a signal has been injected into the world
+        graph with node identifiers that match those in the template.
     candidate_print_limit : int, optional
         When summarizing the candidates of each template node, limit the list
         of candidates to this many.
@@ -78,16 +55,9 @@ class MatchingProblem:
         Template graph to be matched.
     world : Graph
         World graph to be searched.
-    fixed_costs : 2darray
-        Cost of assigning a template node to a world node, ignoring structure.
-        One row for each template node, one column for each world node.
-    structural_costs : 2darray
-        Each entry of this matrix denotes the minimum local cost of matching
-        the template node corresponding to the row to the world node
-        corresponding to the column.
     local_cost_threshold : int, optional
         A template node cannot be assigned to a world node if it will result
-        in more than this number of its edges missing in an eventual match.
+        in more than this number of its edges missing.
     global_cost_threshold : int, optional
         A subgraph whose cost againt the template exceeds this threshold will
         not be considered a match. It can also be used to eliminate candidates
@@ -99,32 +69,46 @@ class MatchingProblem:
     def __init__(self,
                  tmplt, world,
                  fixed_costs=None,
+                 local_costs=None,
+                 global_costs=None,
                  local_cost_threshold=0,
                  global_cost_threshold=0,
                  ground_truth_provided=False,
                  candidate_print_limit=10):
 
-        inspect_channels(tmplt, world)
-        world = world.channel_subgraph(tmplt.channels)
-
         # Various important matrices will have this shape.
         shape = (tmplt.n_nodes, world.n_nodes)
-        self.structural_costs = np.zeros(shape)
-        self._structural_cost_sum = 0  # self.structural_costs.sum()
 
-        # Fixed costs depend only on nodes, not on network structure.
         if fixed_costs is None:
             fixed_costs = np.zeros(shape)
-        fixed_costs += feature_disagreements(tmplt.self_edges,
-                                             world.self_edges)
-        self.fixed_costs = fixed_costs
 
-        # Computed from the fixed and structural costs defined above.
-        self._total_costs = self._compute_total_costs()
+        if local_costs is None:
+            local_costs = np.zeros(shape)
+
+        if global_costs is None:
+            global_costs = np.zeros(shape)
+
+        # Make sure graphs have the same channels in the same order.
+        if tmplt.channels != world.channels:
+            inspect_channels(tmplt, world)
+            world = world.channel_subgraph(tmplt.channels)
+
+        # Account for self edges in fixed costs.
+        if tmplt.has_loops:
+            fixed_costs += feature_disagreements(
+                tmplt.self_edges,
+                world.self_edges
+            )
+            tmplt = tmplt.loopless_subgraph()
+            world = world.loopless_subgraph()
+
+        self._fixed_costs = fixed_costs.view(MonotoneArray)
+        self._local_costs = local_costs.view(MonotoneArray)
+        self._global_costs = global_costs.view(MonotoneArray)
 
         # No longer care about self-edges because they are fixed costs.
-        self.tmplt = tmplt.loopless_subgraph()
-        self.world = world.loopless_subgraph()
+        self.tmplt = tmplt
+        self.world = world
 
         self.local_cost_threshold = local_cost_threshold
         self.global_cost_threshold = global_cost_threshold
@@ -132,47 +116,49 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
-    def _have_costs_changed(self):
-        """Check if the structural costs have changed since last call.
+    @property
+    def fixed_costs(self):
+        """2darray: Fixed costs such as node attribute mismatches.
 
-        Returns
-        -------
-        bool
-            True if any of self.structural_costs have changed since last time
-            this function was called. False otherwise.
+        Cost of assigning a template node to a world node, ignoring structure.
+        One row for each template node, one column for each world node.
+        TODO: Better docstrings.
         """
-        old_structural_cost_sum = self._structural_cost_sum
-        self._structural_cost_sum = self.structural_costs.sum()
-        return old_structural_cost_sum != self._structural_cost_sum
+        return self._fixed_costs
 
-    def _compute_total_costs(self):
-        """Compute total costs from structural and fixed costs.
-
-        Returns
-        -------
-        2darray
-            [self.tmplt.n_nodes, self.world.n_nodes] array of total costs.
-            Each entry constrains the template node corresponding to the row
-            to be assigned to the world node corresponding to the column. The
-            value of the entry is the minimum assignment cost under the
-            corresponding constraint.
-        """
-        costs = self.structural_costs / 2 + self.fixed_costs
-        return constrained_lsap_costs(costs)
+    @fixed_costs.setter
+    def fixed_costs(self, value):
+        self._fixed_costs[:] = value
 
     @property
-    def total_costs(self):
-        """2darray: A matrix of minimum costs under assignment constraints.
+    def local_costs(self):
+        """2darray: Local costs such as missing edges around each node.
 
-        Each entry of this 2darray is a lower bound on the total assignment
-        cost that will be incurred by a subgraph match in which the template
-        node corresponding to the row is assigned to the world node
+        Each entry of this matrix denotes a bound on the local cost of matching
+        the template node corresponding to the row to the world node
         corresponding to the column.
+        TODO: Better docstrings.
         """
-        if self._have_costs_changed():
-            self._total_costs = self._compute_total_costs()
+        return self._local_costs
 
-        return self._total_costs
+    @local_costs.setter
+    def local_costs(self, value):
+        self._local_costs[:] = value
+
+    @property
+    def global_costs(self):
+        """2darray: Costs of full graph match.
+
+        Each entry of this matrix bounds the global cost of matching
+        the template node corresponding to the row to the world node
+        corresponding to the column.
+        TODO: Better docstrings.
+        """
+        return self._global_costs
+
+    @global_costs.setter
+    def global_costs(self, value):
+        self._global_costs[:] = value
 
     def candidates(self):
         """Get the matrix of compatibility between template and world nodes.
@@ -190,36 +176,7 @@ class MatchingProblem:
             corresponding to the column is a candidate for the template node
             corresponding to the row.
         """
-        return self.total_costs <= self.global_cost_threshold
-
-    def update_costs(self, new_structural_costs, indexer=None):
-        """Update the structural costs with the larger of the old and the new.
-
-        Each entry of self.structural_costs is monotonically increasing.
-
-        TODO: Is this really necessary? There has to be a better way.
-
-        Parameters
-        ----------
-        new_structural_costs : ndarray
-            Costs to update with. Any current structural_costs that are larger
-            than thecorresponding new structural_costs are kept.
-        indexer : ndarray
-            The elements of self.structural_costs that are to be updated.
-        """
-        if indexer is None:
-            self.structural_costs = np.maximum(self.structural_costs,
-                                               new_structural_costs)
-        else:
-            if isinstance(indexer, tuple) and len(indexer) == 2:
-                row_indexer, col_indexer = indexer
-                self.structural_costs[row_indexer][col_indexer] = \
-                    np.maximum(self.structural_costs[row_indexer][col_indexer],
-                            new_structural_costs)
-            else:
-                self.structural_costs[indexer] = \
-                    np.maximum(self.structural_costs[indexer],
-                            new_structural_costs)
+        return self.global_costs <= self.global_cost_threshold
 
     def __str__(self):
         """Summarize the state of the matching problem.

@@ -5,14 +5,14 @@ import numpy as np
 import pandas as pd
 import sys
 
+from .utils import index_map, one_hot
+
 # functools.cached_property was introduced in python 3.8.
 # https://docs.python.org/3/library/functools.html#functools.cached_property
 if sys.version_info >= (3, 8):
     from functools import cached_property
 else:
     from lazy_property import LazyProperty as cached_property
-
-from .utils import index_map, one_hot
 
 
 class Graph:
@@ -100,6 +100,14 @@ class Graph:
         # TODO: Check dtypes of edgelist and nodelist columns.
 
         self.edgelist = edgelist
+
+    @cached_property
+    def has_loops(self):
+        """bool: Indicator of whether the graph has any self-edges."""
+        # Generates the number of nonzeros in each channel.
+        nnz_gen = (len(adj.diagonal().nonzero()[0]) for adj in self.adjs)
+
+        return any(nnz_gen)
 
     @cached_property
     def composite_adj(self):

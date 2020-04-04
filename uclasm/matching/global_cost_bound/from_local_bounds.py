@@ -1,0 +1,15 @@
+"""Provide a function for bounding global assignment costs from local costs."""
+from uclasm import constrained_lsap_costs
+
+
+def from_local_bounds(smp):
+    """Bound global costs by smallest linear sum assignment of local costs.
+
+    Parameters
+    ----------
+    smp : MatchingProblem
+        A subgraph matching problem on which to compute nodewise cost bounds.
+    """
+    costs = smp.local_costs / 2 + smp.fixed_costs
+    global_cost_bounds = constrained_lsap_costs(costs)
+    smp.global_costs[:] = global_cost_bounds

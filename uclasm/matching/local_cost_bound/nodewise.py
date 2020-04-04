@@ -52,7 +52,7 @@ def feature_disagreements(tmplt_features, world_features):
     return disagreements
 
 
-def nodewise_cost_bound(smp):
+def nodewise(smp):
     """Bound local assignment costs by comparing in and out degrees.
 
     TODO: Cite paper from REU.
@@ -64,5 +64,7 @@ def nodewise_cost_bound(smp):
     smp : MatchingProblem
         A subgraph matching problem on which to compute nodewise cost bounds.
     """
-    smp.update_costs(feature_disagreements(smp.tmplt.in_out_degrees,
-                                           smp.world.in_out_degrees))
+    smp.local_costs = feature_disagreements(
+        smp.tmplt.in_out_degrees,
+        smp.world.in_out_degrees
+    )
