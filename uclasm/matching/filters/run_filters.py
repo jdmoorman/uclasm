@@ -10,12 +10,9 @@ def run_filters(smp, verbose=True):
     """
     Repeatedly run the desired filters until the candidates converge
     """
-
     num_iter = 0
-
     # Note: most efficient if we only call from_local_bounds in reduce_world
-    
-    while smp.have_candidates_changed() or num_iter == 0:
+    while smp.have_candidates_changed():
         stats_filter(smp)
         # from_local_bounds(smp)
         topology_filter(smp)
