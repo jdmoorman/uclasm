@@ -1,4 +1,4 @@
-from ..cost_bounds.nodewise_cost_bound import feature_disagreements
+from ..matching_utils import feature_disagreements
 import numpy as np
 
 def stats_filter(smp):
@@ -15,4 +15,5 @@ def stats_filter(smp):
     is_cand = np.logical_and(disagreements <= smp.global_cost_threshold,
                              disagreements <= smp.local_cost_threshold)
 
-    smp.update_costs(np.Inf, ~is_cand)
+    # TODO: check whether this works
+    smp.local_costs[~is_cand] = np.Inf

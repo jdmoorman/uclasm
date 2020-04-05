@@ -3,7 +3,7 @@ import numpy as np
 
 from .matching_utils import inspect_channels, MonotoneArray, \
     feature_disagreements
-
+from .global_cost_bound import *
 
 class MatchingProblem:
     """A class representing any subgraph matching problem, noisy or otherwise.
@@ -118,7 +118,7 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
-        self._num_valid_candidates = 0
+        self._num_invalid_candidates = 0
 
     def copy(self):
         """Returns a copy of the MatchingProblem."""
@@ -147,22 +147,8 @@ class MatchingProblem:
         if local_costs is not None:
             self._local_costs = local_costs.view(MonotoneArray)
 
-
         if global_costs is not None:
             self._global_costs = global_costs.view(MonotoneArray)
-
-    def _have_candidates_changed(self):
-        """Check if there are more nodes ruled out as invalid candidates.
-
-        Returns
-        -------
-        bool
-            True if any of the node-node pairs have been set to infinity since
-            last time this function was called. False otherwise.
-        """
-        num_valid_candidates = self._num_valid_candidates
-        self._num_valid_candidates = np.count_nonzero(self.structural_costs!=np.Inf)
-        return num_valid_candidates != self._num_valid_candidates
 
     @property
     def fixed_costs(self):
@@ -176,7 +162,7 @@ class MatchingProblem:
 
     @fixed_costs.setter
     def fixed_costs(self, value):
-        self._fixed_costs[:] = value
+        self._fixed_costs = value
 
     @property
     def local_costs(self):
@@ -191,7 +177,7 @@ class MatchingProblem:
 
     @local_costs.setter
     def local_costs(self, value):
-        self._local_costs[:] = value
+        self._local_costs = value
 
     @property
     def global_costs(self):
@@ -206,7 +192,7 @@ class MatchingProblem:
 
     @global_costs.setter
     def global_costs(self, value):
-        self._global_costs[:] = value
+        self._global_costs = value
 
     def candidates(self):
         """Get the matrix of compatibility between template and world nodes.
@@ -304,16 +290,28 @@ class MatchingProblem:
         bool
             True if the size of the world is reduced. False otherwise.
         """
-        is_cands = np.where(self.structural_costs.min(axis=0) != np.Inf)[0]
+        is_cands = np.where(self.local_costs.min(axis=0) != np.Inf)[0]
 
         if len(is_cands) > 0:
             self.world = self.world.node_subgraph(is_cands)
+            self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
             # Update parameters based on new world
-            self.structural_costs = self.structural_costs[:, is_cands]
+            self.local_costs = self.local_costs[:, is_cands]
             self.fixed_costs = self.fixed_costs[:, is_cands]
-            self._structural_cost_sum = self.structural_costs.sum()
-            self._total_costs = self._compute_total_costs()
+            from_local_bounds(self)
             return True
         else:
             return False
+
+    def have_candidates_changed(self):
+        """Check whether candidates have changed.
+
+        Returns
+        -------
+        bool
+            True if any of the candidates have been eliminated. False otherwise.
+        """
+        num_invalid_candidates = self._num_invalid_candidates
+        self._num_invalid_candidates = np.count_nonzero(self.global_costs==np.Inf)
+        return num_invalid_candidates != self._num_invalid_candidates

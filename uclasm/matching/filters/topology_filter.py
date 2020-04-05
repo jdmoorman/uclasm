@@ -1,4 +1,4 @@
-from ..cost_bounds.edgewise_cost_bound import edge_disagreements
+from ..local_cost_bound.edgewise import edgewise_local_cost
 import numpy as np
 
 def topology_filter(smp):
@@ -11,9 +11,10 @@ def topology_filter(smp):
     smp : MatchingProblem
         A subgraph matching problem on which to compute nodewise cost bounds.
     """
-    disagreements = edge_disagreements(smp)
+    disagreements = edgewise_local_cost(smp)
 
     is_cand = np.logical_and(disagreements <= smp.global_cost_threshold,
                              disagreements <= smp.local_cost_threshold)
 
-    smp.update_costs(np.Inf, ~is_cand)
+    # TODO: check whether this works
+    smp.local_costs[~is_cand] = np.Inf

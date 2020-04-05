@@ -25,8 +25,8 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj.T, world_adj.T)
 
 
-def edgewise(smp):
-    """Bound local assignment costs by edge disagreements between candidates.
+def edgewise_local_cost(smp):
+    """Compute the amount of edge disagreements a node has in its neighborhood.
 
     Computes a lower bound on the local cost of assignment by iterating
     over template edges and comparing candidates for the endpoints.
@@ -99,4 +99,14 @@ def edgewise(smp):
             dst_least_cost = np.array(dst_least_cost).flatten()
             new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
 
+    return new_local_costs
+
+def edgewise(smp):
+    """Bound local assignment costs by edge disagreements between candidates.
+
+    Parameters
+    ----------
+    smp : MatchingProblem
+        A subgraph matching problem on which to compute edgewise cost bounds.
+    """
     smp.local_costs = new_local_costs
