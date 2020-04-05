@@ -211,7 +211,7 @@ class Graph:
         are the out-degrees.
         """
         deglist = [self.in_degrees, self.out_degrees]
-        return np.concatenate(deglist, axis=1)
+        return np.concatenate(deglist, axis=1).astype(np.single)
 
     def loopless_subgraph(self):
         """Get a subgraph containing no self-edges.

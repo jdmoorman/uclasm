@@ -5,7 +5,7 @@ import functools
 
 from scipy.optimize import linear_sum_assignment as lap
 
-from uclasm.utils import one_hot
+from ..utils import one_hot
 
 # ASCII matches the progress bar of dask.
 tqdm = functools.partial(tqdm, ascii=True)
