@@ -13,11 +13,13 @@ def run_filters(smp, verbose=True):
 
     num_iter = 0
 
+    # Note: most efficient if we only call from_local_bounds in reduce_world
+    
     while smp.have_candidates_changed() or num_iter == 0:
         stats_filter(smp)
-        from_local_bounds(smp)
+        # from_local_bounds(smp)
         topology_filter(smp)
-        from_local_bounds(smp)
+        # from_local_bounds(smp)
         smp.reduce_world()
         print("There are {} nodes left in the world.".format(smp.world.n_nodes))
         num_iter += 1
