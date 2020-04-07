@@ -26,7 +26,7 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj.T, world_adj.T)
 
 
-def edgewise(smp):
+def edgewise(smp, changed_cands=None):
     """Bound local assignment costs by edge disagreements between candidates.
 
     Computes a lower bound on the local cost of assignment by iterating
@@ -36,21 +36,24 @@ def edgewise(smp):
     all v' where v' is a candidate for v.
 
     TODO: Cite paper from REU.
-    TODO: add changed_cands back in
 
     Parameters
     ----------
     smp : MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
+    changed_cands : ndarray(bool)
+        Boolean array indicating which template nodes have candidates that have
+        changed since the last run of the edgewise filter. Only these nodes and
+        their neighboring template nodes have to be reevaluated.
     """
     new_local_costs = np.zeros(smp.shape)
 
     for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
-        # if changed_cands is not None:
-        #     # If neither the source nor destination has changed, there is no
-        #     # point in filtering on this pair of nodes
-        #     if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-        #         continue
+        if changed_cands is not None:
+            # If neither the source nor destination has changed, there is no
+            # point in filtering on this pair of nodes
+            if not (changed_cands[src_idx] or changed_cands[dst_idx]):
+                continue
 
         # get indicators of candidate nodes in the world adjacency matrices
         candidates = smp.candidates()
@@ -102,4 +105,7 @@ def edgewise(smp):
             dst_least_cost = np.array(dst_least_cost).flatten()
             new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
 
+    # Add back in the costs that didn't change and weren't reevaluated
+    if changed_cands is not None:
+        new_local_costs[changed_cands] = smp.local_costs[changed_cands]
     smp.local_costs = new_local_costs

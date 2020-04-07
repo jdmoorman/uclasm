@@ -31,26 +31,24 @@ def run_filters(tmplt, world, *, candidates=None, filters=None, verbose=False):
         fixed_costs = np.zeros(candidates.shape)
         fixed_costs[~candidates] = float("inf")
         smp = MatchingProblem(tmplt, world, fixed_costs=fixed_costs)
+    changed_cands = np.ones((tmplt.n_nodes,), dtype=np.bool)
     smp.global_costs = smp.local_costs/2 + smp.fixed_costs
-    while True:
-        old_candidates = smp.candidates().copy()
+    if verbose:
         print(smp)
         print("Running nodewise cost bound")
-        local_cost_bound.nodewise(smp)
-        smp.global_costs = smp.local_costs/2 + smp.fixed_costs
-        print(smp)
-        print("Running global cost bound")
-        global_cost_bound.from_local_bounds(smp)
-        print(smp)
-        print("Running edgewise cost bound")
+    local_cost_bound.nodewise(smp)
+    global_cost_bound.from_local_bounds(smp)
+    while True:
+        old_candidates = smp.candidates().copy()
+        if verbose:
+            print(smp)
+            print("Running edgewise cost bound")
         local_cost_bound.edgewise(smp)
-        smp.global_costs = smp.local_costs/2 + smp.fixed_costs
-        print(smp)
-        print("Running global cost bound")
         global_cost_bound.from_local_bounds(smp)
-        print(smp)
-        if np.all(smp.candidates() == old_candidates):
+        changed_cands = np.any(smp.candidates() != old_candidates)
+        if ~np.any(changed_cands):
             break
+    if verbose:
         print(smp)
     return tmplt, world, smp.candidates()
 
