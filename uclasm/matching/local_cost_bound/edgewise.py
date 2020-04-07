@@ -109,4 +109,4 @@ def edgewise(smp):
     smp : MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
     """
-    smp.local_costs = new_local_costs
+    smp.local_costs = edgewise_local_cost(smp)
