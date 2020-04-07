@@ -51,4 +51,4 @@ def run_filters(tmplt, world, *, candidates=None, filters=None, verbose=False):
         if np.all(smp.candidates() == old_candidates):
             break
         print(smp)
-    return tmplt, world, candidates
+    return tmplt, world, smp.candidates()
