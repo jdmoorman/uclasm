@@ -85,3 +85,40 @@ class Graph:
         return Graph(self.nodes, self.channels,
                      [adj.copy() for adj in self.adjs],
                      labels=self.labels)
+
+    def get_node_cover(self):
+        """
+        get a reasonably small set of nodes which, if removed, would cause
+        all of the remaining nodes to become disconnected
+        """
+
+        cover = []
+
+        # Initially there are no nodes in the cover. 
+        # We add them one by one below.
+        uncovered = np.ones(self.n_nodes, dtype=np.bool_)
+
+        # Until the cover disconnects the self, add a node to the cover
+        while self.is_nbr[uncovered, :][:, uncovered].count_nonzero():
+
+            # Add the uncovered node with the most neighbors
+            nbr_counts = np.sum(self.is_nbr[uncovered, :][:, uncovered], axis=0)
+
+            imax = np.argmax(nbr_counts)
+            node = self.nodes[uncovered][imax]
+
+            cover.append(self.node_idxs[node])
+            uncovered[uncovered] = ~one_hot(imax, np.sum(uncovered))
+
+        return np.array(cover)
+
+    def to_simple_graph(self):
+        """
+        This will construct a simple directed graph by replacing any multichannel 
+        multiedges with a single node which connects to both incident nodes
+        with a label indicating number of edges in each channel.
+
+        Returns:
+            Graph: The constructed simple graph
+        """
+        
