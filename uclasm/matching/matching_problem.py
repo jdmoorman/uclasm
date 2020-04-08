@@ -292,11 +292,11 @@ class MatchingProblem:
         """
         # Note: need to update the global_costs before reduce_world to reflect
         # changes in the candidates
-        
-        is_cands = self.candidates().any(axis=0)
+
+        is_cand = self.candidates().any(axis=0)
 
         # If some world node does not serve as candidates to any tmplt node
-        if ~is_cands.all():
+        if ~is_cand.all():
             self.world = self.world.node_subgraph(is_cands)
             self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
