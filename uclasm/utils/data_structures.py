@@ -57,6 +57,50 @@ class Graph:
         return np.argwhere(sparse.tril(self.is_nbr))
 
     @property
+    def out_degree(self):
+        if self.out_degree_array is not None:
+            return self.out_degree_array
+        else:
+            self.out_degree_array = {ch: self.ch_to_adj[ch].sum(axis=1)
+                                     for ch in self.channels}
+            return self.out_degree_array
+
+    @property
+    def in_degree(self):
+        if self.in_degree_array is not None:
+            return self.in_degree_array
+        else:
+            self.in_degree_array = {ch: self.ch_to_adj[ch].sum(axis=0)
+                                     for ch in self.channels}
+            return self.in_degree_array
+
+    @property
+    def degree(self):
+        if self.degree_array is not None:
+            return self.degree_array
+        else:
+            self.degree_array = {channel: self.in_degree[channel] 
+                                          + self.out_degree[channel]
+                                 for channel in self.channels}
+            return self.degree_array
+
+    @property
+    def neighbors(self):
+        if self.neighbors_list:
+            return self.neighbors_list
+        else:
+            self.compute_neighbors()
+        return self.neighbors_list
+
+    def compute_neighbors(self):
+        for i in range(self.n_nodes):
+            # We grab first element since nonzero returns a tuple of 1 element
+            if sparse.issparse(self.sym_composite_adj):
+                self.neighbors_list.append(self.sym_composite_adj[i].nonzero()[1])
+            else:
+                self.neighbors_list.append(self.sym_composite_adj[i].nonzero()[0])
+
+    @property
     def eq_classes(self):
         """
         Return the Equivalence object associated with the graph.
@@ -78,6 +122,37 @@ class Graph:
         # Return a new graph object for the induced subgraph
         return Graph(nodes, self.channels, adjs, labels=labels)
 
+    def sparsify(self):
+        """
+        Converts the stored adjacency matrices into sparse matrices in the
+        csr_matrix format
+        """
+        if self.is_sparse:
+            return
+        self._is_nbr = sparse.csr_matrix(self.is_nbr)
+        self._sym_composite_adj = sparse.csr_matrix(self.sym_composite_adj)
+        self._composite_adj = sparse.csr_matrix(self.composite_adj)
+        for ch, adj in self.ch_to_adj.items():
+            self.ch_to_adj[ch] = sparse.csr_matrix(adj)
+        self.is_sparse = True
+
+    def densify(self):
+        """
+        Converts the stored adjacency matrices into standard arrays.
+        This only affects the matrices in self.ch_to_adj, not any other
+        possible sparse representations of data.
+
+        This will cause an error if the matrices are already dense.
+        """
+        if not self.is_sparse:
+            return
+        self._is_nbr = self.is_nbr.A
+        self._sym_composite_adj = self.sym_composite_adj.A
+        self._composite_adj = self.composite_adj.A
+        for ch, adj in self.ch_to_adj.items():
+            self.ch_to_adj[ch] = adj.A
+        self.is_sparse = False
+
     def copy(self):
         """
         The only thing this bothers to copy is the adjacency matrices
@@ -85,3 +160,145 @@ class Graph:
         return Graph(self.nodes, self.channels,
                      [adj.copy() for adj in self.adjs],
                      labels=self.labels)
+
+    def write_to_file(self, filename):
+        """
+        Writes the graph out in the following format:
+
+        <Graph Name>
+        <# Nodes>
+        <# Channels>
+        <Channel1>
+        <# Edges in Channel1>
+        <From1> <To1> <Count1>
+        ...
+        <FromN> <ToN> <CountN>
+        <Channel2>
+        <# Edges in Channel1>
+        ...
+
+        where <Fromi>, <Toi> <Counti> are the index of the source node,
+        the index of the destination node, and the count of edges for the
+        i-th edge in a given channel.
+        """
+        with open(filename, 'w') as f:
+            f.write('{}\n'.format(self.name))
+            f.write('{}\n'.format(self.n_nodes))
+            f.write('{}\n'.format(len(list(self.channels))))
+            for channel in self.channels:
+                f.write('{}\n'.format(channel))
+                f.write('{}\n'.format(self.get_n_edges()[channel]))
+                for _, fro, to, count in self.edge_iterator(channel):
+                    f.write('{} {} {}\n'.format(fro, to, count))
+
+    def channel_to_networkx_graph(self, channel):
+        """
+        Convert the given channel into a networkx MultiDiGraph.
+        """
+        return nx.from_scipy_sparse_matrix(self.ch_to_adj[channel], parallel_edges=True)
+
+    def to_networkx_graph(self):
+        """
+        Return a dictionary mapping channels to networkx MultiDiGraphs.
+        """
+        return {channel: self.channel_to_networkx_graph(channel) for channel in self.channels}
+
+    def to_networkx_composite_graph(self):
+        """
+        Return a networkx-style MultiDiGraph from the sum of the adjacency
+        matrices
+        """
+        comp_matrix = sum(self.ch_to_adj.values())
+        return nx.from_scipy_sparse_matrix(comp_matrix, parallel_edges=True,
+                                           create_using=nx.MultiDiGraph)
+
+    def plot_equivalence_classes(self, equivalence, axis=None, **kwargs):
+        """
+        Plot the graph with the nodes of the same equivalence class colored
+        the same. This will plot the composite graph for ease of visualization.
+        This can handle at most 8 equivalence classes.
+
+        Args:
+            equivalence (Equivalence): An equivalence structure on the graph.
+                The elements should be numbers corresponding to indices of
+                the graph vertices
+            axis (plt.Axis): Optionally, an axis to plot to
+        Returns:
+            The axis on which the graph is plotted
+        """
+
+        # This map has 8 different colors.
+        cmap = plt.get_cmap('Set1')
+        # We use the color gray for any trivial equivalence class.
+        GRAY_INDEX = 8
+
+        color_map = [""] * self.n_nodes
+        count = 0
+        classes = equivalence.classes()
+        for eq_class in classes.values():
+            if len(eq_class) == 1:
+                for elem in eq_class:
+                    color_map[elem] = cmap.colors[GRAY_INDEX]
+            else:
+                for elem in eq_class:
+                    color_map[elem] = cmap.colors[count]
+                count += 1
+        
+        comp_graph = self.to_networkx_composite_graph()
+        layout = nx.kamada_kawai_layout(comp_graph)
+        
+        if axis is None:
+            fig, axis = plt.subplots()
+        
+        nx.draw(comp_graph, pos=layout, ax=axis, node_color=color_map,
+                **kwargs)
+        
+        return axis
+
+    def threshold(self, graph):
+        """
+        This function should threshold the max number of edges in this graph
+        by the maximal number of edges in the passed in graph in each channel
+        """
+        for channel in self.channels:
+            adj_mat = self.ch_to_adj[channel]
+            graph_max = graph.ch_to_adj[channel].max()
+            adj_mat.data = np.minimum(adj_mat.data, graph_max)
+
+
+def read_from_file(filename):
+    """
+    Reads in a multichannel graph from a file in the format specified in
+    write_to_file.
+    """
+    with open(filename) as f:
+
+        def getline():
+            while True:
+                line = f.readline()
+                (line, *comment) = line.split('#')
+                line = line.rstrip()
+                if line:
+                    return line
+
+        name =  getline().rstrip()
+        n_nodes = int(getline())
+        n_channels = int(getline())
+        channels = []
+        adjs = []
+        for i in range(n_channels):
+            adj_mat = np.zeros((n_nodes, n_nodes))
+            channel_name = getline().rstrip()
+            channel_size = int(getline())
+            seen = 0
+            while seen < channel_size:
+                line = getline()
+
+                fro, to, count = list(map(int, line.split()))
+                adj_mat[fro,to] = count
+                seen += count
+            channels.append(channel_name)
+            adjs.append(sparse.csr_matrix(adj_mat))
+
+        nodes = list(range(n_nodes))
+        return Graph(nodes, channels, adjs, name=name)
