@@ -28,11 +28,18 @@ def get_edge_seqs(graph, channels=None):
 
 def neighborhood(smp):
     """
+    Bound local assignment costs by neighborhood disagreements.
+
     If u is a node in the template and v is a node in the world, in order for
     v to be a candidate for u there should be a subgraph isomorphism from
     the neighborhood of u to the neighborhood of v. We can check if any such
     subgraph isomorphism exists in which the neighbors of v are candidates for
     the appropriate neighbors of u by looking for a bipartite matching.
+
+    Parameters
+    ----------
+    smp : MatchingProblem
+        A subgraph matching problem on which to compute edgewise cost bounds.
     """
     # TODO: check whether a world node is a candidate for any tmplt node
     # ---> This can be achieved by reduce_world?
