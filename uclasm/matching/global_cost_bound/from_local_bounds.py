@@ -13,3 +13,6 @@ def from_local_bounds(smp):
     costs = smp.local_costs / 2 + smp.fixed_costs
     global_cost_bounds = constrained_lsap_costs(costs)
     smp.global_costs = global_cost_bounds
+
+    # TODO: should the global costs for local costs introduced by neighborhood
+    # constraint be computed in the same way? 
