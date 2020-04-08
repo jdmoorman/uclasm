@@ -118,7 +118,7 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
-        self._num_invalid_candidates = 0
+        self._num_valid_candidates = self.tmplt.n_nodes * self.world.n_nodes
 
     def copy(self):
         """Returns a copy of the MatchingProblem."""
@@ -290,9 +290,13 @@ class MatchingProblem:
         bool
             True if the size of the world is reduced. False otherwise.
         """
-        is_cands = np.where(self.local_costs.min(axis=0) != np.Inf)[0]
+        # Note: need to update the global_costs before reduce_world to reflect
+        # changes in the candidates
+        
+        is_cands = self.candidates().any(axis=0)
 
-        if len(is_cands) > 0:
+        # If some world node does not serve as candidates to any tmplt node
+        if ~is_cands.all():
             self.world = self.world.node_subgraph(is_cands)
             self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
@@ -312,6 +316,7 @@ class MatchingProblem:
         bool
             True if any of the candidates have been eliminated. False otherwise.
         """
-        num_invalid_candidates = self._num_invalid_candidates
-        self._num_invalid_candidates = np.count_nonzero(self.global_costs==np.Inf)
-        return num_invalid_candidates != self._num_invalid_candidates
+        # TODO: this function needs to be updated
+        num_valid_candidates = self._num_valid_candidates
+        self._num_valid_candidates = np.count_nonzero(self.candidates())
+        return num_valid_candidates != self._num_valid_candidates
