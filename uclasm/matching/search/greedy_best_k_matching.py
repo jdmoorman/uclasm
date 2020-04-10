@@ -6,6 +6,7 @@ import numpy as np
 from .search_utils import *
 from ..global_cost_bound import *
 from ..local_cost_bound import *
+from ...utils import one_hot
 from heapq import heappush, heappop
 
 def greedy_best_k_matching(smp, k=1, verbose=False):
@@ -51,40 +52,59 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
 
     # Maximum cost for a matching to be considered
     max_cost = smp.global_cost_threshold
+    # Cost of the kth solution
+    kth_cost = float("inf")
 
     while len(open_list) > 0:
         curr_smp = smp.copy()
         current_state = heappop(open_list)
+        if verbose:
+            print("Current state: number of matches", len(current_state.matching))
+            print("Open states:", len(open_list))
         set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
-        nodewise(curr_smp)
-        edgewise(curr_smp)
-        from_local_bounds(curr_smp)
+        curr_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
+                           global_costs=np.zeros(curr_smp.shape))
+        iterate_to_convergence(curr_smp)
         global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
+        candidates = global_costs <= max_cost
+        # Identify template node with the least number of candidates
+        cand_counts = np.sum(candidates, axis=1)
+        # Prevent previously matched template idxs from being chosen
+        cand_counts[list(matching_dict)] = np.max(cand_counts) + 1
+        tmplt_idx = np.argmin(cand_counts)
+        if verbose:
+            print("Choosing candidate for", tmplt_idx)
+            print("Possible candidates:", len(np.argwhere(candidates[tmplt_idx])))
         # Only push states that have a total cost bound lower than the threshold
-        for tmplt_idx, cand_idx in np.argwhere(global_costs < max_cost):
-            if tmplt_idx not in matching_dict:
-                new_matching = matching_dict.copy()
-                new_matching[tmplt_idx] = cand_idx
-                new_matching_tuple = tuple_from_dict(new_matching)
-                if new_matching_tuple not in cost_map:
-                    new_state = State()
-                    new_state.matching = new_matching_tuple
-                    temp_smp = smp.copy()
-                    set_fixed_costs(temp_smp.fixed_costs, current_state.matching)
-                    nodewise(temp_smp)
-                    edgewise(temp_smp)
-                    from_local_bounds(temp_smp)
-                    new_state.cost = temp_smp.global_costs.min()
-                    cost_map[new_matching_tuple] = new_state.cost
-                    if len(new_state.matching) == smp.tmplt.n_nodes:
-                        solutions.append(new_state)
-                        if k > 0 and len(solutions) > k:
-                            solutions.sort()
-                            max_cost = solutions[-2].cost
-                            solutions.pop()
-                    else:
-                        heappush(open_list, new_state)
+        for cand_idx in np.argwhere(candidates[tmplt_idx]):
+            cand_idx = cand_idx[0]
+            new_matching = matching_dict.copy()
+            new_matching[tmplt_idx] = cand_idx
+            new_matching_tuple = tuple_from_dict(new_matching)
+            if new_matching_tuple not in cost_map:
+                new_state = State()
+                new_state.matching = new_matching_tuple
+                temp_smp = smp.copy()
+                set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
+                temp_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
+                                   global_costs=np.zeros(curr_smp.shape))
+                iterate_to_convergence(temp_smp)
+                new_state.cost = temp_smp.global_costs.min()
+                if new_state.cost > max_cost or new_state.cost >= kth_cost:
+                    continue
+                cost_map[new_matching_tuple] = new_state.cost
+                if len(new_state.matching) == smp.tmplt.n_nodes:
+                    solutions.append(new_state)
+                    if k > 0 and len(solutions) > k:
+                        solutions.sort()
+                        solutions.pop()
+                        kth_cost = min(solutions).cost
+                else:
+                    heappush(open_list, new_state)
+            else:
+                if verbose:
+                    print("Recognized state: ", new_matching)
     if verbose:
         for solution in solutions:
             print(solution)
