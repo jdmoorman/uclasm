@@ -162,7 +162,7 @@ class MatchingProblem:
 
     @fixed_costs.setter
     def fixed_costs(self, value):
-        self._fixed_costs = value
+        self._fixed_costs[:] = value
 
     @property
     def local_costs(self):
@@ -177,7 +177,7 @@ class MatchingProblem:
 
     @local_costs.setter
     def local_costs(self, value):
-        self._local_costs = value
+        self._local_costs[:] = value
 
     @property
     def global_costs(self):
@@ -192,7 +192,7 @@ class MatchingProblem:
 
     @global_costs.setter
     def global_costs(self, value):
-        self._global_costs = value
+        self._global_costs[:] = value
 
     def candidates(self):
         """Get the matrix of compatibility between template and world nodes.
@@ -297,12 +297,12 @@ class MatchingProblem:
 
         # If some world node does not serve as candidates to any tmplt node
         if ~is_cand.all():
-            self.world = self.world.node_subgraph(is_cands)
+            self.world = self.world.node_subgraph(is_cand)
             self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
             # Update parameters based on new world
-            self.local_costs = self.local_costs[:, is_cands]
-            self.fixed_costs = self.fixed_costs[:, is_cands]
+            self.set_costs(local_costs=self.local_costs[:, is_cand])
+            self.set_costs(fixed_costs=self.fixed_costs[:, is_cand])
             from_local_bounds(self)
             return True
         else:
