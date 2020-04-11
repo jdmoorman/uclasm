@@ -133,7 +133,7 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                     cost_map[new_matching_tuple] = new_state.cost
                     if len(new_state.matching) == smp.tmplt.n_nodes:
                         solutions.append(new_state)
-                        if len(solutions) > k:
+                        if k > 0 and len(solutions) > k:
                             solutions.sort()
                             max_cost = solutions[-2].cost
                             solutions.pop()
