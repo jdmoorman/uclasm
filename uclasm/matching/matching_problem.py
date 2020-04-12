@@ -303,6 +303,7 @@ class MatchingProblem:
             # Update parameters based on new world
             self.set_costs(local_costs=self.local_costs[:, is_cand])
             self.set_costs(fixed_costs=self.fixed_costs[:, is_cand])
+            self.set_costs(global_costs=self.global_costs[:, is_cand])
             from_local_bounds(self)
             return True
         else:

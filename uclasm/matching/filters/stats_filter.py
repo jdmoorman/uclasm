@@ -12,8 +12,8 @@ def stats_filter(smp):
     disagreements = feature_disagreements(smp.tmplt.in_out_degrees,
                                           smp.world.in_out_degrees)
 
-    is_cand = np.logical_and(disagreements <= smp.global_cost_threshold,
-                             disagreements <= smp.local_cost_threshold)
+    is_cand = disagreements <= min(smp.global_cost_threshold,
+                                   smp.local_cost_threshold)
 
     # TODO: check whether this works
     smp.local_costs[~is_cand] = np.Inf
