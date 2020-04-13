@@ -1,7 +1,6 @@
 """Provide a function for bounding node assignment costs with edgewise info."""
 import numpy as np
 
-
 def iter_adj_pairs(tmplt, world):
     """Generator for pairs of adjacency matrices.
 
@@ -26,8 +25,8 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj.T, world_adj.T)
 
 
-def edgewise(smp, changed_cands=None):
-    """Bound local assignment costs by edge disagreements between candidates.
+def edgewise_local_costs(smp, changed_cands=None):
+    """Compute edge disagreements between candidates.
 
     Computes a lower bound on the local cost of assignment by iterating
     over template edges and comparing candidates for the endpoints.
@@ -67,8 +66,10 @@ def edgewise(smp, changed_cands=None):
         # i.e. the number of template edges between src and dst that also exist
         # between their candidates in the world
         supported_edges = None
+
         # Number of total edges in the template between src and dst
         total_tmplt_edges = 0
+
         for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
             total_tmplt_edges += tmplt_adj_val
@@ -80,6 +81,7 @@ def edgewise(smp, changed_cands=None):
             # sub adjacency matrix corresponding to edges from the source
             # candidates to the destination candidates
             world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
+
             # Edges are supported up to the number of edges in the template
             if supported_edges is None:
                 supported_edges = world_sub_adj.minimum(tmplt_adj_val)
@@ -108,4 +110,15 @@ def edgewise(smp, changed_cands=None):
     # Add back in the costs that didn't change and weren't reevaluated
     if changed_cands is not None:
         new_local_costs[changed_cands] = smp.local_costs[changed_cands]
-    smp.local_costs = new_local_costs
+
+    return new_local_costs
+
+def edgewise(smp, changed_cands=None):
+    """Bound local assignment costs by edge disagreements between candidates.
+
+    Parameters
+    ----------
+    smp : MatchingProblem
+        A subgraph matching problem on which to compute edgewise cost bounds.
+    """
+    smp.local_costs = edgewise_local_costs(smp, changed_cands)

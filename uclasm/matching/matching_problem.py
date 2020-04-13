@@ -3,7 +3,7 @@ import numpy as np
 
 from .matching_utils import inspect_channels, MonotoneArray, \
     feature_disagreements
-
+from .global_cost_bound import *
 
 class MatchingProblem:
     """A class representing any subgraph matching problem, noisy or otherwise.
@@ -118,6 +118,8 @@ class MatchingProblem:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
+        self._num_valid_candidates = self.tmplt.n_nodes * self.world.n_nodes
+
     def copy(self):
         """Returns a copy of the MatchingProblem."""
         return MatchingProblem(self.tmplt.copy(), self.world.copy(),
@@ -137,6 +139,7 @@ class MatchingProblem:
         fixed_costs : 2darray, optional
         local_costs : 2darray, optional
         global_costs : 2darray, optional
+
         """
         if fixed_costs is not None:
             self._fixed_costs = fixed_costs.view(MonotoneArray)
@@ -274,3 +277,47 @@ class MatchingProblem:
                              .format(n_missing, missing_ground_truth))
 
         return "\n".join(info_strs)
+
+    def reduce_world(self):
+        """Reduce the size of the world graph.
+
+        Check whether there are any world nodes that are not candidates to
+        any tmplt nodes. If so, remove them from the world graph and update
+        the matching problem.
+
+        Returns
+        -------
+        bool
+            True if the size of the world is reduced. False otherwise.
+        """
+        # Note: need to update the global_costs before reduce_world to reflect
+        # changes in the candidates
+
+        is_cand = self.candidates().any(axis=0)
+
+        # If some world node does not serve as candidates to any tmplt node
+        if ~is_cand.all():
+            self.world = self.world.node_subgraph(is_cand)
+            self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
+
+            # Update parameters based on new world
+            self.set_costs(local_costs=self.local_costs[:, is_cand])
+            self.set_costs(fixed_costs=self.fixed_costs[:, is_cand])
+            self.set_costs(global_costs=self.global_costs[:, is_cand])
+            from_local_bounds(self)
+            return True
+        else:
+            return False
+
+    def have_candidates_changed(self):
+        """Check whether candidates have changed.
+
+        Returns
+        -------
+        bool
+            True if any of the candidates have been eliminated. False otherwise.
+        """
+        # TODO: this function needs to be updated
+        num_valid_candidates = self._num_valid_candidates
+        self._num_valid_candidates = np.count_nonzero(self.candidates())
+        return num_valid_candidates != self._num_valid_candidates
