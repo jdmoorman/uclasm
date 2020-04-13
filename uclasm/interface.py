@@ -7,7 +7,7 @@ from .matching import search
 # Dummy variable for old code that needs it
 all_filters = None
 
-def run_filters(tmplt, world, *, candidates=None, filters=None, verbose=False):
+def run_filters_old(tmplt, world, *, candidates=None, filters=None, verbose=False):
     """Interface with old format for calling filters. Assumes exact matching
     with cost bound of zero.
 
