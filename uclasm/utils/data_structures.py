@@ -2,10 +2,13 @@
 Filtering algorithms expect data to come in the form of Graph objects
 """
 
-from .equivalence.partition_sparse import bfs_partition_graph
+from ..equivalence.partition_sparse import bfs_partition_graph
 from .misc import index_map
 import scipy.sparse as sparse
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import graphviz as gv
 
 class Graph:
     def __init__(self, nodes, channels, adjs, labels=None):
@@ -19,7 +22,6 @@ class Graph:
         if labels is None:
             labels = [None]*len(nodes)
         self.labels = np.array(labels)
-
 
         self._composite_adj = None
         self._sym_composite_adj = None
@@ -231,13 +233,15 @@ class Graph:
         """
         Convert the given channel into a networkx MultiDiGraph.
         """
-        return nx.from_scipy_sparse_matrix(self.ch_to_adj[channel], parallel_edges=True)
+        return nx.from_scipy_sparse_matrix(self.ch_to_adj[channel],
+                                           parallel_edges=True)
 
     def to_networkx_graph(self):
         """
         Return a dictionary mapping channels to networkx MultiDiGraphs.
         """
-        return {channel: self.channel_to_networkx_graph(channel) for channel in self.channels}
+        return {channel: self.channel_to_networkx_graph(channel)
+                         for channel in self.channels}
 
     def to_networkx_composite_graph(self):
         """
@@ -247,6 +251,30 @@ class Graph:
         comp_matrix = sum(self.ch_to_adj.values())
         return nx.from_scipy_sparse_matrix(comp_matrix, parallel_edges=True,
                                            create_using=nx.MultiDiGraph)
+
+    def gv_graph(self):
+        """
+        Construct a graph using graphviz and returns it. This is is a
+        visualization object and therefore has attributes associated to how
+        the graph looks. Each channel will be colored differently.
+
+        Returns:
+            gv.Digraph: The constructed graphviz Digraph
+        """
+        cmap = plt.get_cmap('Set1')
+
+        gv_graph = gv.Digraph()
+
+        for i, channel in enumerate(self.channels):
+            color = matplotlib.colors.rgb2hex(cmap.colors[i])
+
+            dok_matrix = self.ch_to_adj[channel].todok()
+            for ((v1_index, v2_index), count) in dok_matrix.items():
+                v1_name = self.nodes[v1_index]
+                v2_name = self.nodes[v2_index]
+                gv_graph.edge(v1_name, v2_name, label=str(count), color=color)
+
+        return gv_graph
 
     def plot_composite_graph(self, axis=None, **kwargs):
         """
@@ -321,7 +349,7 @@ class Graph:
 def read_from_file(filename):
     """
     Reads in a multichannel graph from a file in the format specified in
-    write_to_file.
+    write_to_file. This is the file specified in the Solnon benchmarks
     """
     with open(filename) as f:
 
@@ -354,3 +382,68 @@ def read_from_file(filename):
 
         nodes = list(range(n_nodes))
         return Graph(nodes, channels, adjs, name=name)
+
+
+def read_igraph_file(filename):
+    """
+    This function will read all graphs in an igraph file.
+
+    Args:
+        filename (str): The name of the file stored in igraph format
+    Returns:
+        list[Graph]: A list of Graphs stored in the file
+    """
+    graphs = []
+    curr_vert_count = 0
+    curr_vert_labels = []
+    # A mapping from channel to adjacency matrix
+    curr_adj_matrices = {}
+    first = True
+    with open(filename) as f:
+        for line in f:
+            line = line.rstrip()
+            # This indicates we are starting a new graph
+            if line.startswith('t'):
+                if first:
+                    first = False
+                    continue
+                else:
+                    # Construct the Graph
+                    verts = list(range(curr_vert_count))
+                    channels = list(curr_adj_matrices.keys())
+                    adj_matrices = [curr_adj_matrices[ch] for ch in channels]
+                    graph = Graph(verts, channels, adj_matrices, 
+                                  curr_vert_labels)
+                    graphs.append(graph)
+                    # Reset all the current values for new graph
+                    curr_vert_count = 0
+                    curr_vert_labels = []
+                    curr_adj_matrices = []
+                    curr_channels = []
+            elif line.startswith('v'):
+                # Vertex line
+                # Format "v <index> <label>"
+                index, label = map(int(line.split()[1:]))
+                curr_vert_count += 1
+                curr_vert_labels.append(label)
+            elif line.startswith('e'):
+                # Edge line
+                # Format "e <start> <end> <label>"
+                # Edges are assumed undirected
+                start, end, label = map(int(line.split()[1:]))
+                if label not in curr_channels:
+                    adj = dok_matrix((curr_vert_count, curr_vert_count), 
+                                     dtype=np.int32)
+                    curr_adj_matrices[label] = adj
+                curr_adj_matrices[adj][start,end] = 1
+                curr_adj_matrices[adj][end,start] = 1
+        else:
+            # Construct the final graph
+            # This is necessary because once the last line is read, we exit
+            # the loop.
+            verts = list(range(curr_vert_count))
+            channels = list(curr_adj_matrices.keys())
+            adj_matrices = [curr_adj_matrices[ch] for ch in channels]
+            graph = Graph(verts, channels, adj_matrices, 
+                          curr_vert_labels)
+            graphs.append(graph)
