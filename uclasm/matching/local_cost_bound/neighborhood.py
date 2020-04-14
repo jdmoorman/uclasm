@@ -76,6 +76,4 @@ def neighborhood(smp):
 
         lap_mat = np.stack(lap_mat_rows)
         row_idxs, col_idxs = optimize.linear_sum_assignment(lap_mat)
-
-        print ("For node {} there are {} nodes in its nbhd".format(tnode_idx, np.size(row_idxs)))
         smp.local_costs[tnode_idx, wnode_idx] = lap_mat[row_idxs, col_idxs].sum()
