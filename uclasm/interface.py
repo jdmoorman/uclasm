@@ -50,7 +50,7 @@ def count_isomorphisms(tmplt, world, candidates=None, verbose=False):
         Flag for verbose output
     """
     if candidates is None:
-        tmplt, world, candidates = run_filters(tmplt, world, verbose=verbose)
+        tmplt, world, candidates = run_filters_old(tmplt, world, verbose=verbose)
     fixed_costs = np.zeros(candidates.shape)
     fixed_costs[~candidates] = float("inf")
     smp = MatchingProblem(tmplt, world, fixed_costs=fixed_costs)
