@@ -66,7 +66,7 @@ def neighborhood(smp):
         lap_mat_rows = []
         for tnbr_idx in smp.tmplt.is_nbr[tnode_idx].nonzero()[1]:
             # The world nodes that are not candidates to tnbr_idx are np.Inf
-            lap_mat_row = smp.global_costs[tnbr_idx]
+            lap_mat_row = smp.global_costs[tnbr_idx].copy()
             lap_mat_row[lap_mat_row != np.Inf] = 0
             # Check if all of the necessary edges are present
             for i, edge_count in enumerate(tmplt_seq[:,tnbr_idx].A.flat):
