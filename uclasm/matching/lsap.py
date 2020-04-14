@@ -1,14 +1,10 @@
 """Functions for solving variants of the linear sum assignment problem."""
 import numpy as np
-from tqdm import tqdm
 import functools
 
 from scipy.optimize import linear_sum_assignment as lap
 
 from ..utils import one_hot
-
-# ASCII matches the progress bar of dask.
-tqdm = functools.partial(tqdm, ascii=True)
 
 
 def constrained_lsap_cost(i, j, costs):
@@ -103,7 +99,7 @@ def constrained_lsap_costs(costs):
     # total assignment costs are:
     total_costs = lsap_total_cost - lsap_costs[:, None] + costs
 
-    for i, freed_j in enumerate(tqdm(lsap_col_idxs)):
+    for i, freed_j in enumerate(lsap_col_idxs):
         # For each row, which column is it currently assigned to? Modify this
         # as we go to enforce various constraints. Set the row i entry to -1
         # to indicate that we are enforcing constraints on row i at the moment.
@@ -134,7 +130,7 @@ def constrained_lsap_costs(costs):
         total_costs[i, col_idxs[i]] = costs[row_idxs, col_idxs].sum()
         col_idxs[i] = -1
 
-        for other_i, stolen_j in enumerate(tqdm(col_idxs, leave=False)):
+        for other_i, stolen_j in enumerate(col_idxs, leave=False):
             if other_i == i:
                 continue
 
