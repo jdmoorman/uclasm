@@ -52,9 +52,9 @@ def neighborhood(smp):
     # TODO: might want candidates to be sparse in other filters
     sparse_is_cand = sparse.csr_matrix(smp.candidates())
     for tnode_idx, wnode_idx in np.transpose(sparse_is_cand.nonzero()):
-        # If the template node has only 1 neighbor, the topology filter is
-        # equivalent to the neighborhood filter, so there is no point in
-        # using the neighborhood filter since it is more expensive.
+        # If the template node has only 1 neighbor, the edgewise cost bound is
+        # equivalent to the neighborhood cost bound, so there is no point in
+        # using the neighborhood one since it is more expensive.
         if nbr_counts[tnode_idx] == 1:
             continue
 
