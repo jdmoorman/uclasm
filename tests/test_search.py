@@ -70,21 +70,21 @@ class TestGreedySearch:
             assert dict(solutions[0].matching)[i] == i
 
     def test_greedy_search_noisy_high_thresh(self, smp_noisy):
-        smp_noisy.global_cost_threshold = float("inf")
+        smp_noisy.global_cost_threshold = 5000
         local_cost_bound.nodewise(smp_noisy)
         local_cost_bound.edgewise(smp_noisy)
         global_cost_bound.from_local_bounds(smp_noisy)
-        solutions = search.greedy_best_k_matching(smp_noisy)
+        solutions = search.greedy_best_k_matching(smp_noisy, verbose=True)
         assert len(solutions) == 1
         assert solutions[0].cost == 1
         for i in range(3):
             assert dict(solutions[0].matching)[i] == i
-        solutions = search.greedy_best_k_matching(smp_noisy, k=6)
+        solutions = search.greedy_best_k_matching(smp_noisy, k=6, verbose=True)
         assert len(solutions) == 6
         assert solutions[0].cost == 1
         for i in range(3):
             assert dict(solutions[0].matching)[i] == i
-        solutions = search.greedy_best_k_matching(smp_noisy, k=5)
+        solutions = search.greedy_best_k_matching(smp_noisy, k=5, verbose=True)
         assert len(solutions) == 5
         assert solutions[0].cost == 1
         for i in range(3):
