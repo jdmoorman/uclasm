@@ -8,6 +8,7 @@ import scipy.sparse as sparse
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import networkx as nx
 import graphviz as gv
 
 class Graph:
@@ -264,15 +265,21 @@ class Graph:
         cmap = plt.get_cmap('Set1')
 
         gv_graph = gv.Digraph()
+        for i in range(self.n_nodes):
+            node_name = self.nodes[i]
+            if self.labels[i]:
+                gv_graph.node(str(node_name), label=self.labels[i])
+            else:
+                gv_graph.node(str(node_name))
 
         for i, channel in enumerate(self.channels):
             color = matplotlib.colors.rgb2hex(cmap.colors[i])
 
             dok_matrix = self.ch_to_adj[channel].todok()
             for ((v1_index, v2_index), count) in dok_matrix.items():
-                v1_name = self.nodes[v1_index]
-                v2_name = self.nodes[v2_index]
-                gv_graph.edge(v1_name, v2_name, label=str(count), color=color)
+                v1_name = str(self.nodes[v1_index])
+                v2_name = str(self.nodes[v2_index])
+                gv_graph.edge(v1_name, v2_name, color=color)
 
         return gv_graph
 
@@ -286,11 +293,9 @@ class Graph:
         if axis is None:
             fig, axis = plt.subplots()
         
-        nx.draw(comp_graph, pos=layout, ax=axis, node_color=color_map,
-                **kwargs)
+        nx.draw(comp_graph, pos=layout, ax=axis, **kwargs)
         
         return axis
-
 
     def plot_equivalence_classes(self, equivalence, axis=None, **kwargs):
         """
@@ -345,6 +350,44 @@ class Graph:
             graph_max = graph.ch_to_adj[channel].max()
             adj_mat.data = np.minimum(adj_mat.data, graph_max)
 
+    def to_simple_graph(self):
+        """
+        Convert the graph into a simple directed graph. It does this by
+        taking any pair of adjacent nodes and replacing the edges between
+        them by a node adjacent to both with a label specifying how many
+        edges in each channel.
+        """
+        # Convert each adj to dok format for fast indexing
+        dok_adjs = {ch: adj.todok() for (ch, adj) in self.ch_to_adj.items()}
+
+        nbr_idx_pairs = np.argwhere(self.composite_adj > 0)
+        n_pairs = nbr_idx_pairs.shape[0]
+        new_n_nodes = self.n_nodes + n_pairs
+
+        new_adj = sparse.dok_matrix((new_n_nodes, new_n_nodes), dtype=np.bool)
+
+        labels = list(self.labels)
+        for i in range(n_pairs):
+            start_idx, end_idx = nbr_idx_pairs[i,:]
+
+            # The index of the node this pair corresponds to
+            pair_idx = self.n_nodes + i
+
+            # We set the adjacency relationship here
+            new_adj[start_idx, pair_idx] = 1
+            new_adj[pair_idx, end_idx] = 1
+
+            # Here we construct the label for the pair.
+            label_cpts = []
+            for ch, adj in dok_adjs.items():
+                edge_count = adj[start_idx, end_idx]
+                if edge_count > 0:
+                    label_cpts.append("{}:{}".format(ch, edge_count))
+            labels.append(','.join(label_cpts))
+        
+        new_adj = new_adj.tocsr()
+        graph = Graph(list(range(new_n_nodes)), [0], [new_adj], labels=labels) 
+        return graph, nbr_idx_pairs
 
 def read_from_file(filename):
     """
