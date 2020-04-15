@@ -130,7 +130,7 @@ def constrained_lsap_costs(costs):
         total_costs[i, col_idxs[i]] = costs[row_idxs, col_idxs].sum()
         col_idxs[i] = -1
 
-        for other_i, stolen_j in enumerate(col_idxs, leave=False):
+        for other_i, stolen_j in enumerate(col_idxs):
             if other_i == i:
                 continue
 
