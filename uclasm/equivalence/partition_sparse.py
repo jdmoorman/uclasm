@@ -37,7 +37,7 @@ def permutation_relation(u, v, adj_matrix_csr,
 
     u, v = (u ,v) if u < v else (v, u)
 
-    # If both have no neighbors, they are equivalent.
+    # If they both have no neighbors, they are equivalent.
     if (col_nnz[u] == 0 and col_nnz[v] == 0 and 
             row_nnz[u] == 0 and row_nnz[v] == 0):
         return True

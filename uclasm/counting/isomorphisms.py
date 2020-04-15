@@ -84,7 +84,7 @@ def recursive_isomorphism_counter(tmplt, world, candidates, matching, *,
         candidates_copy = candidates.copy()
         candidates_copy[node_idx] = one_hot(cand_idx, world.n_nodes)
 
-    `   matching.append((node_idx, cand_idx))
+        matching.append((node_idx, cand_idx))
         # Remove matched node from the unspecified list
         new_unspec_cover = unspec_cover[:node_idx] + unspec_cover[node_idx+1:]
 

@@ -49,10 +49,11 @@ class Equivalence:
     def merge_classes_of(self, a , b):
         """
         Merge the equivalence classes of a and b together
-        by setting each parent's map to point to the same root 
+        by setting each parent's map to point to the same root.
         """
         assert a in self.parent_map, "Value " + str(a) + " does not exist."
-        assert b in self.parent_map, " Value " + str(b) + " does not exist."
+        assert b in self.parent_map, "Value " + str(b) + " does not exist."
+
         # get the roots while compressing the tree
         root_of_a = self.compress_to_root(a)
         root_of_b = self.compress_to_root(b)
@@ -71,6 +72,7 @@ class Equivalence:
         # the smaller one as a root
         self.parent_map[small_root] = big_root
         self.root_size_map[big_root] += self.root_size_map[small_root]
+
         # remove the small_root from the roots dict
         del self.root_size_map[small_root]  
 
