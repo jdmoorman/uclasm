@@ -31,15 +31,16 @@ def permutation_relation(u, v, adj_matrix_csr,
         row_nnz (array): An array of the number nonzero count of each row
         col_nnz (array): An array of the number nonzero count of each col
     """
-    # handle the trivial case
+    # Trivial Case
     if u == v:
         return True
 
     u, v = (u ,v) if u < v else (v, u)
 
+    # If both have no neighbors, they are equivalent.
     if (col_nnz[u] == 0 and col_nnz[v] == 0 and 
             row_nnz[u] == 0 and row_nnz[v] == 0):
-        continue
+        return True
 
     n = adj_mat_csr.shape[0]
     
@@ -48,7 +49,7 @@ def permutation_relation(u, v, adj_matrix_csr,
     if adj_mat_csr[u,v] != adj_mat_csr[v,u]:
         return False
 
-    # we do this check to avoid checking subarrays if we don't have to
+    # We do this check to avoid checking subarrays if we don't have to.
     if row_nnz[u] != 0:
         # check the rows (3 pieces), maybe there are better ways to do this
         if not (array_equal(adj_mat_csr[u,0:u],   adj_mat_csr[v,0:u]) and
@@ -61,7 +62,7 @@ def permutation_relation(u, v, adj_matrix_csr,
                 array_equal(adj_mat_csc[u+1:v,u], adj_mat_csc[u+1:v,v]) and
                 array_equal(adj_mat_csc[v+1:n,u], adj_mat_csc[v+1:n,v])):
             return False
-    # we have passed all the test if we reach here... return True now
+    # We have passed all the test if we reach here.
     return True
 
 

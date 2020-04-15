@@ -22,7 +22,9 @@ class Equivalence:
     this is the representative element.
     """
     def __init__(self, starting_set = set()):
-        ''' starting_set is a set of node to start with '''
+        """
+        Starting_set is a set of node to start with.
+        """
         # dictionary of parents where each key is mapped to its parent
         # start with everything maps to itself
         self.parent_map = {a: a for a in starting_set}
@@ -33,29 +35,37 @@ class Equivalence:
 
     ### METHODS ###
     def add_singleton(self, new_value):
-        ''' add a new value as its own equiv class'''
+        """
+        Add a new value as its own equiv class
+        """
         # Check first that it is not already in a member
-        error_msg = "Equivalence.add_singleton: {} is already "
-                    "in the equiv class!".format(new_value)
+        error_msg = ("Equivalence.add_singleton: {} is already " + 
+                    "in the equiv class!".format(new_value))
         assert new_value not in self.parent_map, error_msg
 
         self.parent_map[new_value] = new_value
         self.root_size_map[new_value] = 1
 
     def merge_classes_of(self, a , b):
-        ''' merge the equivalence classes of a and b together
-        by setting each parent's map to point to the same root '''
+        """
+        Merge the equivalence classes of a and b together
+        by setting each parent's map to point to the same root 
+        """
         assert a in self.parent_map, "Value " + str(a) + " does not exist."
         assert b in self.parent_map, " Value " + str(b) + " does not exist."
         # get the roots while compressing the tree
         root_of_a = self.compress_to_root(a)
         root_of_b = self.compress_to_root(b)
+
         if (root_of_a == root_of_b):
             return # they are already in the same equivalence class
+
         # find the "big" root and the "small" root
-        small_root, big_root = (root_of_a, root_of_b) 
-            \if self.root_size_map[root_of_a] < self.root_size_map[root_of_b] \
-             else (root_of_b, root_of_a)
+        if self.root_size_map[root_of_a] < self.root_size_map[root_of_b]:
+            small_root, big_root = root_of_a, root_of_b
+        else:
+            small_root, big_root = root_of_b, root_of_a
+
         # now we change the root of the smaller size map to the bigger one
         # then we update the size of the new equiv class and then remove 
         # the smaller one as a root
