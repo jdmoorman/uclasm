@@ -280,9 +280,12 @@ class Graph:
         # throw out nodes not belonging to the desired subgraph
         adjs = [self.adjs[self.channels.index(ch)] for ch in channels]
 
-        # Drop edges that do not have types among the desired channels.
-        edge_ind = self.edgelist[self.channel_col].isin(channels)
-        edgelist = self.edgelist[edge_ind].reset_index(drop=True)
+        if self.edgelist is not None:
+            # Drop edges that do not have types among the desired channels.
+            edge_ind = self.edgelist[self.channel_col].isin(channels)
+            edgelist = self.edgelist[edge_ind].reset_index(drop=True)
+        else:
+            edgelist = None
 
         # Return a new graph object for the induced subgraph
         return Graph(adjs, channels, self.nodelist, edgelist)
