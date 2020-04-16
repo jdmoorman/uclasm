@@ -227,10 +227,13 @@ class Graph:
             nonzero, = adj.diagonal().nonzero()
             adj[nonzero, nonzero] = 0
 
-        # TODO: Test this to see if it works with dask DataFrames.
-        _sources = self.edgelist[self.source_col]
-        _targets = self.edgelist[self.target_col]
-        edgelist = self.edgelist[_sources != _targets].reset_index(drop=True)
+        if self.edgelist is not None:
+            # TODO: Test this to see if it works with dask DataFrames.
+            _sources = self.edgelist[self.source_col]
+            _targets = self.edgelist[self.target_col]
+            edgelist = self.edgelist[_sources != _targets].reset_index(drop=True)
+        else:
+            edgelist = None
 
         # Return a new graph object for the subgraph
         return Graph(adjs, self.channels, self.nodelist, edgelist)
