@@ -2,6 +2,7 @@
 import pytest
 import uclasm
 from uclasm import Graph
+from uclasm.matching.matching_utils import GlobalCostsArray
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
@@ -74,6 +75,49 @@ class TestGraph:
         cover = graph.node_cover()
         assert len(cover) == 1
         assert cover[0] == 1
+
+class TestGlobalCostArray:
+    """Tests related to the global costs array"""
+    def test_global_costs_array(self):
+        test_array = np.zeros((5,5))
+        global_costs_array = test_array.view(GlobalCostsArray)
+        assert np.all(global_costs_array.candidates)
+        global_costs_array[3,3] = 2
+        assert np.sum(global_costs_array.candidates) == 5*5-1
+        assert not global_costs_array.candidates[3,3]
+        global_costs_array[2,:] = 5
+        assert not np.any(global_costs_array.candidates[2,:])
+
+    def test_set_global_cost_threshold(self):
+        test_array = np.zeros((5,5))
+        test_array[1,:] = 3
+        test_array[2,:] = 4
+        candidates = test_array <= 3
+        candidates[4,:] = False
+        global_costs_array = GlobalCostsArray(test_array,
+                                              global_cost_threshold=3,
+                                              candidates=candidates)
+        assert np.all(global_costs_array.candidates[1,:])
+        assert not np.any(global_costs_array.candidates[2,:])
+        assert not np.any(global_costs_array.candidates[4,:])
+        global_costs_array.set_global_cost_threshold(2)
+        assert not np.any(global_costs_array.candidates[1,:])
+        assert not np.any(global_costs_array.candidates[4,:])
+        global_costs_array[4,:] = 2
+        assert not np.any(global_costs_array.candidates[4,:])
+        assert global_costs_array.candidates[0,2]
+        global_costs_array[0,2] = 3
+        assert not global_costs_array.candidates[0,2]
+
+    def test_indexing(self):
+        test_array = np.zeros((5,5))
+        global_costs_array = GlobalCostsArray(test_array,
+                                             global_cost_threshold=3)
+        global_costs_array[2,:] = 1
+        sliced_array = global_costs_array[:, 2:3]
+        assert isinstance(sliced_array, GlobalCostsArray)
+        assert sliced_array.global_cost_threshold == 3
+        assert sliced_array.shape == sliced_array.candidates.shape
 
 costs_list = []
 

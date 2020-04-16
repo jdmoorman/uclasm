@@ -47,6 +47,66 @@ class MonotoneArray(np.ndarray):
         value = np.maximum(self[key], value)
         super().__setitem__(key, value)
 
+class GlobalCostsArray(MonotoneArray):
+    """An array storing the global costs that automatically updates a boolean
+    array of candidates based on a global cost threshold.
+
+    Attributes
+    ----------
+    global_cost_threshold : int
+        The global cost threshold to compare to.
+    candidates : ndarray(bool)
+        A boolean array of candidates with the same shape as the costs array.
+
+    """
+    def __new__(cls, input_array, global_cost_threshold=0, candidates=None):
+        """Initialize the global costs array.
+        Parameters
+        ----------
+        input_array : ndarray
+            The original array of costs
+        global_cost_threshold : int
+            The global cost threshold to compare to.
+        candidates : ndarray(bool)
+            A boolean array of candidates with the same shape as the costs array.
+        """
+        obj = np.asarray(input_array).view(cls)
+        obj.global_cost_threshold = global_cost_threshold
+        if candidates is not None:
+            obj.candidates = candidates
+            if candidates.shape != obj.shape:
+                raise Exception("Shape of provided candidates array does not match.")
+        else:
+            obj.candidates = np.ones(obj.shape, dtype=np.bool)
+        return obj
+
+    def set_global_cost_threshold(self, new_global_cost_threshold):
+        """Sets a new global cost threshold and updates the candidates."""
+        self.global_cost_threshold = new_global_cost_threshold
+        self.candidates[self > self.global_cost_threshold] = False
+
+    def __array_finalize__(self, obj):
+        """NumPy method called when new instance created."""
+        if obj is None:
+            return
+        self.global_cost_threshold = getattr(obj, 'global_cost_threshold', 0)
+        self.candidates = getattr(obj, 'candidates', None)
+        if self.candidates is None:
+            self.candidates = np.ones(self.shape, dtype=np.bool)
+
+    def __getitem__(self, key):
+        """Handle candidates when indexing with slices."""
+        test = super().__getitem__(key)
+        if isinstance(test, GlobalCostsArray):
+            if test.shape != test.candidates.shape:
+                test.candidates = test.candidates[key]
+        return test
+
+    def __setitem__(self, key, value):
+        """Update candidates whenever a new cost is set."""
+        super().__setitem__(key, value)
+        self.candidates[key] = np.logical_and(self.candidates[key],
+                                              self[key]<=self.global_cost_threshold)
 
 @numba.njit(parallel=True)
 def feature_disagreements(tmplt_features, world_features):
