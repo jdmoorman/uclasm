@@ -87,8 +87,9 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                 new_state.matching = new_matching_tuple
                 temp_smp = smp.copy()
                 set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
-                temp_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
-                                   global_costs=np.zeros(curr_smp.shape))
+                # Reset the costs to account for potential increase
+                temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
+                                   global_costs=np.zeros(temp_smp.shape))
                 iterate_to_convergence(temp_smp)
                 new_state.cost = temp_smp.global_costs.min()
                 if new_state.cost > max_cost or new_state.cost >= kth_cost:
