@@ -59,12 +59,13 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         curr_smp = smp.copy()
         current_state = heappop(open_list)
         if verbose:
-            print("Current state: number of matches", len(current_state.matching))
-            print("Open states:", len(open_list))
+            print("Current state: {} matches".format(len(current_state.matching)),
+                  "{} open states".format(len(open_list)))
         set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
         curr_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
                            global_costs=np.zeros(curr_smp.shape))
-        iterate_to_convergence(curr_smp)
+        # Do not reduce world as it can mess up the world indices in the matching
+        iterate_to_convergence(curr_smp, reduce_world=False)
         global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
         candidates = global_costs <= max_cost
@@ -74,8 +75,9 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         cand_counts[list(matching_dict)] = np.max(cand_counts) + 1
         tmplt_idx = np.argmin(cand_counts)
         if verbose:
-            print("Choosing candidate for", tmplt_idx)
-            print("Possible candidates:", len(np.argwhere(candidates[tmplt_idx])))
+            print("Choosing candidate for", tmplt_idx,
+                  "with {} possibilities".format(len(cand_idxs)))
+
         # Only push states that have a total cost bound lower than the threshold
         for cand_idx in np.argwhere(candidates[tmplt_idx]):
             cand_idx = cand_idx[0]
@@ -85,12 +87,13 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
             if new_matching_tuple not in cost_map:
                 new_state = State()
                 new_state.matching = new_matching_tuple
-                temp_smp = smp.copy()
+                temp_smp = curr_smp.copy()
                 set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
                 # Reset the costs to account for potential increase
                 temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
                                    global_costs=np.zeros(temp_smp.shape))
-                iterate_to_convergence(temp_smp)
+                # Do not reduce world as it can mess up the world indices in the matching
+                iterate_to_convergence(temp_smp, reduce_world=False)
                 new_state.cost = temp_smp.global_costs.min()
                 if new_state.cost > max_cost or new_state.cost >= kth_cost:
                     continue

@@ -61,16 +61,17 @@ def set_fixed_costs(fixed_costs, matching):
     mask[tuple(np.array(matching).T)] = False
     fixed_costs[mask] = float("inf")
 
-def iterate_to_convergence(smp, verbose=False):
+def iterate_to_convergence(smp, reduce_world=True, verbose=False):
     changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
     smp.global_costs = smp.local_costs/2 + smp.fixed_costs
-    if verbose:
-        print(smp)
-        print("Running nodewise cost bound")
-    local_cost_bound.nodewise(smp)
-    global_cost_bound.from_local_bounds(smp)
+
     while True:
         old_candidates = smp.candidates().copy()
+        if verbose:
+            print(smp)
+            print("Running nodewise cost bound")
+        local_cost_bound.nodewise(smp)
+        global_cost_bound.from_local_bounds(smp)
         if verbose:
             print(smp)
             print("Running edgewise cost bound")
@@ -79,5 +80,7 @@ def iterate_to_convergence(smp, verbose=False):
         changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
         if ~np.any(changed_cands):
             break
+        if reduce_world:
+            smp.reduce_world()
     if verbose:
         print(smp)
