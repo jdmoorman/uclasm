@@ -32,7 +32,7 @@ def run_filters_old(tmplt, world, *, candidates=None, filters=None, verbose=Fals
         fixed_costs[~candidates] = float("inf")
         smp = MatchingProblem(tmplt, world, fixed_costs=fixed_costs)
     search.search_utils.iterate_to_convergence(smp)
-    return tmplt, world, smp.candidates()
+    return smp.tmplt, smp.world, smp.candidates()
 
 def count_isomorphisms(tmplt, world, candidates=None, verbose=False):
     """Temporary interface for old code. Counts the number of isomorphisms.
