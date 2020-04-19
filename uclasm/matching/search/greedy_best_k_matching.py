@@ -77,12 +77,13 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         # Prevent previously matched template idxs from being chosen
         cand_counts[list(matching_dict)] = np.max(cand_counts) + 1
         tmplt_idx = np.argmin(cand_counts)
+        cand_idxs = np.argwhere(candidates[tmplt_idx])
         if verbose:
             print("Choosing candidate for", tmplt_idx,
                   "with {} possibilities".format(len(cand_idxs)))
 
         # Only push states that have a total cost bound lower than the threshold
-        for cand_idx in np.argwhere(candidates[tmplt_idx]):
+        for cand_idx in cand_idxs:
             cand_idx = cand_idx[0]
             new_matching = matching_dict.copy()
             new_matching[tmplt_idx] = cand_idx
