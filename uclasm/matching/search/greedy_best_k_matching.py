@@ -65,7 +65,7 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         curr_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
                            global_costs=np.zeros(curr_smp.shape))
         # Do not reduce world as it can mess up the world indices in the matching
-        iterate_to_convergence(curr_smp, reduce_world=False)
+        iterate_to_convergence(curr_smp, reduce_world=False, verbose=verbose)
         global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
         candidates = global_costs <= max_cost
@@ -93,7 +93,8 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                 temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
                                    global_costs=np.zeros(temp_smp.shape))
                 # Do not reduce world as it can mess up the world indices in the matching
-                iterate_to_convergence(temp_smp, reduce_world=False)
+                iterate_to_convergence(temp_smp, reduce_world=False,
+                                       verbose=verbose)
                 new_state.cost = temp_smp.global_costs.min()
                 if new_state.cost > max_cost or new_state.cost >= kth_cost:
                     continue
