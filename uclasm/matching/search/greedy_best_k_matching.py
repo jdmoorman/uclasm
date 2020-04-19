@@ -61,6 +61,9 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         if verbose:
             print("Current state: {} matches".format(len(current_state.matching)),
                   "{} open states".format(len(open_list)))
+        # Ignore states whose cost is too high
+        if current_state.cost > max_cost or current_state.cost >= kth_cost:
+            continue
         set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
         curr_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
                            global_costs=np.zeros(curr_smp.shape))
