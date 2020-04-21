@@ -31,7 +31,6 @@ class Equivalence:
         # dictionary of root: size_of_tree
         # also serves as something to store the roots
         self.root_size_map = {a : 1 for a in starting_set}
-        self.classes = None
 
     ### METHODS ###
     def add_singleton(self, new_value):
@@ -135,20 +134,20 @@ class Equivalence:
         """
         return len(self.root_size_map)
 
+    @property
     def classes(self):
         """
         This function returns a dictionary whose values are the equivalence
         classes and whose keys are the representatives of the classes.
         """
-        if self.classes is None:
-            answer_map = defaultdict(set)
-            for elem in self.parent_map:
-                class_rep = self.represenative(elem)
-                answer_map[class_rep].add(elem)
-            self.classes = answer_map
-            return answer_map
-        else:
-            return self.classes
+        answer_map = defaultdict(set)
+        for elem in self.parent_map:
+            class_rep = self.representative(elem)
+            answer_map[class_rep].add(elem)
+        return answer_map
+
+    def get_class(self, elem):
+        return self.classes[self.representative(elem)]
 
     def non_trivial_classes(self):
         """
@@ -157,19 +156,19 @@ class Equivalence:
         The dictionary will only contain classes which have more than one
         element.
         """
-        return {rep: class_ for (rep, class_) in self.classes().items()
+        return {rep: class_ for (rep, class_) in self.classes.items()
                 if len(class_) > 1}
 
     def __str__(self):
         return "Equiv Classes: {}\nParent_map: {}\nRoot_size_map: {}".format(
-                self.classes(), self.parent_map, self.root_size_map)
+                self.classes, self.parent_map, self.root_size_map)
 
     def __getitem__(self, key):
         """
         Return the equivalence class for the passed in key.
         """
         rep = self.representative(key)
-        return self.classes()[rep]
+        return self.classes[rep]
 
     def compress_to_root(self, elem) -> 'root of a':
         """
@@ -198,8 +197,7 @@ class Equivalence:
         This performs path compression in the process of finding the 
         representative.
         """
-        return self.compress_to_root(a)
-
+        return self.compress_to_root(elem)
 
     def copy(self):
         """

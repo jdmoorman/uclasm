@@ -14,8 +14,8 @@ def array_equal(mat1, mat2):
     """
     return (mat1 != mat2).nnz==0
 
-def permutation_relation(u, v, adj_matrix_csr,
-        adj_matrix_csc, row_nnz, col_nnz):
+def permutation_relation(u, v, adj_mat_csr,
+        adj_mat_csc, row_nnz, col_nnz):
     """
     We compare two vertices: a and b to see if they are equivalence
     under permutation. This can be done by checking if certain pieces
@@ -155,7 +155,7 @@ def partition_neighbors(neighbors, adj_mat_csrs, adj_mat_cscs,
     return eq_classes
 
 
-def bfs_partition_graph(ch_to_adj):
+def bfs_partition_graph(graph):
     """
     This performs a breadth first search approach to computing the equivalence
     classes. This function works by performing a breadth first search of the
@@ -169,8 +169,7 @@ def bfs_partition_graph(ch_to_adj):
     in.
 
     Args:
-        ch_to_adj (dict): A dictionary from channels to adjacency matrices
-            of the graph
+        graph (Graph): A graph
     Returns:
         Equivalence: The equivalence structure of the graph
     """
