@@ -1,4 +1,7 @@
 import numpy as np
+import time
+import signal
+from contextlib import contextmanager
 
 def one_hot(idx, length):
     one_hot = np.zeros(length, dtype=np.bool)
@@ -26,3 +29,28 @@ def values_map_to_same_key(dict_of_sets):
         matches[frozen_value_set] = matches.get(frozen_value_set, set()) | {key}
 
     return matches
+
+class TimeoutException(Exception): pass
+
+# Currently this will only work un UNIX
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+
+def time_with_timeout(f, args, kwargs, timeout=60):
+    try:
+        with time_limit(timeout):
+            start_time = time.time()
+            f(*args, **kwargs)
+            end_time = time.time()
+            tot_time = end_time - start_time
+    except TimeoutException as e:
+        tot_time = timeout
+    return tot_time
