@@ -79,6 +79,17 @@ def add_node_attr_costs_identity(smp):
         smp.fixed_costs[tmplt_idx] += (tmplt_row_np[None, 1:][:,nonempty_attrs] != world_nodelist_np[:,1:][:,nonempty_attrs]).sum(axis=1)
 
 def iterate_to_convergence(smp, reduce_world=True, verbose=False):
+    """Iterates the various cost bounds until the costs converge.
+    Parameters
+    ----------
+    smp : MatchingProblem
+        A subgraph matching problem to iterate cost bounds on until convergence
+    reduce_world : bool
+        Option to reduce the world by removing world nodes that are not
+        candidates for any template node.
+    verbose : bool
+        Flag for verbose output.
+    """
     changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
     smp.global_costs = smp.local_costs/2 + smp.fixed_costs
 
