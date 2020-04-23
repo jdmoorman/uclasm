@@ -61,6 +61,23 @@ def set_fixed_costs(fixed_costs, matching):
     mask[tuple(np.array(matching).T)] = False
     fixed_costs[mask] = float("inf")
 
+def add_node_attr_costs(smp, node_attr_fn):
+    """Increase the fixed costs to account for difference in node attributes."""
+    for tmplt_idx, tmplt_row in smp.tmplt.nodelist.iterrows():
+        for world_idx, world_row in smp.world.nodelist.iterrows():
+            if smp.fixed_costs[tmplt_idx, world_idx] != float("inf"):
+                smp.fixed_costs[tmplt_idx, world_idx] += node_attr_fn(tmplt_row, world_row)
+
+def add_node_attr_costs_identity(smp):
+    """Assume node attr fn is the sum of the difference between attributes."""
+    world_nodelist_np = np.array(smp.world.nodelist)
+    for tmplt_idx, tmplt_row in smp.tmplt.nodelist.iterrows():
+        tmplt_row_np = np.array(tmplt_row)
+        # Remove first column: node ID which shouldn't be checked
+        # Index to remove empty attributes
+        nonempty_attrs = tmplt_row[1:] != ""
+        smp.fixed_costs[tmplt_idx] += (tmplt_row_np[None, 1:][:,nonempty_attrs] != world_nodelist_np[:,1:][:,nonempty_attrs]).sum(axis=1)
+
 def iterate_to_convergence(smp, reduce_world=True, verbose=False):
     changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
     smp.global_costs = smp.local_costs/2 + smp.fixed_costs
