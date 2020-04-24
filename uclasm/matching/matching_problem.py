@@ -33,6 +33,14 @@ class MatchingProblem:
         Initial local costs.
     global_costs : 2darray, optional
         Initial global costs.
+    node_attr_fn : function
+        Function for comparing node attributes. Should take two pd.Series of
+        node attributes and return the cost associated with the difference
+        between them.
+    edge_attr_fn : function
+        Function for comparing edge attributes. Should take two pd.Series of
+        edge attributes and return the cost associated with the difference
+        between them.
     local_cost_threshold : int, optional
         A template node cannot be assigned to a world node if it will result
         in more than this number of its edges missing in an eventual match.
@@ -73,6 +81,8 @@ class MatchingProblem:
                  fixed_costs=None,
                  local_costs=None,
                  global_costs=None,
+                 node_attr_fn=None,
+                 edge_attr_fn=None,
                  local_cost_threshold=0,
                  global_cost_threshold=0,
                  ground_truth_provided=False,
@@ -119,6 +129,9 @@ class MatchingProblem:
         self._candidate_print_limit = candidate_print_limit
 
         self._num_valid_candidates = self.tmplt.n_nodes * self.world.n_nodes
+
+        self.node_attr_fn = node_attr_fn
+        self.edge_attr_fn = edge_attr_fn
 
     def copy(self):
         """Returns a copy of the MatchingProblem."""

@@ -61,15 +61,19 @@ def edgewise_local_costs(smp, changed_cands=None):
         if ~np.any(src_is_cand) or ~np.any(dst_is_cand):
             raise Exception("Error: no candidates for given nodes")
 
-        # This sparse matrix stores the number of supported template edges
-        # between each pair of candidates for src and dst
-        # i.e. the number of template edges between src and dst that also exist
-        # between their candidates in the world
-        supported_edges = None
+        if smp.edge_attr_fn is None:
+            # This sparse matrix stores the number of supported template edges
+            # between each pair of candidates for src and dst
+            # i.e. the number of template edges between src and dst that also exist
+            # between their candidates in the world
+            supported_edges = None
 
-        # Number of total edges in the template between src and dst
-        total_tmplt_edges = 0
-
+            # Number of total edges in the template between src and dst
+            total_tmplt_edges = 0
+        else:
+            # Matrix of costs of assigning template node src_idx and dst_idx
+            # to candidates row_idx and col_idx
+            assignment_costs = np.zeros((np.sum(src_is_cand), np.sum(dst_is_cand)))
         for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
             total_tmplt_edges += tmplt_adj_val
@@ -78,15 +82,25 @@ def edgewise_local_costs(smp, changed_cands=None):
             if tmplt_adj_val == 0:
                 continue
 
-            # sub adjacency matrix corresponding to edges from the source
-            # candidates to the destination candidates
-            world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
+            if smp.edge_attr_fn is None:
+                # sub adjacency matrix corresponding to edges from the source
+                # candidates to the destination candidates
+                world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
 
-            # Edges are supported up to the number of edges in the template
-            if supported_edges is None:
-                supported_edges = world_sub_adj.minimum(tmplt_adj_val)
+                # Edges are supported up to the number of edges in the template
+                if supported_edges is None:
+                    supported_edges = world_sub_adj.minimum(tmplt_adj_val)
+                else:
+                    supported_edges += world_sub_adj.minimum(tmplt_adj_val)
+            elif tmplt_adj_val == 1:
+                tmplt_edge = smp.tmplt.edgelist[(smp.tmplt.edgelist[smp.tmplt.source_col] == smp.tmplt.nodes[src_idx]) & (smp.tmplt.edgelist[smp.tmplt.target_col] == smp.tmplt.nodes[dst_idx])].iloc[0]
+                # Iterate over all world edges between candidates for src and dst
+                for world_edge_idx, world_edge in smp.world.edgelist[smp.world.edgelist[smp.world.source_col].isin(world.nodes[src_is_cand])&smp.world.edgelist[smp.world.target_col].isin(world.nodes[dst_is_cand])].iterrows():
+                    src_cand_idx = smp.world.node_idxs[world_edge[smp.world.source_col]]
+                    dst_cand_idx = smp.world.node_idxs[world_edge[smp.world.target_col]]
+                    assignment_costs[src_cand_idx, dst_cand_idx] += smp.edge_attr_fn(tmplt_edge, world_edge)
             else:
-                supported_edges += world_sub_adj.minimum(tmplt_adj_val)
+                raise Exception("More than one template edge between two nodes with attributes is not yet supported.")
 
         src_support = supported_edges.max(axis=1)
         src_least_cost = total_tmplt_edges - src_support.A
