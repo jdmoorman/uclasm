@@ -2,78 +2,108 @@ from ..utils import invert, values_map_to_same_key
 import numpy as np
 from functools import reduce
 
-
-
-
-# counts the number of ways to assign a particular node, recursing to
-# incorporate ways to assign the next node, and so on
-def recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts):
-    # no nodes left to assign
-    if len(node_to_nodes_list) == 0:
+def recursive_alldiff_counter(tnode_to_eqids, eq_class_sizes):
+    # If no more tnodes to assign
+    if len(tnode_to_eqids) == 0:
         return 1
 
     count = 0
 
-    # give me an arbitrary unspecified nodeiable
-    node, nodes_list = node_to_nodes_list.popitem()
+    # This tnode will now be assigned to one of the eq_classes
+    tnode, eqids = tnode_to_eqids.popitem()
 
-    # for each way of assigning the given nodeiable
-    for nodes in nodes_list:
-        # how many ways to assign the nodeiable in this way are there?
-        n_cands = nodes_to_cand_counts[nodes]
+    # We try mapping the tnode to each equivalence class of world nodes
+    for eqid in eqids:
+        # TODO: break out this inner loop into its own function for clarity?
+        n_cands = eq_class_sizes[eqid]
+
+        # If no candidates left in this equivalence class, continue
         if n_cands == 0:
             continue
 
-        nodes_to_cand_counts[nodes] -= 1
+        # We decrement the amount of available candidates in the eq class.
+        eq_class_sizes[eqid] -= 1
 
-        # number of ways to assign current node times number of ways to
-        # assign the rest
-        n_ways_to_assign_rest = recursive_alldiff_counter(
-            node_to_nodes_list, nodes_to_cand_counts)
+        # Count the number of ways to assign the rest of candidates
+        n_ways_to_assign_rest = recursive_alldiff_counter(tnode_to_eqids, eq_class_sizes)
 
+        # We have n_cands possible ways to assign the current tnode to the
+        # current equivalence class, so we multiply by n_cands
         count += n_cands * n_ways_to_assign_rest
 
-        # put the count back so we don't mess up the recursion
-        nodes_to_cand_counts[nodes] += 1
+        # Unmatch tnode from equivalence class
+        eq_class_sizes[eqid] += 1
 
-    # put the list back so we don't mess up the recursion
-    node_to_nodes_list[node] = nodes_list
+    tnode_to_eqids[tnode] = eqids
 
     return count
 
-def count_alldiffs(node_to_cands):
-    """
-    node_to_cands: dict(item, list)
 
-    count the number of ways to assign nodes to cands without using any cand for
-    more than one node. ie. count solns to alldiff problem, where the nodeiables
-    are the keys of node_to_cands, and the domains are the values.
+def get_equivalence_classes(tnode_to_cands):
+    """Get equivalence classes of cands which are candidates for the same nodes.
+
+    Parameters
+    ----------
+    tnode_to_cands : dict
+        Mapping from each template node to its candidates.
+
+    Returns
+    -------
+    tnode_to_eqids : dict
+        Mapping from template node to the equivalence classes to which its candidates belong.
+    eq_classes : list
+        List of the equivalence classes
+    """
+
+    tnodes = tnode_to_cands.keys()
+    all_cands = set().union(*tnode_to_cands.values())
+
+    # which set of template nodes is each cand a candidate for?
+    cand_to_tnode_set = invert(tnode_to_cands)
+
+    # gather sets of cands which have the same set of possible template nodes.
+    # Each cand_set here is an equivalence class
+    tnode_set_to_eq_class = values_map_to_same_key(cand_to_tnode_set)
+    eq_classes = list(tnode_set_to_eq_class.values())
+
+    cand_to_eqids = {
+        cand: [eqid for eqid, eq_class in enumerate(eq_classes) if cand in eq_class]
+        for cand in all_cands}
+
+    # This is a dictionary mapping a tnode to the list of indices of
+    # equivalence classes the tnode can map into
+    tnode_to_eqids = {
+        tnode: [
+            eq_classes.index(tnode_set_to_eq_class[tnode_set])
+            for tnode_set in tnode_set_to_eq_class
+            if tnode in tnode_set
+        ]
+        for tnode in tnodes
+    }
+
+    return tnode_to_eqids, eq_classes
+
+def count_alldiffs(tnode_to_cands):
+    """
+    tnode_to_cands: dict(item, list)
+
+    Count the number of ways to assign template nodes to candidates without
+    using any candidate for more than one template node.
+    i.e. count solutions to the alldiff problem, where the nodeiables
+    are the keys of tnode_to_cands, and the domains are the values.
     """
 
     # TODO: can this function be vectorized?
     # TODO: does scipy have a solver for this already?
 
-    # Check if any node has no cands
-    if any(len(cands)==0 for cands in node_to_cands.values()):
+    # Check if any template node has no candidates
+    if any(len(cands)==0 for cands in tnode_to_cands.values()):
         return 0
+    tnode_to_eqids, eq_classes = get_equivalence_classes(tnode_to_cands)
 
-    # which nodes is each cand a cand for?
-    cand_to_nodes = invert(node_to_cands)
+    # Alternatively, list(map(len, eq_classes))
+    eq_class_sizes = [len(eq_class) for eq_class in eq_classes]
 
-    # gather sets of cands which have the same set of possible nodes.
-    nodes_to_cands = values_map_to_same_key(cand_to_nodes)
-    nodes_to_cand_counts = {nodes: len(cands)
-                          for nodes, cands in nodes_to_cands.items()}
-
-    # each node can belong to multiple sets of nodes which key nodes_to_cand_counts
-    # so here we find out which sets of nodes each node belongs to
-    node_to_nodes_list = {
-        node: [nodes for nodes in nodes_to_cand_counts.keys() if node in nodes]
-        for node in node_to_cands}
-
-    #node_to_w_classes = {node: [nodes_to_cands[nodes] for nodes in nodes_to_cands if node in nodes]
-    #                     for node in nodes}
-
-    count = recursive_alldiff_counter(node_to_nodes_list, nodes_to_cand_counts)
+    count = recursive_alldiff_counter(tnode_to_eqids, eq_class_sizes)
 
     return count
