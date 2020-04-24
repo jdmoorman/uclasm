@@ -1,0 +1,6 @@
+Source,Target,eType
+w1,w2,2
+w1,w4,2
+w2,w3,1
+w3,w2,2
+w4,w3,1
