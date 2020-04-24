@@ -30,6 +30,18 @@ class TestAlldiffs:
         assert count_alldiffs(d) == 2
         d = {
             "a": [1, 2],
+            "b": [2, 3],
+            "c": [3, 1],
+        }
+        assert count_alldiffs(d) == 2
+        d = {
+            "a": [1, 2],
+            "b": [1, 2, 3],
+            "c": [3, 1],
+        }
+        assert count_alldiffs(d) == 3
+        d = {
+            "a": [1, 2],
             "b": [],
             "c": [3, 4],
         }
