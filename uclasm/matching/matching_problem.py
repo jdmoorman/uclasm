@@ -334,3 +334,43 @@ class MatchingProblem:
         num_valid_candidates = self._num_valid_candidates
         self._num_valid_candidates = np.count_nonzero(self.candidates())
         return num_valid_candidates != self._num_valid_candidates
+
+    def add_match(self, tmplt_idx, world_idx):
+        """Enforce that the template node with the given index must match the
+        corresponding world node with the given index.
+        Parameters
+        ----------
+        tmplt_idx : int
+            The index of the template node to be matched.
+        world_idx : int
+            The index of the world node to be matched.
+        """
+        self.enforce_matching(((tmplt_idx, world_idx),))
+
+    def enforce_matching(self, matching):
+        """Enforce the given matching tuple by setting fixed costs in off-match
+        rows and columns to float("inf")
+        Parameters
+        ----------
+        matching : iterable
+            Iterable of 2-tuples indicating pairs of template-world indexes
+        """
+        # TODO: Store intermediate matching in MatchingProblem and update it
+        # here
+        mask = np.zeros(self.fixed_costs.shape, dtype=np.bool)
+        mask[[pair[0] for pair in matching],:] = True
+        mask[:,[pair[1] for pair in matching]] = True
+        mask[tuple(np.array(matching).T)] = False
+        fixed_costs[mask] = float("inf")
+
+    def prevent_match(self, tmplt_idx, world_idx):
+        """Prevent matching the template node with the given index to the world
+        node with the given index.
+        Parameters
+        ----------
+        tmplt_idx : int
+            The index of the template node not to be matched.
+        world_idx : int
+            The index of the world node not to be matched.
+        """
+        self.fixed_costs[tmplt_idx, world_idx] = float("inf")

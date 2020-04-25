@@ -1,7 +1,31 @@
 """Tests for the counting."""
 import pytest
 import uclasm
-from uclasm.counting import count_alldiffs
+from uclasm.counting import count_alldiffs, count_isomorphisms
+from uclasm.matching.search.search_utils import iterate_to_convergence
+from uclasm import Graph, MatchingProblem
+
+import pandas as pd
+from scipy.sparse import csr_matrix
+
+@pytest.fixture
+def smp():
+    """Create a subgraph matching problem."""
+    adj0 = csr_matrix([[0, 0, 0],
+                       [1, 0, 0],
+                       [0, 0, 0]])
+    adj1 = csr_matrix([[0, 0, 0],
+                       [0, 0, 0],
+                       [0, 1, 0]])
+    nodelist = pd.DataFrame(['a', 'b', 'c'], columns=[Graph.node_col])
+    edgelist = pd.DataFrame([['b', 'a', 'c1'],
+                             ['c', 'b', 'c2']], columns=[Graph.source_col,
+                                                   Graph.target_col,
+                                                   Graph.channel_col])
+    tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
+    world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
+    smp = MatchingProblem(tmplt, world)
+    return smp
 
 class TestAlldiffs:
     def test_disjoint_sets(self):
@@ -48,5 +72,7 @@ class TestAlldiffs:
         assert count_alldiffs(d) == 0
 
 class TestIsomorphisms:
-    def test_count_isomorphisms(self):
-        pass
+    def test_count_isomorphisms(self, smp):
+        iterate_to_convergence(smp)
+        count = count_isomorphisms(smp, verbose=True)
+        assert count == 1
