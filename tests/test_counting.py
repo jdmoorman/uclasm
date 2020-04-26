@@ -83,6 +83,24 @@ def smp_node_cover():
     smp = MatchingProblem(tmplt, world)
     return smp
 
+@pytest.fixture
+def smp_overlapping_cands():
+    """Create a subgraph matching problem requiring proper handling when
+    assigning groups of overlapping candidates."""
+    tmplt_adj = csr_matrix([[0, 1, 1],
+                            [1, 0, 0],
+                            [0, 0, 0]])
+    tmplt = Graph([tmplt_adj], ['c1'])
+    world_adj = csr_matrix([[0, 1, 1, 1, 1],
+                       [1, 0, 0, 0, 0],
+                       [1, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0]])
+    world = Graph([world_adj], ['c1'])
+    smp = MatchingProblem(tmplt, world)
+    return smp
+
+
 class TestAlldiffs:
     def test_disjoint_sets(self):
         """Number of solutions should be product of candidate set sizes for disjoint
@@ -134,14 +152,20 @@ class TestIsomorphisms:
         count = count_isomorphisms(smp, verbose=True)
         assert count == 1
 
-    def test_count_isomorphisms(self, smp_star):
+    def test_count_isomorphisms_star(self, smp_star):
         iterate_to_convergence(smp_star)
-        assert np.sum(smp.candidates()) == 9
+        assert np.sum(smp_star.candidates()) == 9
         count = count_isomorphisms(smp_star, verbose=True)
         assert count == 4
 
-    def test_count_isomorphisms(self, smp_node_cover):
+    def test_count_isomorphisms_node_cover(self, smp_node_cover):
         iterate_to_convergence(smp_node_cover)
         assert np.sum(smp_node_cover.candidates()) == 9
         count = count_isomorphisms(smp_node_cover, verbose=True)
         assert count == 4
+
+    def test_count_isomorphisms_overlapping_cands(self, smp_overlapping_cands):
+        iterate_to_convergence(smp_overlapping_cands)
+        assert np.sum(smp_overlapping_cands.candidates()) == 7
+        count = count_isomorphisms(smp_overlapping_cands, verbose=True)
+        assert count == 6
