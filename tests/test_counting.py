@@ -5,6 +5,7 @@ from uclasm.counting import count_alldiffs, count_isomorphisms
 from uclasm.matching.search.search_utils import iterate_to_convergence
 from uclasm import Graph, MatchingProblem
 
+import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
@@ -46,6 +47,35 @@ def smp_star():
                              ['c', 'b', 'c1'],
                              ['c', 'd', 'c2'],
                              ['c', 'e', 'c2']], columns=[Graph.source_col,
+                                                   Graph.target_col,
+                                                   Graph.channel_col])
+    tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
+    world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
+    smp = MatchingProblem(tmplt, world)
+    return smp
+
+@pytest.fixture
+def smp_node_cover():
+    """Create a subgraph matching problem requiring the use of node cover."""
+    adj0 = csr_matrix([[0, 1, 0, 1, 0],
+                       [0, 0, 1, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 1, 0, 0],
+                       [0, 1, 0, 1, 0]])
+    adj1 = csr_matrix([[0, 0, 1, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 1, 0, 0]])
+    nodelist = pd.DataFrame(['a', 'b', 'c', 'd', 'e'], columns=[Graph.node_col])
+    edgelist = pd.DataFrame([['a', 'b', 'c1'],
+                             ['a', 'd', 'c1'],
+                             ['e', 'b', 'c1'],
+                             ['e', 'd', 'c1'],
+                             ['b', 'c', 'c1'],
+                             ['d', 'c', 'c1'],
+                             ['a', 'c', 'c2'],
+                             ['e', 'c', 'c2']], columns=[Graph.source_col,
                                                    Graph.target_col,
                                                    Graph.channel_col])
     tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
@@ -100,10 +130,18 @@ class TestAlldiffs:
 class TestIsomorphisms:
     def test_count_isomorphisms(self, smp):
         iterate_to_convergence(smp)
+        assert np.sum(smp.candidates()) == 3
         count = count_isomorphisms(smp, verbose=True)
         assert count == 1
 
     def test_count_isomorphisms(self, smp_star):
         iterate_to_convergence(smp_star)
+        assert np.sum(smp.candidates()) == 9
         count = count_isomorphisms(smp_star, verbose=True)
+        assert count == 4
+
+    def test_count_isomorphisms(self, smp_node_cover):
+        iterate_to_convergence(smp_node_cover)
+        assert np.sum(smp_node_cover.candidates()) == 9
+        count = count_isomorphisms(smp_node_cover, verbose=True)
         assert count == 4
