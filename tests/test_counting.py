@@ -1,7 +1,7 @@
 """Tests for the counting."""
 import pytest
 import uclasm
-from uclasm.counting import count_alldiffs, count_isomorphisms
+from uclasm.counting import count_alldiffs, count_isomorphisms, find_isomorphisms
 from uclasm.matching.search.search_utils import iterate_to_convergence
 from uclasm import Graph, MatchingProblem
 
@@ -151,6 +151,15 @@ class TestIsomorphisms:
         assert np.sum(smp.candidates()) == 3
         count = count_isomorphisms(smp, verbose=True)
         assert count == 1
+
+    def test_find_isomorphisms(self, smp):
+        iterate_to_convergence(smp)
+        iso_list = find_isomorphisms(smp, verbose=True)
+        assert len(iso_list) == 1
+        iso = iso_list[0]
+        assert iso['a'] == 'a'
+        assert iso['b'] == 'b'
+        assert iso['c'] == 'c'
 
     def test_count_isomorphisms_star(self, smp_star):
         iterate_to_convergence(smp_star)

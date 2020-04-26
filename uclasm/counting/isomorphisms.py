@@ -2,6 +2,7 @@ from ..matching.search.search_utils import iterate_to_convergence
 from ..utils import invert, values_map_to_same_key, one_hot
 from .alldiffs import count_alldiffs
 import numpy as np
+import pandas as pd
 from functools import reduce
 
 # TODO: count how many isomorphisms each background node participates in.
@@ -168,10 +169,14 @@ def recursive_isomorphism_finder(smp, *,
     if len(unspec_node_idxs) == 0:
         # All nodes have been assigned, add the isomorphism to the list
         new_isomorphism = {}
-        for tmplt_idx, tmplt_node in enumerate(tmplt.nodes):
+        candidates = smp.candidates()
+        for tmplt_idx, tmplt_node in enumerate(smp.tmplt.nodes):
             if verbose:
-                print(str(tmplt_node)+":", world.nodes[candidates[tmplt_idx]])
-                new_isomorphism[tmplt_node] = world.nodes[candidates[tmplt_idx]]
+                world_node = smp.world.nodes[candidates[tmplt_idx]]
+                if isinstance(world_node, pd.Series):
+                    world_node = world_node.iloc[0]
+                print(str(tmplt_node)+":", world_node)
+                new_isomorphism[tmplt_node] = world_node
         found_isomorphisms.append(new_isomorphism)
         return found_isomorphisms
 
