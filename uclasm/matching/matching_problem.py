@@ -361,7 +361,7 @@ class MatchingProblem:
         mask[[pair[0] for pair in matching],:] = True
         mask[:,[pair[1] for pair in matching]] = True
         mask[tuple(np.array(matching).T)] = False
-        fixed_costs[mask] = float("inf")
+        self.fixed_costs[mask] = float("inf")
 
     def prevent_match(self, tmplt_idx, world_idx):
         """Prevent matching the template node with the given index to the world

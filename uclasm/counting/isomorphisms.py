@@ -81,7 +81,7 @@ def recursive_isomorphism_counter(smp, matching, *,
     # unspecified nodes are disconnected.
     n_isomorphisms = 0
     unspec_cover_cands = candidates[unspec_cover,:]
-    node_idx = pick_minimum_vertex(unspec_cover_cands)
+    node_idx = pick_minimum_domain_vertex(unspec_cover_cands)
     cand_idxs = np.argwhere(candidates[node_idx]).flat
 
     for i, cand_idx in enumerate(cand_idxs):
