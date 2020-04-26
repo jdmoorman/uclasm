@@ -27,6 +27,32 @@ def smp():
     smp = MatchingProblem(tmplt, world)
     return smp
 
+@pytest.fixture
+def smp_star():
+    """Create a more complicated subgraph matching problem."""
+    # degree-4 node surrounded by 2 pairs of 2 nodes in each channel
+    adj0 = csr_matrix([[0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [1, 1, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0]])
+    adj1 = csr_matrix([[0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 1, 1],
+                       [0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0]])
+    nodelist = pd.DataFrame(['a', 'b', 'c', 'd', 'e'], columns=[Graph.node_col])
+    edgelist = pd.DataFrame([['c', 'a', 'c1'],
+                             ['c', 'b', 'c1'],
+                             ['c', 'd', 'c2'],
+                             ['c', 'e', 'c2']], columns=[Graph.source_col,
+                                                   Graph.target_col,
+                                                   Graph.channel_col])
+    tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
+    world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
+    smp = MatchingProblem(tmplt, world)
+    return smp
+
 class TestAlldiffs:
     def test_disjoint_sets(self):
         """Number of solutions should be product of candidate set sizes for disjoint
@@ -76,3 +102,8 @@ class TestIsomorphisms:
         iterate_to_convergence(smp)
         count = count_isomorphisms(smp, verbose=True)
         assert count == 1
+
+    def test_count_isomorphisms(self, smp_star):
+        iterate_to_convergence(smp_star)
+        count = count_isomorphisms(smp_star, verbose=True)
+        assert count == 4
