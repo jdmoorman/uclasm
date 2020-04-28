@@ -204,3 +204,18 @@ class Equivalence:
         Return a deep copy of self
         """
         return deepcopy(self)
+
+
+def equivalence_from_partition(partition):
+    """
+    Given a partition of some set, create an Equivalence object where two
+    elements are equivalent if they are in the same cell in the partition.
+    This isn't as efficient as it could be, but it suffices for now.
+    """ 
+    elems = [x for xs in partition for x in xs]
+
+    equiv = Equivalence(elems)
+    for xs in partition:
+        equiv.merge_set(xs)
+
+    return equiv
