@@ -3,6 +3,7 @@
 import scipy.sparse as sparse
 import numpy as np
 import pandas as pd
+import networkx as nx
 import sys
 
 from .utils import index_map, one_hot
@@ -351,11 +352,5 @@ def from_networkx_graph(nx_graph):
     """
 
     # TODO: Add the ability to port over node and edge labels
-    try:
-        import networkx as nx
-    except ImportError as e:
-        print("This function requires networkx to be installed")
-        raise(e)
-
     adj = nx.to_scipy_sparse_matrix(nx_graph)
     return Graph([adj])
