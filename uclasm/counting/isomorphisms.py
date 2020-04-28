@@ -1,6 +1,6 @@
 from ..matching.search.search_utils import iterate_to_convergence
 from ..utils import invert, values_map_to_same_key, one_hot
-from .alldiffs import count_alldiffs
+from .alldiffs import count_alldiffs_SMP
 import numpy as np
 import pandas as pd
 from functools import reduce
@@ -37,8 +37,7 @@ def pick_minimum_domain_vertex(candidates):
     return t_vert
 
 def recursive_isomorphism_counter(smp, matching, *,
-        unspec_cover, verbose, init_changed_cands, tmplt_equivalence=False,
-        world_equivalence=False):
+        unspec_cover, verbose, init_changed_cands, tmplt_equivalence=False):
     """
     Recursive routine for solving subgraph isomorphism.
 
@@ -59,8 +58,6 @@ def recursive_isomorphism_counter(smp, matching, *,
         this will be all zeros
     tmplt_equivalence : bool
         Flag indicating whether to use template equivalence
-    world_equivalence : bool
-        Flag indicating whether to use world equivalence
     Returns
     -------
     int
@@ -76,7 +73,7 @@ def recursive_isomorphism_counter(smp, matching, *,
         # Elimination filter is not needed here and would be a waste of time
         node_to_cands = {idx: smp.world.nodes[candidates[idx]]
                          for idx, node in enumerate(smp.tmplt.nodes)}
-        return count_alldiffs(node_to_cands, smp, matching)
+        return count_alldiffs_SMP(node_to_cands, smp, matching)
 
     # Since the node cover is not empty, we first choose some valid
     # assignment of the unspecified nodes one at a time until the remaining
@@ -104,11 +101,6 @@ def recursive_isomorphism_counter(smp, matching, *,
         # Unmatch template vertex
         matching[node_idx] = -1
 
-        # TODO: more useful progress summary
-        if verbose:
-            print("depth {}: {} of {}".format(len(unspec_cover), i,
-                                              len(cand_idxs)), n_isomorphisms)
-
         # If we are using template equivalence, we can mark for all equivalent
         # template vertices that cand_idx cannot be a cannot be a candidate.
         if tmplt_equivalence:
@@ -119,7 +111,7 @@ def recursive_isomorphism_counter(smp, matching, *,
 
 
 def count_isomorphisms(smp, *, verbose=True,
-                       tmplt_equivalence=False, world_equivalence=False):
+                       tmplt_equivalence=False):
     """
     Counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -137,8 +129,6 @@ def count_isomorphisms(smp, *, verbose=True,
         Flag for verbose output
     tmplt_equivalence : bool
         Flag indicating whether to use template equivalence
-    world_equivalence : bool
-        Flag indicating whether to use world equivalence
     Returns
     -------
     int

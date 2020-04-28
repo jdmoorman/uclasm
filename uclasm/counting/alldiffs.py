@@ -149,8 +149,8 @@ def recursive_alldiff_counter_SMP(tnode_to_eqids, w_classes, w_class_sizes,
         matching[tnode] = eq_class[w_class_sizes[eqid]]
 
         # Assign the rest
-        recursive_alldiff_counter(tnode_to_eqids, w_classes, w_class_sizes,
-                                  smp, matching, tmplt_equivalence)
+        recursive_alldiff_counter_SMP(tnode_to_eqids, w_classes, w_class_sizes,
+                                      smp, matching, tmplt_equivalence)
 
         # Unmatch tnode
         matching[tnode] = -1
@@ -237,7 +237,7 @@ def count_alldiffs_SMP(tnode_to_cands, smp, matching, tmplt_equivalence=False):
     # Alternatively, list(map(len, eq_classes))
     eq_class_sizes = [len(eq_class) for eq_class in eq_classes]
 
-    recursive_alldiff_counter(tnode_to_eqids, eq_classes, 
+    recursive_alldiff_counter_SMP(tnode_to_eqids, eq_classes, 
                               eq_class_sizes, smp, matching, tmplt_equivalence)
 
     return num_solutions
