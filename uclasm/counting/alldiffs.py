@@ -95,11 +95,12 @@ def count_solutions(matching, smp, w_classes, tmplt_equivalence=False):
     return count
 
 
-def recursive_alldiff_counter(tnode_to_eqids, w_classes, w_class_sizes, smp, 
-                              matching, tmplt_equivalence=False):
+def recursive_alldiff_counter_SMP(tnode_to_eqids, w_classes, w_class_sizes,
+                                  smp, matching, tmplt_equivalence=False):
     """
     Recursive routine for computing the number of ways to assign template
-    nodes to world nodes such that they are all different.
+    nodes to world nodes such that they are all different. This version is
+    intended for use with the subgraph matching problem.
 
     Parameters
     ----------
@@ -206,17 +207,20 @@ def get_equivalence_classes(tnode_to_cands):
 
     return tnode_to_eqids, eq_classes
 
-def count_alldiffs(tnode_to_cands, smp, matching, tmplt_equivalence=False):
-    """
-    tnode_to_cands: dict(item, list)
-    smp: SubgraphMatchingProblem
-    matching: dict
-    tmplt_equivalence: bool
 
+def count_alldiffs_SMP(tnode_to_cands, smp, matching, tmplt_equivalence=False):
+    """
     Count the number of ways to assign template nodes to candidates without
     using any candidate for more than one template node.
     i.e. count solutions to the alldiff problem, where the nodeiables
     are the keys of tnode_to_cands, and the domains are the values.
+
+    Parameters
+    ----------
+    tnode_to_cands: dict(item, list)
+    smp: SubgraphMatchingProblem
+    matching: dict
+    tmplt_equivalence: bool
     """
     global num_solutions
     num_solutions = 0
@@ -238,3 +242,80 @@ def count_alldiffs(tnode_to_cands, smp, matching, tmplt_equivalence=False):
 
     return num_solutions
 
+
+def recursive_alldiff_counter(tnode_to_eqids, w_class_sizes):
+    """
+    Parameters
+    ----------
+    tnode_to_eqids : dict
+        Mapping from template node to a number representing a class of
+        equivalence nodes
+    w_class_sizes : list
+        A list of the number of currently unassigned world nodes for each
+        equivalence class
+
+    Returns
+    -------
+    The number of solutions to the all different problem
+    """
+
+    # If no more tnodes to assign
+    if len(tnode_to_eqids) == 0:
+        return 1
+
+    count = 0
+
+    # This tnode will now be assigned to one of the w_classes
+    tnode, eqids = tnode_to_eqids.popitem()
+
+    # We try mapping the tnode to each equivalence class of world nodes
+    for eqid in eqids:
+        # TODO: break out this inner loop into its own function for clarity?
+        n_cands = w_class_sizes[eqid]
+
+        # If no candidates left in this equivalence class, continue
+        if n_cands == 0:
+            continue
+
+        # We decrement the amount of available candidates in the eq class.
+        w_class_sizes[eqid] -= 1
+
+        # Count the number of ways to assign the rest of candidates
+        n_ways_to_assign_rest = recursive_alldiff_counter(tnode_to_eqids, w_class_sizes)
+
+        # We have n_cands possible ways to assign the current tnode to the
+        # current equivalence class, so we multiply by n_cands
+        count += n_cands * n_ways_to_assign_rest
+
+        # Unmatch tnode from equivalence class
+        w_class_sizes[eqid] += 1
+
+    tnode_to_eqids[tnode] = eqids
+
+    return count
+
+
+def count_alldiffs(tnode_to_cands):
+    """
+    tnode_to_cands: dict(item, list)
+
+    Count the number of ways to assign template nodes to candidates without
+    using any candidate for more than one template node.
+    i.e. count solutions to the alldiff problem, where the nodeiables
+    are the keys of tnode_to_cands, and the domains are the values.
+    """
+
+    # TODO: can this function be vectorized?
+    # TODO: does scipy have a solver for this already?
+
+    # Check if any template node has no candidates
+    if any(len(cands)==0 for cands in tnode_to_cands.values()):
+        return 0
+    tnode_to_eqids, eq_classes = get_equivalence_classes(tnode_to_cands)
+
+    # Alternatively, list(map(len, eq_classes))
+    eq_class_sizes = [len(eq_class) for eq_class in eq_classes]
+
+    count = recursive_alldiff_counter(tnode_to_eqids, eq_class_sizes)
+
+    return count
