@@ -1,0 +1,2 @@
+from .equivalence_data_structure import Equivalence
+from .partition_sparse import bfs_partition_graph
