@@ -6,6 +6,7 @@ import pandas as pd
 import sys
 
 from .utils import index_map, one_hot
+from .equivalence import bfs_partition_graph
 
 # functools.cached_property was introduced in python 3.8.
 # https://docs.python.org/3/library/functools.html#functools.cached_property
@@ -213,6 +214,14 @@ class Graph:
         deglist = [self.in_degrees, self.out_degrees]
         return np.concatenate(deglist, axis=1).astype(np.single)
 
+    @cached_property
+    def equivalence_classes(self):
+        """Equivalence: The equivalence structure of the graph
+        
+        Computes the template equivalence 
+        """
+        return bfs_partition_graph(self)
+
     def loopless_subgraph(self):
         """Get a subgraph containing no self-edges.
 
@@ -328,3 +337,25 @@ class Graph:
         # TODO: Remove any nodes from the node cover which are not necessary.
 
         return np.array(cover)
+
+
+def from_networkx_graph(nx_graph):
+    """
+    This will convert a networkx style graph into a uclasm style Graph.
+    Currently this does not preserve node or edge labels. It just copies
+    over the adjacency structure.
+
+    Parameters
+    ----------
+    nx_graph : networkx.Graph
+    """
+
+    # TODO: Add the ability to port over node and edge labels
+    try:
+        import networkx as nx
+    except ImportError as e:
+        print("This function requires networkx to be installed")
+        raise(e)
+
+    adj = nx.to_scipy_sparse_matrix(nx_graph)
+    return Graph([adj])
