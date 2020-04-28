@@ -186,15 +186,38 @@ class TestIsomorphisms:
         Perform a test where every possible mapping of template to world nodes
         is a match.
         """
-        random_adj = np.random.random((5, 5))
-        # No self loops
-        np.fill_diagonal(random_adj, 0)
-        t_graph = Graph([csr_matrix(random_adj)])
+        for i in range(10):
+            random_adj = np.random.random((5, 5))
+            # No self loops
+            np.fill_diagonal(random_adj, 0)
+            t_graph = Graph([csr_matrix(random_adj)])
 
-        complete_graph = nx.complete_graph(5)
-        w_graph = uclasm.from_networkx_graph(complete_graph)
+            complete_graph = nx.complete_graph(5)
+            w_graph = uclasm.from_networkx_graph(complete_graph)
+            
+            smp = MatchingProblem(t_graph, w_graph)
+
+            count = count_isomorphisms(smp, verbose=True)
+            assert count == 120 # 5 factorial
+
+            eq_count = count_isomorphisms(smp, verbose=True, tmplt_equivalence=True)
+            assert count == 120
+
+    def test_count_isomorphisms_random_no_matches(self):
+        for i in range(10):
+            random_adj = np.random.random((5, 5))
+            # No self loops
+            np.fill_diagonal(random_adj, 0)
+            t_graph = Graph([csr_matrix(random_adj)])
+
+            empty_adj = csr_matrix(np.zeros((5,5)))
+            w_graph = Graph([empty_adj])
+            
+            smp = MatchingProblem(t_graph, w_graph)
+
+            count = count_isomorphisms(smp, verbose=True)
+            assert count == 0
+
+            eq_count = count_isomorphisms(smp, verbose=True, tmplt_equivalence=True)
+            assert count == 0
         
-        smp = MatchingProblem(t_graph, w_graph)
-        count = count_isomorphisms(smp, verbose=True)
-
-        assert count == 120 # 5 factorial
