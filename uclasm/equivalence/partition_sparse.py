@@ -111,15 +111,15 @@ def equivalent(u, v, adj_mat_csrs, adj_mat_cscs, row_nnzs, col_nnzs):
     # We do preliminary checks to rule out as many equivalences as possible
     # because the later checks are expensive
     # We first check that the degrees match
-    for channel in adj_mat_csrs:
-        row_nnz = row_nnzs[channel]
-        col_nnz = col_nnzs[channel]
+    for i in range(len(adj_mat_csrs)):
+        row_nnz = row_nnzs[i]
+        col_nnz = col_nnzs[i]
         if row_nnz[u] != row_nnz[v] or col_nnz[u] != col_nnz[v]:
             return False
 
-    for channel in adj_mat_csrs:
-        if not permutation_relation(u, v, adj_mat_csrs[channel], 
-                adj_mat_cscs[channel], row_nnzs[channel], col_nnzs[channel]):
+    for i in range(len(adj_mat_csrs)):
+        if not permutation_relation(u, v, adj_mat_csrs[i], 
+                adj_mat_cscs[i], row_nnzs[i], col_nnzs[i]):
             return False
     return True
 
@@ -184,8 +184,8 @@ def bfs_partition_graph(graph):
     # We create these beforehand so as to only compute them once
     adj_mat_csrs = graph.adjs
     adj_mat_cscs = [adj_mat.tocsc() for adj_mat in adj_mat_csrs]
-    row_nnzs = {adj_mat.getnnz(1) for adj_mat in adj_mat_csrs}
-    col_nnzs = {adj_mat.getnnz(0) for adj_mat in adj_mat_cscs}
+    row_nnzs = [adj_mat.getnnz(1) for adj_mat in adj_mat_csrs]
+    col_nnzs = [adj_mat.getnnz(0) for adj_mat in adj_mat_cscs]
 
     while True:
         # If out of vertices to visit, exit loop
