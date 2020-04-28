@@ -76,7 +76,7 @@ def edgewise_local_costs(smp, changed_cands=None):
             assignment_costs = np.zeros((np.sum(src_is_cand), np.sum(dst_is_cand)))
         for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
             tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
-            if smp.edge_attr_fn is None
+            if smp.edge_attr_fn is None:
                 total_tmplt_edges += tmplt_adj_val
 
             # if there are no edges in this channel of the template, skip it
