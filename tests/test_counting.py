@@ -7,6 +7,7 @@ from uclasm import Graph, MatchingProblem
 
 import numpy as np
 import pandas as pd
+import networkx as nx
 from scipy.sparse import csr_matrix
 
 @pytest.fixture
@@ -53,6 +54,7 @@ def smp_star():
     world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
     smp = MatchingProblem(tmplt, world)
     return smp
+
 
 @pytest.fixture
 def smp_node_cover():
@@ -178,3 +180,21 @@ class TestIsomorphisms:
         assert np.sum(smp_overlapping_cands.candidates()) == 7
         count = count_isomorphisms(smp_overlapping_cands, verbose=True)
         assert count == 6
+
+    def test_count_isomorphisms_random_all_matches(self):
+        """
+        Perform a test where every possible mapping of template to world nodes
+        is a match.
+        """
+        random_adj = np.random.random((5, 5))
+        # No self loops
+        np.fill_diagonal(random_adj, 0)
+        t_graph = Graph([csr_matrix(random_adj)])
+
+        complete_graph = nx.complete_graph(5)
+        w_graph = uclasm.from_networkx_graph(complete_graph)
+        
+        smp = MatchingProblem(t_graph, w_graph)
+        count = count_isomorphisms(smp, verbose=True)
+
+        assert count == 120 # 5 factorial
