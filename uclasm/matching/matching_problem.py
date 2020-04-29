@@ -41,6 +41,10 @@ class MatchingProblem:
         Function for comparing edge attributes. Should take two pd.Series of
         edge attributes and return the cost associated with the difference
         between them.
+    missing_edge_cost_fn : function
+        Function for computing the cost of a missing template edge. Should take
+        a pd.Series of node attributes and return the cost associated with
+        removing that edge.
     local_cost_threshold : int, optional
         A template node cannot be assigned to a world node if it will result
         in more than this number of its edges missing in an eventual match.
@@ -83,6 +87,7 @@ class MatchingProblem:
                  global_costs=None,
                  node_attr_fn=None,
                  edge_attr_fn=None,
+                 missing_edge_cost_fn=None,
                  local_cost_threshold=0,
                  global_cost_threshold=0,
                  ground_truth_provided=False,
@@ -132,6 +137,7 @@ class MatchingProblem:
 
         self.node_attr_fn = node_attr_fn
         self.edge_attr_fn = edge_attr_fn
+        self.missing_edge_cost_fn = missing_edge_cost_fn
 
     def copy(self):
         """Returns a copy of the MatchingProblem."""

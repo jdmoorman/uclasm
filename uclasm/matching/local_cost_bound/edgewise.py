@@ -46,22 +46,22 @@ def edgewise_local_costs(smp, changed_cands=None):
         their neighboring template nodes have to be reevaluated.
     """
     new_local_costs = np.zeros(smp.shape)
+    candidates = smp.candidates()
 
-    for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
-        if changed_cands is not None:
-            # If neither the source nor destination has changed, there is no
-            # point in filtering on this pair of nodes
-            if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-                continue
+    if smp.edge_attr_fn is None:
+        for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
+            if changed_cands is not None:
+                # If neither the source nor destination has changed, there is no
+                # point in filtering on this pair of nodes
+                if not (changed_cands[src_idx] or changed_cands[dst_idx]):
+                    continue
 
-        # get indicators of candidate nodes in the world adjacency matrices
-        candidates = smp.candidates()
-        src_is_cand = candidates[src_idx]
-        dst_is_cand = candidates[dst_idx]
-        if ~np.any(src_is_cand) or ~np.any(dst_is_cand):
-            raise Exception("Error: no candidates for given nodes")
+            # get indicators of candidate nodes in the world adjacency matrices
+            src_is_cand = candidates[src_idx]
+            dst_is_cand = candidates[dst_idx]
+            if ~np.any(src_is_cand) or ~np.any(dst_is_cand):
+                raise Exception("Error: no candidates for given nodes")
 
-        if smp.edge_attr_fn is None:
             # This sparse matrix stores the number of supported template edges
             # between each pair of candidates for src and dst
             # i.e. the number of template edges between src and dst that also exist
@@ -70,20 +70,14 @@ def edgewise_local_costs(smp, changed_cands=None):
 
             # Number of total edges in the template between src and dst
             total_tmplt_edges = 0
-        else:
-            # Matrix of costs of assigning template node src_idx and dst_idx
-            # to candidates row_idx and col_idx
-            assignment_costs = np.zeros((np.sum(src_is_cand), np.sum(dst_is_cand)))
-        for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
-            tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
-            if smp.edge_attr_fn is None:
+            for tmplt_adj, world_adj in iter_adj_pairs(smp.tmplt, smp.world):
+                tmplt_adj_val = tmplt_adj[src_idx, dst_idx]
                 total_tmplt_edges += tmplt_adj_val
 
-            # if there are no edges in this channel of the template, skip it
-            if tmplt_adj_val == 0:
-                continue
+                # if there are no edges in this channel of the template, skip it
+                if tmplt_adj_val == 0:
+                    continue
 
-            if smp.edge_attr_fn is None:
                 # sub adjacency matrix corresponding to edges from the source
                 # candidates to the destination candidates
                 world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
@@ -93,34 +87,59 @@ def edgewise_local_costs(smp, changed_cands=None):
                     supported_edges = world_sub_adj.minimum(tmplt_adj_val)
                 else:
                     supported_edges += world_sub_adj.minimum(tmplt_adj_val)
-            elif tmplt_adj_val == 1:
-                tmplt_edge = smp.tmplt.edgelist[(smp.tmplt.edgelist[smp.tmplt.source_col] == smp.tmplt.nodes[src_idx]) & (smp.tmplt.edgelist[smp.tmplt.target_col] == smp.tmplt.nodes[dst_idx])].iloc[0]
-                # Iterate over all world edges between candidates for src and dst
-                for world_edge_idx, world_edge in smp.world.edgelist[smp.world.edgelist[smp.world.source_col].isin(world.nodes[src_is_cand])&smp.world.edgelist[smp.world.target_col].isin(world.nodes[dst_is_cand])].iterrows():
-                    src_cand_idx = smp.world.node_idxs[world_edge[smp.world.source_col]]
-                    dst_cand_idx = smp.world.node_idxs[world_edge[smp.world.target_col]]
-                    assignment_costs[src_cand_idx, dst_cand_idx] += smp.edge_attr_fn(tmplt_edge, world_edge)
-            else:
-                raise Exception("More than one template edge between two nodes with attributes is not yet supported.")
 
-        src_support = supported_edges.max(axis=1)
-        src_least_cost = total_tmplt_edges - src_support.A
-        src_least_cost = np.array(src_least_cost).flatten()
+            src_support = supported_edges.max(axis=1)
+            src_least_cost = total_tmplt_edges - src_support.A
 
-        # Different algorithm from REU
-        # Main idea: assigning u' to u and v' to v causes cost for u to increase
-        # based on minimum between cost of v and missing edges between u and v
-        # src_least_cost = np.maximum(total_tmplt_edges - supported_edges.A,
-        #                             local_costs[dst_idx][dst_is_cand]).min(axis=1)
+            # Different algorithm from REU
+            # Main idea: assigning u' to u and v' to v causes cost for u to increase
+            # based on minimum between cost of v and missing edges between u and v
+            # src_least_cost = np.maximum(total_tmplt_edges - supported_edges.A,
+            #                             local_costs[dst_idx][dst_is_cand]).min(axis=1)
 
-        # Update the local cost bound
-        new_local_costs[src_idx][src_is_cand] += src_least_cost
+            src_least_cost = np.array(src_least_cost).flatten()
+            # Update the local cost bound
+            new_local_costs[src_idx][src_is_cand] += src_least_cost
 
-        if src_idx != dst_idx:
-            dst_support = supported_edges.max(axis=0)
-            dst_least_cost = total_tmplt_edges - dst_support.A
-            dst_least_cost = np.array(dst_least_cost).flatten()
-            new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
+            if src_idx != dst_idx:
+                dst_support = supported_edges.max(axis=0)
+                dst_least_cost = total_tmplt_edges - dst_support.A
+                dst_least_cost = np.array(dst_least_cost).flatten()
+                new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
+    else:
+        # Iterate over template edges and consider best matches for world edges
+        for tmplt_edge_idx, tmplt_edge in smp.tmplt.edgelist.iterrows():
+            src_col = smp.tmplt.source_col
+            dst_col = smp.tmplt.target_col
+            # Get candidates for src and dst
+            src_node = tmplt_edge[src_col]
+            dst_node = tmplt_edge[dst_col]
+            src_idx = smp.tmplt.node_idxs[src_node]
+            dst_idx = smp.tmplt.node_idxs[dst_node]
+            if changed_cands is not None:
+                # If neither the source nor destination has changed, there is no
+                # point in filtering on this pair of nodes
+                if not (changed_cands[src_idx] or changed_cands[dst_idx]):
+                    continue
+            # Matrix of costs of assigning template node src_idx and dst_idx
+            # to candidates row_idx and col_idx
+            assignment_costs = np.zeros(smp.shape)
+            assignment_costs[src_idx, :] = smp.missing_edge_cost_fn(tmplt_edge)
+            assignment_costs[dst_idx, :] = smp.missing_edge_cost_fn(tmplt_edge)
+
+            src_cands = smp.world.nodes[candidates[src_idx]]
+            dst_cands = smp.world.nodes[candidates[dst_idx]]
+            cand_edgelist = smp.world.edgelist[(smp.world.edgelist[src_col].isin(src_cands)) & (smp.world.edgelist[dst_col].isin(dst_cands))]
+            for cand_edge_idx, cand_edge in cand_edgelist.iterrows():
+                src_cand = cand_edge[src_col]
+                dst_cand = cand_edge[dst_col]
+                src_cand_idx = smp.world.node_idxs[src_cand]
+                dst_cand_idx = smp.world.node_idxs[dst_cand]
+                attr_cost = smp.edge_attr_fn(tmplt_edge, cand_edge)
+                assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], attr_cost)
+                assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], attr_cost)
+
+            new_local_costs += assignment_costs
 
     # Add back in the costs that didn't change and weren't reevaluated
     if changed_cands is not None:
