@@ -108,6 +108,8 @@ def iterate_to_convergence(smp, reduce_world=True, verbose=False):
         changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
         if ~np.any(changed_cands):
             break
+        if ~np.any(smp.candidates()):
+            break
         if reduce_world:
             smp.reduce_world()
     if verbose:
