@@ -51,6 +51,19 @@ def smp_noisy():
     smp = MatchingProblem(tmplt, world, global_cost_threshold=1)
     return smp
 
+@pytest.fixture
+def smp_noisy_bidirectional():
+    """Create a noisy subgraph matching problem."""
+    adj0 = csr_matrix([[0, 1, 0],
+                       [1, 0, 0],
+                       [0, 0, 0]])
+    tmplt = Graph([adj0])
+    zero_adj = csr_matrix(np.zeros((3,3)))
+    world = Graph([zero_adj])
+    smp = MatchingProblem(tmplt, world, global_cost_threshold=2)
+    return smp
+
+
 class TestEdgewiseCostBound:
     """Tests related to the edgewise cost bound """
     def test_edgewise_cost(self, smp):
@@ -76,3 +89,22 @@ class TestEdgewiseCostBound:
             for j in range(3):
                 assert(final_cost[i][j] == smp_noisy.local_costs[i][j])
         assert(np.sum(smp_noisy.candidates()) == 3)
+
+    def test_edgewise_cost_noisy(self, smp_noisy_bidirectional):
+        local_cost_bound.edgewise(smp_noisy_bidirectional)
+        global_cost_bound.from_local_bounds(smp_noisy_bidirectional)
+        # First edge: increases cost for any match of a, b that isn't a:a, b:b
+        # cost: [0 1 1]
+        #       [1 0 1]
+        #       [0 0 0]
+        # Second edge: increases cost for all matches of b,c
+        # cost: [0 1 1]
+        #       [2 1 2]
+        #       [1 1 1]
+        final_cost = [[2, 2, 2],
+                      [2, 2, 2],
+                      [0, 0, 0]]
+        for i in range(3):
+            for j in range(3):
+                assert(final_cost[i][j] == smp_noisy_bidirectional.local_costs[i][j])
+        assert(np.sum(smp_noisy_bidirectional.candidates()) == 9)
