@@ -60,7 +60,8 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         current_state = heappop(open_list)
         if verbose:
             print("Current state: {} matches".format(len(current_state.matching)),
-                  "{} open states".format(len(open_list)))
+                  "{} open states".format(len(open_list)), "current_cost:", current_state.cost,
+                  "kth_cost:", kth_cost, "solutions found:", len(solutions))
         # Ignore states whose cost is too high
         if current_state.cost > max_cost or current_state.cost >= kth_cost:
             continue
