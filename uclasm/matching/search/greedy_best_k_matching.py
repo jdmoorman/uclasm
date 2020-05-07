@@ -71,7 +71,7 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         iterate_to_convergence(curr_smp, reduce_world=False)
         global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
-        candidates = global_costs <= max_cost
+        candidates = np.logical_and(global_costs <= max_cost, global_costs < kth_cost)
         # Identify template node with the least number of candidates
         cand_counts = np.sum(candidates, axis=1)
         # Prevent previously matched template idxs from being chosen
