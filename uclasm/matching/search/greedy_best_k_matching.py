@@ -91,14 +91,15 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
             if new_matching_tuple not in cost_map:
                 new_state = State()
                 new_state.matching = new_matching_tuple
-                temp_smp = curr_smp.copy()
-                set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
-                # Reset the costs to account for potential increase
-                temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
-                                   global_costs=np.zeros(temp_smp.shape))
-                # Do not reduce world as it can mess up the world indices in the matching
-                iterate_to_convergence(temp_smp, reduce_world=False)
-                new_state.cost = temp_smp.global_costs.min()
+                # temp_smp = curr_smp.copy()
+                # set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
+                # # Reset the costs to account for potential increase
+                # temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
+                #                    global_costs=np.zeros(temp_smp.shape))
+                # # Do not reduce world as it can mess up the world indices in the matching
+                # iterate_to_convergence(temp_smp, reduce_world=False)
+                # new_state.cost = temp_smp.global_costs.min()
+                new_state.cost = global_costs[tmplt_idx, cand_idx]
                 if new_state.cost > max_cost or new_state.cost >= kth_cost:
                     continue
                 cost_map[new_matching_tuple] = new_state.cost
