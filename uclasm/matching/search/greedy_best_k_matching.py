@@ -109,7 +109,8 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                     if k > 0 and len(solutions) > k:
                         solutions.sort()
                         solutions.pop()
-                        kth_cost = min(solutions).cost
+                        heapify(solutions)
+                        kth_cost = max(solutions).cost
                 else:
                     heappush(open_list, new_state)
             else:
