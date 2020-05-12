@@ -1,3 +1,6 @@
+import numpy as np
+import scipy.sparse as sparse
+
 from uclasm import Graph
 
 def read_igraph_file(filename):

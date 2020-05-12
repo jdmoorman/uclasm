@@ -125,7 +125,7 @@ class Graph:
         Return the Equivalence object associated with the graph.
         """
         if self._eq_classes is None:
-            self._eq_classes = bfs_partition_graph(self.ch_to_adj)
+            self._eq_classes = bfs_partition_graph(self)
         return self._eq_classes
 
     def subgraph(self, node_idxs):
