@@ -203,7 +203,7 @@ class Graph:
         while self.is_nbr[uncovered, :][:, uncovered].count_nonzero():
 
             # Add the uncovered node with the most neighbors
-            nbr_counts = np.sum(self.is_nbr[uncovered, :][:, uncovered], axis=0)
+            nbr_counts = np.sum(self.is_nbr[uncovered,:][:,uncovered], axis=0)
 
             imax = np.argmax(nbr_counts)
             node = self.nodes[uncovered][imax]
@@ -215,9 +215,9 @@ class Graph:
 
     def to_simple_graph(self):
         """
-        This will construct a simple directed graph by replacing any multichannel 
-        multiedges with a single node which connects to both incident nodes
-        with a label indicating number of edges in each channel.
+        This will construct a simple directed graph by replacing any 
+        multichannel multiedges with a single node which connects to both 
+        incident node with a label indicating number of edges in each channel.
 
         Returns:
             Graph: The constructed simple graph
@@ -252,6 +252,137 @@ class Graph:
                 f.write('{}\n'.format(self.get_n_edges()[channel]))
                 for _, fro, to, count in self.edge_iterator(channel):
                     f.write('{} {} {}\n'.format(fro, to, count))
+
+    def write_channel_solnon(self, filename, channel):
+        """
+        Write out adjacency matrix for specific channel as adjacency list to
+        a file in the Solnon format.
+        """
+        with open(filename, 'w') as f:
+            f.write(str(self.n_nodes) + '\n')
+
+            adj_mat = self.ch_to_adj[channel]
+            curr_index = 0
+            curr_adj = []
+            for (node_index, adjacent_index) in zip(*adj_mat.nonzero()):
+                if node_index != curr_index:
+                    # We write out number of adjacent nodes, then the list
+                    # of adjacent nodes.
+                    f.write(" ".join(map(str, [len(curr_adj)]+curr_adj))+'\n')
+
+                    for i in range(curr_index+1, node_index):
+                        # For each index in between, these have no adjacent
+                        # nodes, so we write zero for each of these nodes.
+                        f.write("0\n")
+
+                    curr_adj = []
+                    curr_index = node_index
+
+                curr_adj.append(adjacent_index)
+
+            # Write out remaining nodes
+            f.write(" ".join(map(str, [len(curr_adj)] + curr_adj)) + '\n')
+
+            for i in range(curr_index+1, self.n_nodes):
+                f.write('0\n')
+
+    def write_file_solnon(self, filename):
+        """
+        Writes out the graph in solnon format. This format is described as 
+        follows:
+        Each graph is described in a text file. If the graph has n vertices, 
+        then the file has n+1 lines: 
+            -The first line gives the number n of vertices.
+            -The next n lines give, for each vertex, its number of successor 
+            nodes, followed by the list of its successor nodes.
+
+        If there are multiple channels, then it will create one file for 
+        each channel.
+        """
+
+        if len(list(self.channels)) > 1:
+            def add_channel_to_name(filename, channel):
+                *name, ext = filename.split('.')
+                name = '.'.join(name)
+                new_name = name + '_' + str(channel) + '.' + ext
+                return new_name
+
+            filenames = [add_channel_to_name(filename, channel) 
+                         for channel in self.channels]
+
+            for name, channel in zip(filenames, self.channels):
+                self.write_channel_solnon(name, channel)
+        else:
+            # Extract sole channel
+            channel = list(self.channels)[0]
+            self.write_channel_solnon(filename, channel)
+
+    def write_vf_format(self, filename):
+    """
+    Write to file in the format needed for VF3. This only works for simple
+    directed graphs. We assume that all data is stored in first channel.
+    We convert multiple edges into edge labels.
+
+     * DESCRIPTION OF THE TEXT FILE FORMAT
+     * ===================================
+     *
+     * On the first line there must be the number of nodes;
+     * subsequent lines will contain the node attributes, one node per 
+     * line, preceded by the node id; node ids must be in the range from
+     * 0 to the number of nodes - 1.\n
+     * Then, for each node there is the number of edges coming out of 
+     * the node, followed by a line for each edge containing the 
+     * ids of the edge ends and the edge attribute.\n
+     * Blank lines, and lines starting with #, are ignored.
+     * An example file, where both node and edge attributes are ints, 
+     * could be the following:
+     *
+     *	\# Number of nodes\n
+     *	3\n
+     *
+     *	\# Node attributes\n
+     *	0 27\n
+     * 	1 42\n
+     *	2 13\n
+     *
+     *	\# Edges coming out of node 0\n
+     *	2\n
+     *	0 1  24\n
+     *	0 2  73\n
+     * 
+     *	\# Edges coming out of node 1\n
+     *	1\n
+     *	1 3  66\n
+     *
+     *	\# Edges coming out of node 2\n
+     *	0\n
+     * 
+     */
+    """
+    with open(filename, 'w') as f:
+        f.write('# Number of nodes\n')
+        f.write('{}\n\n'.format(self.n_nodes))
+
+        node_labels = [label for label in self.labels if label]
+        # This is a label to give all the nodes with no label
+        default_label = max(node_labels, default=-1) + 1
+
+        f.write('# Node attributes\n')
+        for i in range(self.n_nodes):
+            node_label = self.labels[i] if self.labels[i] else default_label
+            f.write('{} {}\n'.format(i, node_label))
+        f.write('\n')
+       
+        channel = channels[0]
+        for i in range(self.n_nodes):
+            f.write('# Edges coming out of node {}\n'.format(i))
+            nbrs = self.get_outgoing_neighbors(i, channel)
+            f.write('{}\n'.format(len(nbrs))
+            for nbr in nbrs:
+                edge_count = self.ch_to_adj[channel][i, nbr]
+                f.write('{} {} {}\n'.format(i, nbr, edge_count))
+        f.write('\n')
+
 
     def channel_to_networkx_graph(self, channel):
         """
@@ -415,7 +546,7 @@ class Graph:
 def read_from_file(filename):
     """
     Reads in a multichannel graph from a file in the format specified in
-    write_to_file. This is the file format specified in the Solnon benchmarks
+    write_to_file.
     """
     with open(filename) as f:
 
@@ -449,3 +580,105 @@ def read_from_file(filename):
 
         nodes = list(range(n_nodes))
         return Graph(nodes, channels, adjs, name=name)
+
+def read_solnon_graph(filename, graph_name=None):
+    """
+    These are benchmarks from the website: 
+    https://perso.liris.cnrs.fr/christine.solnon/SIP.html
+    All graphs are assumed to be simple 1-channel unlabeled graphs.
+
+    The format of this file is described as follows:
+    Each graph is described in a text file. If the graph has n vertices, then 
+    the file has n+1 lines: 
+    -The first line gives the number n of vertices.
+    -The next n lines give, for each vertex, its number of successor nodes, 
+     followed by the list of its successor nodes.
+
+    This will create a data_structures.Graph object.
+    """
+    with open(filename) as f:
+        n = int(f.readline())
+        # The adjacency matrix for the graph
+        adj_mat = np.zeros((n,n))
+        for i in range(n):
+            count, *adjacents = list(map(int, f.readline().split()))
+            for j in adjacents:
+                adj_mat[i,j] = adj_mat[j,i] = 1
+    nodes = list(range(n))
+
+    if graph_name is None:
+        # The name of the graph will be the name of the file
+        name = filename.split(os.sep)[-1]
+    else:
+        name = graph_name
+
+    # '0' is a standin for the single channel
+    return Graph(nodes, ['0'], [csr_matrix(adj_mat)], name=name)
+
+
+def read_igraph_file(filename):
+    """
+    This function will read all graphs in an igraph file.
+
+    Args:
+        filename (str): The name of the file stored in igraph format
+    Returns:
+        list[Graph]: A list of Graphs stored in the file
+    """
+    graphs = []
+    curr_vert_count = 0
+    curr_vert_labels = []
+    # A mapping from channel to adjacency matrix
+    curr_adj_matrices = {}
+    first = True
+    with open(filename) as f:
+        for line in f:
+            line = line.rstrip()
+            # This indicates we are starting a new graph
+            if line.startswith('t'):
+                if first:
+                    first = False
+                    continue
+                else:
+                    # Construct the Graph
+                    verts = list(range(curr_vert_count))
+                    channels = list(curr_adj_matrices.keys())
+                    # We convert to csr format as that is standard Graph fmt.
+                    adj_matrices = [curr_adj_matrices[ch].tocsr()
+                                    for ch in channels]
+                    graph = Graph(verts, channels, adj_matrices, 
+                                  curr_vert_labels)
+                    graphs.append(graph)
+                    # Reset all the current values for new graph
+                    curr_vert_count = 0
+                    curr_vert_labels = []
+                    curr_adj_matrices = {}
+            elif line.startswith('v'):
+                # Vertex line
+                # Format "v <index> <label>"
+                index, label = map(int, line.split()[1:])
+                curr_vert_count += 1
+                curr_vert_labels.append(label)
+            elif line.startswith('e'):
+                # Edge line
+                # Format "e <start> <end> <label>"
+                # Edges are assumed undirected
+                start, end, label = map(int, line.split()[1:])
+                if label not in curr_adj_matrices:
+                    adj = sparse.dok_matrix((curr_vert_count, curr_vert_count), 
+                                            dtype=np.int32)
+                    curr_adj_matrices[label] = adj
+                curr_adj_matrices[label][start,end] = 1
+                curr_adj_matrices[label][end,start] = 1
+        else:
+            # Construct the final graph
+            # This is necessary because once the last line is read, we exit
+            # the loop.
+            verts = list(range(curr_vert_count))
+            channels = list(curr_adj_matrices.keys())
+            adj_matrices = [curr_adj_matrices[ch] for ch in channels]
+            graph = Graph(verts, channels, adj_matrices, 
+                          curr_vert_labels)
+            graphs.append(graph)
+
+    return graphs
