@@ -2,6 +2,8 @@
 Filtering algorithms expect data to come in the form of Graph objects
 """
 
+import os
+
 from ..equivalence.partition_sparse import bfs_partition_graph
 from .misc import index_map
 import scipy.sparse as sparse
@@ -12,7 +14,7 @@ import networkx as nx
 import graphviz as gv
 
 class Graph:
-    def __init__(self, nodes, channels, adjs, labels=None):
+    def __init__(self, nodes, channels, adjs, labels=None, name=None):
         self.nodes = np.array(nodes)
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(self.nodes)
@@ -20,6 +22,7 @@ class Graph:
         self.channels = channels
         self.adjs = adjs
         self.is_sparse = all([sparse.issparse(adj) for adj in adjs])
+        self.name = name
 
         if labels is None:
             labels = [None]*len(nodes)
@@ -51,6 +54,16 @@ class Graph:
             return self.ch_to_adj[channel][vert].nonzero()[1]
         else:
             return self.ch_to_adj[channel][vert].nonzero()[0]
+
+    def get_n_edges(self, channel=None):
+        """
+        Return the number of edges in the specified channel. If no channel
+        is specified, return the total number of edges.
+        """
+        if channel is None:
+            return sum([self.ch_to_adj[ch].sum() for ch in self.channels])
+        else:
+            return self.ch_to_adj[channel].sum()
 
     @property
     def sym_composite_adj(self):
@@ -317,72 +330,109 @@ class Graph:
             channel = list(self.channels)[0]
             self.write_channel_solnon(filename, channel)
 
-    def write_vf_format(self, filename):
-    """
-    Write to file in the format needed for VF3. This only works for simple
-    directed graphs. We assume that all data is stored in first channel.
-    We convert multiple edges into edge labels.
+    def write_file_VF3(self, filename):
+        """
+        Write to file in the format needed for VF3. This only works for simple
+        directed graphs. We assume that all data is stored in first channel.
+        We convert multiple edges into edge labels.
 
-     * DESCRIPTION OF THE TEXT FILE FORMAT
-     * ===================================
-     *
-     * On the first line there must be the number of nodes;
-     * subsequent lines will contain the node attributes, one node per 
-     * line, preceded by the node id; node ids must be in the range from
-     * 0 to the number of nodes - 1.\n
-     * Then, for each node there is the number of edges coming out of 
-     * the node, followed by a line for each edge containing the 
-     * ids of the edge ends and the edge attribute.\n
-     * Blank lines, and lines starting with #, are ignored.
-     * An example file, where both node and edge attributes are ints, 
-     * could be the following:
-     *
-     *	\# Number of nodes\n
-     *	3\n
-     *
-     *	\# Node attributes\n
-     *	0 27\n
-     * 	1 42\n
-     *	2 13\n
-     *
-     *	\# Edges coming out of node 0\n
-     *	2\n
-     *	0 1  24\n
-     *	0 2  73\n
-     * 
-     *	\# Edges coming out of node 1\n
-     *	1\n
-     *	1 3  66\n
-     *
-     *	\# Edges coming out of node 2\n
-     *	0\n
-     * 
-     */
-    """
-    with open(filename, 'w') as f:
-        f.write('# Number of nodes\n')
-        f.write('{}\n\n'.format(self.n_nodes))
+         * DESCRIPTION OF THE TEXT FILE FORMAT
+         * ===================================
+         *
+         * On the first line there must be the number of nodes;
+         * subsequent lines will contain the node attributes, one node per 
+         * line, preceded by the node id; node ids must be in the range from
+         * 0 to the number of nodes - 1.\n
+         * Then, for each node there is the number of edges coming out of 
+         * the node, followed by a line for each edge containing the 
+         * ids of the edge ends and the edge attribute.\n
+         * Blank lines, and lines starting with #, are ignored.
+         * An example file, where both node and edge attributes are ints, 
+         * could be the following:
+         *
+         *	\# Number of nodes\n
+         *	3\n
+         *
+         *	\# Node attributes\n
+         *	0 27\n
+         * 	1 42\n
+         *	2 13\n
+         *
+         *	\# Edges coming out of node 0\n
+         *	2\n
+         *	0 1  24\n
+         *	0 2  73\n
+         * 
+         *	\# Edges coming out of node 1\n
+         *	1\n
+         *	1 3  66\n
+         *
+         *	\# Edges coming out of node 2\n
+         *	0\n
+         * 
+         */
+        """
+        with open(filename, 'w') as f:
+            f.write('# Number of nodes\n')
+            f.write('{}\n\n'.format(self.n_nodes))
 
-        node_labels = [label for label in self.labels if label]
-        # This is a label to give all the nodes with no label
-        default_label = max(node_labels, default=-1) + 1
+            node_labels = [label for label in self.labels if label]
+            # This is a label to give all the nodes with no label
+            default_label = max(node_labels, default=-1) + 1
 
-        f.write('# Node attributes\n')
-        for i in range(self.n_nodes):
-            node_label = self.labels[i] if self.labels[i] else default_label
-            f.write('{} {}\n'.format(i, node_label))
-        f.write('\n')
-       
-        channel = channels[0]
-        for i in range(self.n_nodes):
-            f.write('# Edges coming out of node {}\n'.format(i))
-            nbrs = self.get_outgoing_neighbors(i, channel)
-            f.write('{}\n'.format(len(nbrs))
-            for nbr in nbrs:
-                edge_count = self.ch_to_adj[channel][i, nbr]
-                f.write('{} {} {}\n'.format(i, nbr, edge_count))
-        f.write('\n')
+            f.write('# Node attributes\n')
+            for i in range(self.n_nodes):
+                node_label = self.labels[i] if self.labels[i] else default_label
+                f.write('{} {}\n'.format(i, node_label))
+            f.write('\n')
+           
+            channel = self.channels[0]
+            for i in range(self.n_nodes):
+                f.write('# Edges coming out of node {}\n'.format(i))
+                nbrs = self.get_outgoing_neighbors(i, channel)
+                f.write('{}\n'.format(len(nbrs)))
+                for nbr in nbrs:
+                    edge_count = self.ch_to_adj[channel][i, nbr]
+                    f.write('{} {} {}\n'.format(i, nbr, edge_count))
+            f.write('\n')
 
+    def write_channel_gfd(self, filename, channel):
+        """
+        Write a single channel in gfd format for use in RI solver.
+        """
+        with open(filename, 'w') as f:
+            f.write('#name\n')
+            f.write('{}\n'.format(self.n_nodes))
+            for i in range(self.n_nodes):
+                f.write('0\n') # 0 is a dummy label for each node since 
+                # our graphs are unlabelled
+            f.write('{}\n'.format(self.get_n_edges(channel)))
+            for _, fro, to, count in self.edge_iterator(channel):
+                for i in range(count):
+                    f.write('{} {}\n'.format(fro, to))
+
+    def write_file_gfd(self, filename):
+        """
+        Writes the graph in the gfd format described in
+        https://github.com/InfOmics/RI. Since our graphs are unlabelled, all
+        nodes will have the same label (a dummy label "0").
+
+        If there are multiple channels, it will create one file for each 
+        channel.
+
+        Args:
+            filename (str): The name of the file to write to
+        """
+        if len(list(self.channels)) > 1:
+            raise NotImplementedError
+            filenames = [self.add_channel_to_name(filename, channel)
+                         for channel in self.channels]
+            
+            for name, channel in zip(filenames, self.channels):
+                self.write_channel_gfd(name, channel)
+        else:
+            channel = list(self.channels)[0]
+            self.write_channel_gfd(filename, channel)
 
     def channel_to_networkx_graph(self, channel):
         """
@@ -543,6 +593,26 @@ class Graph:
         graph = Graph(list(range(new_n_nodes)), [0], [new_adj], labels=labels) 
         return graph, nbr_idx_pairs
 
+    def edge_iterator(self, channel=None):
+        """
+        This will iterate over all the edges in the graph in no particular
+        order except it will list them channel by channel.
+
+        It will yield a 4-tuple listing in order the channel, start node index,
+        end node index, and the edge count.
+
+        If a channel is passed in, this will only return edges in that channel.
+        """
+        channels = self.channels if channel is None else [channel]
+
+        for channel in channels:
+            adj_mat = self.ch_to_adj[channel]
+
+            for i, j in zip(*adj_mat.nonzero()):
+                edge_count = adj_mat[i,j]
+                yield channel, i, j, edge_count
+
+
 def read_from_file(filename):
     """
     Reads in a multichannel graph from a file in the format specified in
@@ -613,7 +683,7 @@ def read_solnon_graph(filename, graph_name=None):
         name = graph_name
 
     # '0' is a standin for the single channel
-    return Graph(nodes, ['0'], [csr_matrix(adj_mat)], name=name)
+    return Graph(nodes, ['0'], [sparse.csr_matrix(adj_mat)], name=name)
 
 
 def read_igraph_file(filename):
@@ -696,4 +766,6 @@ def from_networkx_graph(nx_graph):
 
     # TODO: Add the ability to port over node and edge labels
     adj = nx.to_scipy_sparse_matrix(nx_graph)
-    return Graph([adj])
+    nodes = list(range(nx_graph.number_of_nodes()))
+    channels = [0]
+    return Graph(nodes, channels, [adj])
