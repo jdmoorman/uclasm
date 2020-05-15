@@ -682,3 +682,18 @@ def read_igraph_file(filename):
             graphs.append(graph)
 
     return graphs
+
+def from_networkx_graph(nx_graph):
+    """
+    This will convert a networkx style graph into a uclasm style Graph.
+    Currently this does not preserve node or edge labels. It just copies
+    over the adjacency structure.
+
+    Parameters
+    ----------
+    nx_graph : networkx.Graph
+    """
+
+    # TODO: Add the ability to port over node and edge labels
+    adj = nx.to_scipy_sparse_matrix(nx_graph)
+    return Graph([adj])
