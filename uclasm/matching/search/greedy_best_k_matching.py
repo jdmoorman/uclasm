@@ -7,7 +7,7 @@ from .search_utils import *
 from ..global_cost_bound import *
 from ..local_cost_bound import *
 from ...utils import one_hot
-from heapq import heappush, heappop
+from heapq import heappush, heappop, heapify
 
 def greedy_best_k_matching(smp, k=1, verbose=False):
     """Greedy search on the cost heuristic to find the best k matchings.
