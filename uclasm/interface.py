@@ -31,6 +31,8 @@ def run_filters_old(tmplt, world, *, candidates=None, filters=None, verbose=Fals
         fixed_costs = np.zeros(candidates.shape)
         fixed_costs[~candidates] = float("inf")
         smp = MatchingProblem(tmplt, world, fixed_costs=fixed_costs)
+    smp.global_cost_threshold = 0
+    smp.local_cost_threshold = 0
     search.search_utils.iterate_to_convergence(smp)
     return smp.tmplt, smp.world, smp.candidates()
 
