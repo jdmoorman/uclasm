@@ -124,7 +124,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
             else:
                 if verbose:
                     print("Recognized state: ", new_matching)
-    if verbose:
+    if verbose and len(solutions) < 100:
         for solution in solutions:
             print(solution)
     return solutions
