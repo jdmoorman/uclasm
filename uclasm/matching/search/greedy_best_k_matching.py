@@ -9,7 +9,8 @@ from ..local_cost_bound import *
 from ...utils import one_hot
 from heapq import heappush, heappop, heapify
 
-def greedy_best_k_matching(smp, k=1, verbose=False):
+def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
+                           verbose=False):
     """Greedy search on the cost heuristic to find the best k matchings.
     Parameters
     ----------
@@ -19,6 +20,10 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         The maximum number of solutions to find. Note that the cost thresholds
         in smp may result in this function returning fewer than n solutions, if
         there are not enough solutions satisfying the cost thresholds.
+    nodewise: bool
+        Whether to use the nodewise cost bound.
+    edgewise: bool
+        Whether to use the edgewise cost bound.
     """
     # States still left to be processed
     open_list = []
@@ -66,10 +71,12 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
         if current_state.cost > max_cost or current_state.cost >= kth_cost:
             continue
         set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
+        # Local costs can increase as a result of candidate assignment
         curr_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
                            global_costs=np.zeros(curr_smp.shape))
         # Do not reduce world as it can mess up the world indices in the matching
-        iterate_to_convergence(curr_smp, reduce_world=False)
+        iterate_to_convergence(curr_smp, reduce_world=False, nodewise=nodewise,
+                               edgewise=edgewise)
         global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
         candidates = np.logical_and(global_costs <= max_cost, global_costs < kth_cost)
@@ -98,7 +105,8 @@ def greedy_best_k_matching(smp, k=1, verbose=False):
                 # temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
                 #                    global_costs=np.zeros(temp_smp.shape))
                 # # Do not reduce world as it can mess up the world indices in the matching
-                # iterate_to_convergence(temp_smp, reduce_world=False)
+                # iterate_to_convergence(temp_smp, reduce_world=False,
+                #                        nodewise=nodewise, edgewise=edgewise)
                 # new_state.cost = temp_smp.global_costs.min()
                 new_state.cost = global_costs[tmplt_idx, cand_idx]
                 if new_state.cost > max_cost or new_state.cost >= kth_cost:

@@ -78,7 +78,8 @@ def add_node_attr_costs_identity(smp):
         nonempty_attrs = tmplt_row[1:] != ""
         smp.fixed_costs[tmplt_idx] += (tmplt_row_np[None, 1:][:,nonempty_attrs] != world_nodelist_np[:,1:][:,nonempty_attrs]).sum(axis=1)
 
-def iterate_to_convergence(smp, reduce_world=True, verbose=False):
+def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
+                           edgewise=True, verbose=False):
     """Iterates the various cost bounds until the costs converge.
     Parameters
     ----------
@@ -95,16 +96,18 @@ def iterate_to_convergence(smp, reduce_world=True, verbose=False):
 
     while True:
         old_candidates = smp.candidates().copy()
-        if verbose:
-            print(smp)
-            print("Running nodewise cost bound")
-        local_cost_bound.nodewise(smp)
-        global_cost_bound.from_local_bounds(smp)
-        if verbose:
-            print(smp)
-            print("Running edgewise cost bound")
-        local_cost_bound.edgewise(smp)
-        global_cost_bound.from_local_bounds(smp)
+        if nodewise:
+            if verbose:
+                print(smp)
+                print("Running nodewise cost bound")
+            local_cost_bound.nodewise(smp)
+            global_cost_bound.from_local_bounds(smp)
+        if edgewise:
+            if verbose:
+                print(smp)
+                print("Running edgewise cost bound")
+            local_cost_bound.edgewise(smp)
+            global_cost_bound.from_local_bounds(smp)
         changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
         if ~np.any(changed_cands):
             break
