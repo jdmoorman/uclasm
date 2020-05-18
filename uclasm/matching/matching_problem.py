@@ -264,7 +264,7 @@ class MatchingProblem:
             cands = sorted(self.world.nodes[candidates[idx]])
             n_cands = len(cands)
 
-            if n_cands == 1:
+            if n_cands <= 1:
                 continue
 
             if n_cands > self._candidate_print_limit:
@@ -283,6 +283,13 @@ class MatchingProblem:
         if n_found:
             info_strs.append("{} template nodes have 1 candidate: {}"
                              .format(n_found, ", ".join(identified)))
+
+        # Nodes that have no candidates
+        unidentified = list(self.tmplt.nodes[cand_counts == 0])
+        n_unidentified = len(unidentified)
+        if n_unidentified:
+            info_strs.append("{} template nodes have 0 candidates: {}"
+                             .format(n_unidentified, ", ".join(unidentified)))
 
         # This message is useful for debugging datasets for which you have
         # a ground truth signal.
