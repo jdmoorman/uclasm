@@ -61,7 +61,6 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
     kth_cost = float("inf")
 
     while len(open_list) > 0:
-        curr_smp = smp.copy()
         current_state = heappop(open_list)
         if verbose:
             print("Current state: {} matches".format(len(current_state.matching)),
@@ -70,6 +69,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
         # Ignore states whose cost is too high
         if current_state.cost > max_cost or current_state.cost >= kth_cost:
             continue
+        curr_smp = smp.copy()
         set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
         # Local costs can increase as a result of candidate assignment
         curr_smp.set_costs(local_costs=np.zeros(curr_smp.shape),
