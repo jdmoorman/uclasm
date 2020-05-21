@@ -60,7 +60,8 @@ def edgewise_local_costs(smp, changed_cands=None):
             src_is_cand = candidates[src_idx]
             dst_is_cand = candidates[dst_idx]
             if ~np.any(src_is_cand) or ~np.any(dst_is_cand):
-                raise Exception("Error: no candidates for given nodes")
+                print("No candidates for given nodes, skipping edge")
+                continue
 
             # This sparse matrix stores the number of supported template edges
             # between each pair of candidates for src and dst
