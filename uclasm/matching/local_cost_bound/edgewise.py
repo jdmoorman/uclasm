@@ -142,10 +142,6 @@ def edgewise_local_costs(smp, changed_cands=None):
 
             new_local_costs += assignment_costs
 
-    # Add back in the costs that didn't change and weren't reevaluated
-    if changed_cands is not None:
-        new_local_costs[changed_cands] = smp.local_costs[changed_cands]
-
     return new_local_costs
 
 def edgewise(smp, changed_cands=None):
