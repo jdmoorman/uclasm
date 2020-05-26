@@ -396,6 +396,50 @@ class Graph:
                     f.write('{} {} {}\n'.format(i, nbr, edge_count))
             f.write('\n')
 
+    def write_template_file_CFLMatch(self, filename):
+        with open(filename, 'w') as f:
+            channel = self.channels[0]
+            adj = self.ch_to_adj[channel]
+            f.write('t 0 {} {}\n'.format(self.n_nodes, self.get_n_edges()))
+
+            node_labels = [label for label in self.labels if label]
+            # This is a label to give all the nodes with no label
+            default_label = max(node_labels, default=-1) + 1
+
+            for i in range(self.n_nodes):
+                node_label = self.labels[i] if self.labels[i] else default_label
+                out_degree = self.out_degree[channel][i]
+
+                f.write('{} {} {}'.format(i, node_label, out_degree))
+                for nbr in adj[i].nonzero()[0]:
+                    f.write(' {}'.format(nbr))
+            f.write('\n')
+
+    def write_world_file_CFLMatch(self, filename):
+        with open(filename, 'w') as f:
+            channel = self.channels[0]
+            adj = self.ch_to_adj[channel]
+            f.write('t 0 {}\n'.format(self.n_nodes, self.get_n_edges()))
+
+            node_labels = [label for label in self.labels if label]
+            # This is a label to give all the nodes with no label
+            default_label = max(node_labels, default=-1) + 1
+
+            for i in range(self.n_nodes):
+                node_label = self.labels[i] if self.labels[i] else default_label
+
+                f.write('v {} {}\n'.format(i, node_label))
+    
+            # TODO: CFLMatch only works with undirected graphs
+            # so we do not list direction here. This might need fixing in the
+            # future.
+            srcs, dsts = (adj + adj.T).nonzero()
+            for src, dst in zip(srcs, dsts):
+                if src > dst:
+                    continue
+                # 0 is a filler for the edge label
+                f.write('e {} {} 0\n'.format(src, dst))
+
     def write_channel_gfd(self, filename, channel):
         """
         Write a single channel in gfd format for use in RI solver.
