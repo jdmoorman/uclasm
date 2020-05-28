@@ -90,6 +90,7 @@ class MatchingProblem:
                  missing_edge_cost_fn=None,
                  local_cost_threshold=0,
                  global_cost_threshold=0,
+                 strict_threshold=False,
                  ground_truth_provided=False,
                  candidate_print_limit=10):
 
@@ -129,6 +130,7 @@ class MatchingProblem:
 
         self.local_cost_threshold = local_cost_threshold
         self.global_cost_threshold = global_cost_threshold
+        self.strict_threshold = strict_threshold
 
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
@@ -150,6 +152,7 @@ class MatchingProblem:
             missing_edge_cost_fn=self.missing_edge_cost_fn,
             local_cost_threshold=self.local_cost_threshold,
             global_cost_threshold=self.global_cost_threshold,
+            strict_threshold=self.strict_threshold,
             ground_truth_provided=self._ground_truth_provided,
             candidate_print_limit=self._candidate_print_limit)
 
@@ -232,6 +235,8 @@ class MatchingProblem:
             corresponding to the column is a candidate for the template node
             corresponding to the row.
         """
+        if self.strict_threshold:
+            return self.global_costs < self.global_cost_threshold
         return self.global_costs <= self.global_cost_threshold
 
     def __str__(self):
