@@ -79,7 +79,7 @@ def add_node_attr_costs_identity(smp):
         smp.fixed_costs[tmplt_idx] += (tmplt_row_np[None, 1:][:,nonempty_attrs] != world_nodelist_np[:,1:][:,nonempty_attrs]).sum(axis=1)
 
 def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
-                           edgewise=True, verbose=False):
+                           edgewise=True, changed_cands=None, verbose=False):
     """Iterates the various cost bounds until the costs converge.
     Parameters
     ----------
@@ -88,12 +88,18 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
     reduce_world : bool
         Option to reduce the world by removing world nodes that are not
         candidates for any template node.
+    changed_cands : np.ndarray(bool)
+        Array of boolean values indicating which candidate nodes have changed
+        candidates since the last time filters were run.
     verbose : bool
         Flag for verbose output.
     """
-    changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
-    smp.global_costs = smp.local_costs/2 + smp.fixed_costs
+    if changed_cands is None:
+        changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
 
+    global_cost_bound.from_local_bounds(smp)
+
+    # TODO: Does this break if nodewise changes the candidates?
     while True:
         old_candidates = smp.candidates().copy()
         if nodewise:
@@ -106,7 +112,7 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
             if verbose:
                 print(smp)
                 print("Running edgewise cost bound")
-            local_cost_bound.edgewise(smp)
+            local_cost_bound.edgewise(smp, changed_cands=changed_cands)
             global_cost_bound.from_local_bounds(smp)
         changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
         if ~np.any(changed_cands):
