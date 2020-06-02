@@ -1,3 +1,3 @@
 """Provide functions for searching for solutions."""
 
-from .greedy_best_k_matching import greedy_best_k_matching
+from .greedy_best_k_matching import greedy_best_k_matching, greedy_best_k_matching_recursive
