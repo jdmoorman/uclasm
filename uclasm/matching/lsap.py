@@ -70,6 +70,7 @@ def constrained_lsap_costs(costs):
         assigned to column j.
     """
     n_rows, n_cols = costs.shape
+    costs = costs.astype(np.double)
     if n_rows > n_cols:
         return constrained_lsap_costs(costs.T).T
 
@@ -82,14 +83,22 @@ def constrained_lsap_costs(costs):
     lsap_costs = costs[row_idxs, lsap_col_idxs]
     lsap_total_cost = lsap_costs.sum()
 
-    # Each row is column indexes ordered by their costs in that row.
-    sorted_costs_ind = np.argsort(costs, axis=1)
+    # Find the two minimum-cost columns for each row
+    best_col_idxs = np.argmin(costs, axis=1)
+    _costs = costs.copy()
+    _costs[row_idxs, best_col_idxs] = np.inf
+    second_best_col_idxs = np.argmin(_costs, axis=1)
+    _costs[row_idxs, second_best_col_idxs] = np.inf
+    third_best_col_idxs = np.argmin(_costs, axis=1)
 
     # When a row has its column stolen by a constraint, these are the columns
     # that might come into play when we are forced to resolve the assignment.
-    used = np.isin(sorted_costs_ind[:, :n_rows+1], lsap_col_idxs)
-    first_unused = sorted_costs_ind[row_idxs, np.argmax(~used, axis=1)]
-    potential_cols = np.union1d(lsap_col_idxs, first_unused)
+    if n_rows < n_cols:
+        unused = np.setdiff1d(np.arange(n_cols), lsap_col_idxs)
+        first_unused = np.argmin(costs[:, unused], axis=1)
+        potential_cols = np.union1d(lsap_col_idxs, unused[first_unused])
+    else:
+        potential_cols = np.arange(n_cols)
 
     # When we add the constraint assigning row i to column j, lsap_col_idxs[i]
     # is freed up. If lsap_col_idxs[i] cannot improve on the cost of one of the
@@ -139,14 +148,34 @@ def constrained_lsap_costs(costs):
             col_idxs[other_i] = -1
 
             # Row other_i must find a new column. What is its next best option?
-            best_j = sorted_costs_ind[other_i, 0]
-            second_best_j = sorted_costs_ind[other_i, 1]
-            next_best_j = best_j if (best_j != stolen_j) else second_best_j
+            best_j, second_best_j, third_best_j = (
+                best_col_idxs[other_i],
+                second_best_col_idxs[other_i],
+                third_best_col_idxs[other_i],
+            )
 
-            # Is the next best option available? If so, use it. Otherwise,
-            # solve the constrained lsap from scratch.
-            if next_best_j not in col_idxs:
-                col_idxs[other_i] = next_best_j
+            # Note: Problem might occur if we have two j's that are both next best.
+            # However, one is not in col_idxs and the other is in col_idxs.
+            # In this case, choosing the one not in col_idxs does not necessarily
+            # give us the optimal assignment.
+            # TODO: make the following if-else prettier.
+
+            if (
+                best_j != stolen_j
+                and best_j not in col_idxs
+                and (
+                    costs[other_i, best_j] != costs[other_i, second_best_j]
+                    or second_best_j not in col_idxs
+                )
+            ):
+                col_idxs[other_i] = best_j
+                total_costs[i, stolen_j] = costs[row_idxs, col_idxs].sum()
+            elif second_best_j not in col_idxs and (
+                costs[other_i, second_best_j]
+                != costs[other_i, third_best_j]
+                or third_best_j not in col_idxs
+            ):
+                col_idxs[other_i] = second_best_j
                 total_costs[i, stolen_j] = costs[row_idxs, col_idxs].sum()
             else:
                 sub_costs = costs[:, potential_cols]
