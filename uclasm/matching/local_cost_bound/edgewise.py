@@ -109,14 +109,22 @@ def edgewise_local_costs(smp, changed_cands=None):
                 new_local_costs[dst_idx][dst_is_cand] += dst_least_cost
     else:
         # Iterate over template edges and consider best matches for world edges
-        for tmplt_edge_idx, tmplt_edge in smp.tmplt.edgelist.iterrows():
+
+        src_col = smp.tmplt.source_col
+        dst_col = smp.tmplt.target_col
+        tmplt_edgelist = smp.tmplt.edgelist
+        tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
+        tmplt_srcs = tmplt_edgelist[src_col]
+        tmplt_dsts = tmplt_edgelist[dst_col]
+        tmplt_attr_cols = [tmplt_edgelist[key] for key in tmplt_attr_keys]
+        for src_node, dst_node, *tmplt_attrs in zip(tmplt_srcs, tmplt_dsts, *tmplt_attr_cols):
             src_col = smp.tmplt.source_col
             dst_col = smp.tmplt.target_col
+            tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
             # Get candidates for src and dst
-            src_node = tmplt_edge[src_col]
-            dst_node = tmplt_edge[dst_col]
             src_idx = smp.tmplt.node_idxs[src_node]
             dst_idx = smp.tmplt.node_idxs[dst_node]
+            src_node, dst_node = str(src_node), str(dst_node)
             if changed_cands is not None:
                 # If neither the source nor destination has changed, there is no
                 # point in filtering on this pair of nodes
@@ -125,18 +133,39 @@ def edgewise_local_costs(smp, changed_cands=None):
             # Matrix of costs of assigning template node src_idx and dst_idx
             # to candidates row_idx and col_idx
             assignment_costs = np.zeros(smp.shape)
-            assignment_costs[src_idx, :] = smp.missing_edge_cost_fn(tmplt_edge)
-            assignment_costs[dst_idx, :] = smp.missing_edge_cost_fn(tmplt_edge)
+            missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node))
+            assignment_costs[src_idx, :] = missing_edge_cost
+            assignment_costs[dst_idx, :] = missing_edge_cost
 
+            # TODO: add some data to the graph classes to store the node indexes
+            # of the source and destination of each edge. You can then use this
+            # to efficiently get your masks by:
+            # >>> candidates[src_idx, smp.world.src_idxs]
             src_cands = smp.world.nodes[candidates[src_idx]]
             dst_cands = smp.world.nodes[candidates[dst_idx]]
-            cand_edgelist = smp.world.edgelist[(smp.world.edgelist[src_col].isin(src_cands)) & (smp.world.edgelist[dst_col].isin(dst_cands))]
-            for cand_edge_idx, cand_edge in cand_edgelist.iterrows():
-                src_cand = cand_edge[src_col]
-                dst_cand = cand_edge[dst_col]
+            # cand_edge_src_mask = smp.world.edgelist[src_col].isin(src_cands)
+
+            world_edge_srcs = smp.world.edgelist[src_col]
+            world_edge_src_idxs = [smp.world.node_idxs[source] for source in world_edge_srcs]
+            cand_edge_src_mask = candidates[src_idx, world_edge_src_idxs]
+            cand_edgelist = smp.world.edgelist[cand_edge_src_mask]
+            cand_edge_dsts = cand_edgelist[src_col]
+            cand_edge_dst_idxs = [smp.world.node_idxs[dst] for dst in cand_edge_dsts]
+            # cand_edge_dst_mask = cand_edgelist[dst_col].isin(dst_cands)
+            cand_edge_dst_mask = candidates[src_idx, cand_edge_dst_idxs]
+            cand_edgelist = cand_edgelist[cand_edge_dst_mask]
+
+            cand_attr_keys = [attr for attr in cand_edgelist.columns if attr not in [src_col, dst_col]]
+            src_cands = cand_edgelist[src_col]
+            dst_cands = cand_edgelist[dst_col]
+            attr_cols = [cand_edgelist[key] for key in cand_attr_keys]
+
+            for src_cand, dst_cand, *cand_attrs in zip(src_cands, dst_cands, *attr_cols):
                 src_cand_idx = smp.world.node_idxs[src_cand]
                 dst_cand_idx = smp.world.node_idxs[dst_cand]
-                attr_cost = smp.edge_attr_fn(tmplt_edge, cand_edge)
+                src_cand, dst_cand = str(src_cand), str(dst_cand)
+                cand_attrs_dict = dict(zip(cand_attr_keys, cand_attrs))
+                attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict)
                 assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], attr_cost)
                 assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], attr_cost)
 
