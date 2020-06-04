@@ -184,7 +184,7 @@ def impose_state_assignments_on_smp(smp, tmplt_idx, state, **kwargs):
     # Do not reduce world as it can mess up the world indices in the matching
     changed_cands = np.zeros((smp.tmplt.n_nodes,), dtype=np.bool)
     changed_cands[tmplt_idx] = True
-    iterate_to_convergence(smp, changed_cands=changed_cands, **kwargs)
+    iterate_to_convergence(smp, reduce_world=False, changed_cands=changed_cands, **kwargs)
 
 def propagate_cost_threshold_changes(smp, child_smp):
     if child_smp.global_cost_threshold < smp.global_cost_threshold:
