@@ -18,6 +18,7 @@ class State:
         self.cost = float("inf")
 
     def __lt__(self, other):
+        # TODO: Is this function the source of your sorting related time expenditures?
         if len(self.matching) != len(other.matching):
             return len(self.matching) > len(other.matching)
         return self.cost < other.cost
@@ -97,11 +98,11 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
     if changed_cands is None:
         changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
 
+    old_candidates = smp.candidates().copy()
     global_cost_bound.from_local_bounds(smp)
 
     # TODO: Does this break if nodewise changes the candidates?
     while True:
-        old_candidates = smp.candidates().copy()
         if nodewise:
             if verbose:
                 print(smp)
@@ -121,5 +122,6 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
             break
         if reduce_world:
             smp.reduce_world()
+        old_candidates = smp.candidates().copy()
     if verbose:
         print(smp)

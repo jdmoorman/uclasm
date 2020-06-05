@@ -143,7 +143,7 @@ class MatchingProblem:
 
     def copy(self):
         """Returns a copy of the MatchingProblem."""
-        return MatchingProblem(self.tmplt.copy(), self.world.copy(),
+        smp_copy = MatchingProblem(self.tmplt.copy(), self.world.copy(),
             fixed_costs=self._fixed_costs.copy(),
             local_costs=self._local_costs.copy(),
             global_costs=self._global_costs.copy(),
@@ -155,6 +155,9 @@ class MatchingProblem:
             strict_threshold=self.strict_threshold,
             ground_truth_provided=self._ground_truth_provided,
             candidate_print_limit=self._candidate_print_limit)
+        if hasattr(self, "template_importance"):
+            smp_copy.template_importance = self.template_importance
+        return smp_copy
 
     def set_costs(self, fixed_costs=None, local_costs=None, global_costs=None):
         """Set the cost arrays by force. Override monotonicity.
@@ -321,8 +324,9 @@ class MatchingProblem:
 
         Returns
         -------
-        bool
-            True if the size of the world is reduced. False otherwise.
+        np.ndarray(bool)
+            A boolean array of values corresponding to which nodes were kept.
+            True where nodes were kept and false where they were removed.
         """
         # Note: need to update the global_costs before reduce_world to reflect
         # changes in the candidates
@@ -339,9 +343,7 @@ class MatchingProblem:
             self.set_costs(fixed_costs=self.fixed_costs[:, is_cand])
             self.set_costs(global_costs=self.global_costs[:, is_cand])
             from_local_bounds(self)
-            return True
-        else:
-            return False
+        return is_cand
 
     def have_candidates_changed(self):
         """Check whether candidates have changed.
