@@ -211,7 +211,7 @@ def add_new_solution(smp, solution_state, tmplt_idx, solutions, k, **kwargs):
     impose_state_assignments_on_smp(child_smp, tmplt_idx, solution_state, **kwargs)
     solution_state.cost = child_smp.global_costs.min()
     if not satisfies_cost_threshold(smp, solution_state.cost):
-        returns
+        return
     bisect.insort(solutions, solution_state)
 
     if len(solutions) == k and not smp.strict_threshold:
