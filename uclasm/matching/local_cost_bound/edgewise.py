@@ -152,8 +152,8 @@ def edgewise_local_costs(smp, changed_cands=None):
             cand_edge_dsts = cand_edgelist[src_col]
             cand_edge_dst_idxs = [smp.world.node_idxs[dst] for dst in cand_edge_dsts]
             # cand_edge_dst_mask = cand_edgelist[dst_col].isin(dst_cands)
-            cand_edge_dst_mask = candidates[src_idx, cand_edge_dst_idxs]
             cand_edgelist = cand_edgelist[cand_edge_dst_mask]
+            cand_edge_dst_mask = candidates[dst_idx, cand_edge_dst_idxs]
 
             cand_attr_keys = [attr for attr in cand_edgelist.columns if attr not in [src_col, dst_col]]
             src_cands = cand_edgelist[src_col]
