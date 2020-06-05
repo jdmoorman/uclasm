@@ -221,8 +221,7 @@ class Graph:
         np.ndarray(uint16)
             The array of source node indices.
         """
-        return np.fromiter((self.node_idxs[src_node] for src_node in self.edgelist[self.source_col]),
-                           dtype=np.uint16)
+        return np.array([self.node_idxs[src_node] for src_node in self.edgelist[self.source_col]])
 
     @cached_property
     def edge_dst_idxs(self):
@@ -232,8 +231,7 @@ class Graph:
         np.ndarray(uint16)
             The array of destination node indices.
         """
-        return np.fromiter((self.node_idxs[dst_node] for dst_node in self.edgelist[self.target_col]),
-                           dtype=np.uint16)
+        return np.array([self.node_idxs[dst_node] for dst_node in self.edgelist[self.target_col]])
 
     def loopless_subgraph(self):
         """Get a subgraph containing no self-edges.
