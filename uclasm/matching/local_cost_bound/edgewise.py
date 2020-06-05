@@ -143,17 +143,11 @@ def edgewise_local_costs(smp, changed_cands=None):
             # >>> candidates[src_idx, smp.world.src_idxs]
             src_cands = smp.world.nodes[candidates[src_idx]]
             dst_cands = smp.world.nodes[candidates[dst_idx]]
-            # cand_edge_src_mask = smp.world.edgelist[src_col].isin(src_cands)
-
-            world_edge_srcs = smp.world.edgelist[src_col]
-            world_edge_src_idxs = [smp.world.node_idxs[source] for source in world_edge_srcs]
+            world_edge_src_idxs = smp.world.edge_src_idxs
             cand_edge_src_mask = candidates[src_idx, world_edge_src_idxs]
-            cand_edgelist = smp.world.edgelist[cand_edge_src_mask]
-            cand_edge_dsts = cand_edgelist[src_col]
-            cand_edge_dst_idxs = [smp.world.node_idxs[dst] for dst in cand_edge_dsts]
-            # cand_edge_dst_mask = cand_edgelist[dst_col].isin(dst_cands)
-            cand_edgelist = cand_edgelist[cand_edge_dst_mask]
-            cand_edge_dst_mask = candidates[dst_idx, cand_edge_dst_idxs]
+            world_edge_dst_idxs = smp.world.edge_dst_idxs
+            cand_edge_dst_mask = candidates[dst_idx, world_edge_dst_idxs]
+            cand_edgelist = smp.world.edgelist[np.logical_and(cand_edge_src_mask, cand_edge_dst_mask)]
 
             cand_attr_keys = [attr for attr in cand_edgelist.columns if attr not in [src_col, dst_col]]
             src_cands = cand_edgelist[src_col]
