@@ -81,7 +81,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
                   "kth_cost:", kth_cost, "max_cost", smp.global_cost_threshold, "solutions found:", len(solutions))
 
         curr_smp = smp.copy()
-        set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
+        curr_smp.enforce_matching(current_state.matching)
         # global costs can increase as a result of candidate assignment
         curr_smp.set_costs(global_costs=np.zeros(curr_smp.shape))
         # Do not reduce world as it can mess up the world indices in the matching
@@ -115,7 +115,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
                 cost_map[new_matching_tuple] = new_state.cost
                 if len(new_state.matching) == smp.tmplt.n_nodes:
                     # temp_smp = curr_smp.copy()
-                    # set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
+                    # temp_smp.enforce_matching(new_state.matching)
                     # # Reset the costs to account for potential increase
                     # temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
                     #                    global_costs=np.zeros(temp_smp.shape))
@@ -179,7 +179,7 @@ def create_new_state(smp, tmplt_idx, cand_idx, matching):
 
 def impose_state_assignments_on_smp(smp, tmplt_idx, state, **kwargs):
     cand_counts = smp.candidates().sum(axis=1)
-    set_fixed_costs(smp.fixed_costs, state.matching)
+    smp.enforce_matching(state.matching)
     # from_local_bounds(smp) # TODO: There is a chance this call makes the code slower.
     # changed_cands = smp.candidates().sum(axis=1) != cand_counts
     # TODO: Bring back reduce_world and modify the changed_cands as needed.

@@ -54,6 +54,7 @@ def dict_from_tuple(tuple):
     """
     return dict(tuple)
 
+# This function is now deprecated, use MatchingProblem.enforce_matching instead
 def set_fixed_costs(fixed_costs, matching):
     """Set fixed costs to float("inf") to enforce the given matching."""
     mask = np.zeros(fixed_costs.shape, dtype=np.bool)
