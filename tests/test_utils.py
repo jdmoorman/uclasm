@@ -6,6 +6,7 @@ from uclasm.matching.matching_utils import GlobalCostsArray
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
+from laptools import clap
 
 
 @pytest.fixture
@@ -140,7 +141,7 @@ def test_constrained_lsap(costs):
     costs -= np.min(costs)
     costs[0, 0] = 0
     costs[1, 0] = 0.2
-    total_costs = uclasm.constrained_lsap_costs(costs)
+    total_costs = clap.costs(costs)
     for i, j in np.ndindex(*costs.shape):
-        actual_total_cost = uclasm.constrained_lsap_cost(i, j, costs)
+        actual_total_cost = clap.cost(i, j, costs)
         assert pytest.approx(actual_total_cost) == total_costs[i, j]

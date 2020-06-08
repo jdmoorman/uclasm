@@ -4,6 +4,10 @@ import pytest
 import uclasm
 import numpy as np
 
+@pytest.fixture
+def datadir():
+    return "tests/test_readwrite"
+
 class TestLoadEdgelist:
     """Tests related to loading edgelists """
     def test_load_edgelist(self, datadir):

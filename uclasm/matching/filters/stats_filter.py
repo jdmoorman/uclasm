@@ -16,4 +16,4 @@ def stats_filter(smp):
                                    smp.local_cost_threshold)
 
     # TODO: check whether this works
-    smp.local_costs[~is_cand] = np.Inf
+    smp.local_costs[~is_cand] = np.inf
