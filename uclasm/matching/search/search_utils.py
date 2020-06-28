@@ -114,7 +114,9 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
             if verbose:
                 print(smp)
                 print("Running edgewise cost bound")
-            local_cost_bound.edgewise(smp, changed_cands=changed_cands)
+            # TODO: does changed_cands work for edgewise?
+            # local_cost_bound.edgewise(smp, changed_cands=changed_cands)
+            local_cost_bound.edgewise(smp)
             global_cost_bound.from_local_bounds(smp)
         changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
         if ~np.any(changed_cands):
