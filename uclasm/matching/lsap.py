@@ -77,7 +77,15 @@ def constrained_lsap_costs(costs):
     # Find the best lsap assignment from rows to columns without constrains.
     # Since there are at least as many columns as rows, row_idxs should
     # be identical to np.arange(n_rows). We depend on this.
-    row_idxs, lsap_col_idxs = lap(costs)
+    try:
+        row_idxs, lsap_col_idxs = lap(costs)
+    except ValueError as e:
+        if str(e) == "cost matrix is infeasible":
+            total_costs = np.zeros(costs.shape)
+            total_costs[:] = float("inf")
+            return total_costs
+        else:
+            raise e
 
     # Column vector of costs of each assignment in the lsap solution.
     lsap_costs = costs[row_idxs, lsap_col_idxs]
