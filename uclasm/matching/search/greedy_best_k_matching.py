@@ -82,8 +82,6 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
 
         curr_smp = smp.copy()
         curr_smp.enforce_matching(current_state.matching)
-        # global costs can increase as a result of candidate assignment
-        curr_smp.set_costs(global_costs=np.zeros(curr_smp.shape))
         # Do not reduce world as it can mess up the world indices in the matching
         iterate_to_convergence(curr_smp, reduce_world=False, nodewise=nodewise,
                                edgewise=edgewise)
@@ -116,9 +114,6 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
                 if len(new_state.matching) == smp.tmplt.n_nodes:
                     # temp_smp = curr_smp.copy()
                     # temp_smp.enforce_matching(new_state.matching)
-                    # # Reset the costs to account for potential increase
-                    # temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
-                    #                    global_costs=np.zeros(temp_smp.shape))
                     # # Do not reduce world as it can mess up the world indices in the matching
                     # iterate_to_convergence(temp_smp, reduce_world=False,
                     #                        nodewise=nodewise, edgewise=edgewise)
