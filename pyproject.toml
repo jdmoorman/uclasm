@@ -24,8 +24,8 @@ dask = {version = "^2.12.0", extras = ["complete"]}
 loguru = "^0.4.1"
 tqdm = "^4.43.0"
 numba = "^0.48.0"
-lazy-property = "^0.0.1"
-laptools = "^0.2.2"
+cached-property = "^1.5.1"
+laptools = "^0.2.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
