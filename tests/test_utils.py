@@ -6,6 +6,7 @@ from uclasm.matching.matching_utils import GlobalCostsArray
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
+from laptools import clap
 
 
 @pytest.fixture
@@ -130,29 +131,3 @@ class TestGlobalCostArray:
         assert isinstance(sliced_array, GlobalCostsArray)
         assert sliced_array.global_cost_threshold == 3
         assert sliced_array.shape == sliced_array.candidates.shape
-
-costs_list = []
-
-np.random.seed(0)
-costs = np.random.normal(size=(4, 10))
-costs -= np.min(costs)
-costs[0, 0] = 0
-costs[1, 0] = 0.2
-costs_list.append(costs)
-
-costs = np.array([[0, 2, 2],
-                  [0, 1, 2],
-                  [0, 0, 1]])
-costs_list.append(costs)
-
-@pytest.mark.parametrize("costs", costs_list)
-def test_constrained_lsap(costs):
-    """TODO: Docstring."""
-    costs = np.random.normal(size=(4, 10))
-    costs -= np.min(costs)
-    costs[0, 0] = 0
-    costs[1, 0] = 0.2
-    total_costs = uclasm.constrained_lsap_costs(costs)
-    for i, j in np.ndindex(*costs.shape):
-        actual_total_cost = uclasm.constrained_lsap_cost(i, j, costs)
-        assert pytest.approx(actual_total_cost) == total_costs[i, j]

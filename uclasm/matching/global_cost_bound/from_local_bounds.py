@@ -1,5 +1,5 @@
 """Provide a function for bounding global assignment costs from local costs."""
-from ..lsap import constrained_lsap_costs
+from laptools import clap
 
 
 def from_local_bounds(smp):
@@ -11,7 +11,7 @@ def from_local_bounds(smp):
         A subgraph matching problem on which to compute nodewise cost bounds.
     """
     costs = smp.local_costs / 2 + smp.fixed_costs
-    global_cost_bounds = constrained_lsap_costs(costs)
+    global_cost_bounds = clap.costs(costs)
     smp.global_costs[:] = global_cost_bounds
 
     # TODO: should the global costs for local costs introduced by neighborhood

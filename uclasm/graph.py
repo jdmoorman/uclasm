@@ -12,7 +12,7 @@ from .utils import index_map, one_hot
 if sys.version_info >= (3, 8):
     from functools import cached_property
 else:
-    from lazy_property import LazyProperty as cached_property
+    from cached_property import cached_property
 
 
 class Graph:
