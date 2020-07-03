@@ -213,6 +213,26 @@ class Graph:
         deglist = [self.in_degrees, self.out_degrees]
         return np.concatenate(deglist, axis=1).astype(np.single)
 
+    @cached_property
+    def edge_src_idxs(self):
+        """Gets the node indices of the sources of each edge in the edgelist.
+        Returns
+        -------
+        np.ndarray(uint16)
+            The array of source node indices.
+        """
+        return np.array([self.node_idxs[src_node] for src_node in self.edgelist[self.source_col]])
+
+    @cached_property
+    def edge_dst_idxs(self):
+        """Gets the node indices of the destinations of each edge in the edgelist.
+        Returns
+        -------
+        np.ndarray(uint16)
+            The array of destination node indices.
+        """
+        return np.array([self.node_idxs[dst_node] for dst_node in self.edgelist[self.target_col]])
+
     def loopless_subgraph(self):
         """Get a subgraph containing no self-edges.
 

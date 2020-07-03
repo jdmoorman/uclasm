@@ -77,6 +77,18 @@ class TestGraph:
         assert len(cover) == 1
         assert cover[0] == 1
 
+    def test_edge_src_idxs(self, graph):
+        """Test the function that retrieves source indices of the edges"""
+        src_idxs = graph.edge_src_idxs
+        for edge_idx, edge in graph.edgelist.iterrows():
+            assert src_idxs[edge_idx] == graph.node_idxs[edge[graph.source_col]]
+
+    def test_edge_dst_idxs(self, graph):
+        """Test the function that retrieves destination indices of the edges"""
+        dst_idxs = graph.edge_dst_idxs
+        for edge_idx, edge in graph.edgelist.iterrows():
+            assert dst_idxs[edge_idx] == graph.node_idxs[edge[graph.target_col]]
+
 class TestGlobalCostArray:
     """Tests related to the global costs array"""
     def test_global_costs_array(self):

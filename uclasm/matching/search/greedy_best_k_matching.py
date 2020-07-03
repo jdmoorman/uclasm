@@ -81,9 +81,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
                   "kth_cost:", kth_cost, "max_cost", smp.global_cost_threshold, "solutions found:", len(solutions))
 
         curr_smp = smp.copy()
-        set_fixed_costs(curr_smp.fixed_costs, current_state.matching)
-        # global costs can increase as a result of candidate assignment
-        curr_smp.set_costs(global_costs=np.zeros(curr_smp.shape))
+        curr_smp.enforce_matching(current_state.matching)
         # Do not reduce world as it can mess up the world indices in the matching
         iterate_to_convergence(curr_smp, reduce_world=False, nodewise=nodewise,
                                edgewise=edgewise)
@@ -115,10 +113,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
                 cost_map[new_matching_tuple] = new_state.cost
                 if len(new_state.matching) == smp.tmplt.n_nodes:
                     # temp_smp = curr_smp.copy()
-                    # set_fixed_costs(temp_smp.fixed_costs, new_state.matching)
-                    # # Reset the costs to account for potential increase
-                    # temp_smp.set_costs(local_costs=np.zeros(temp_smp.shape),
-                    #                    global_costs=np.zeros(temp_smp.shape))
+                    # temp_smp.enforce_matching(new_state.matching)
                     # # Do not reduce world as it can mess up the world indices in the matching
                     # iterate_to_convergence(temp_smp, reduce_world=False,
                     #                        nodewise=nodewise, edgewise=edgewise)
@@ -144,7 +139,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
     return solutions
 
 def copy_smp_shallow_graphs(smp):
-    return MatchingProblem(smp.tmplt, smp.world,
+    smp_copy = MatchingProblem(smp.tmplt, smp.world,
         fixed_costs=smp._fixed_costs.copy(),
         local_costs=smp._local_costs.copy(),
         global_costs=smp._global_costs.copy(),
@@ -156,6 +151,9 @@ def copy_smp_shallow_graphs(smp):
         strict_threshold=smp.strict_threshold,
         ground_truth_provided=smp._ground_truth_provided,
         candidate_print_limit=smp._candidate_print_limit)
+    if hasattr(smp, "template_importance"):
+        smp_copy.template_importance = smp.template_importance
+    return smp_copy
 
 def satisfies_cost_threshold(smp, cost):
     # Ignore states whose cost is too high
@@ -176,7 +174,7 @@ def create_new_state(smp, tmplt_idx, cand_idx, matching):
 
 def impose_state_assignments_on_smp(smp, tmplt_idx, state, **kwargs):
     cand_counts = smp.candidates().sum(axis=1)
-    set_fixed_costs(smp.fixed_costs, state.matching)
+    smp.enforce_matching(state.matching)
     # from_local_bounds(smp) # TODO: There is a chance this call makes the code slower.
     # changed_cands = smp.candidates().sum(axis=1) != cand_counts
     # TODO: Bring back reduce_world and modify the changed_cands as needed.
@@ -184,7 +182,10 @@ def impose_state_assignments_on_smp(smp, tmplt_idx, state, **kwargs):
     # Do not reduce world as it can mess up the world indices in the matching
     changed_cands = np.zeros((smp.tmplt.n_nodes,), dtype=np.bool)
     changed_cands[tmplt_idx] = True
+    changed_cands = None
     iterate_to_convergence(smp, changed_cands=changed_cands, **kwargs)
+    matching_dict = dict(state.matching)
+    state.cost = smp.global_costs[tmplt_idx, matching_dict[tmplt_idx]]
 
 def propagate_cost_threshold_changes(smp, child_smp):
     if child_smp.global_cost_threshold < smp.global_cost_threshold:
@@ -200,28 +201,35 @@ def propagate_cost_threshold_changes(smp, child_smp):
         return True
     return False
 
-def add_new_solution(smp, solution_state, solutions, k, **kwargs):
+def add_new_solution(smp, solution_state, tmplt_idx, solutions, k, **kwargs):
+    print("ADDING SOLUTION")
+    child_smp = copy_smp_shallow_graphs(smp)
+    impose_state_assignments_on_smp(child_smp, tmplt_idx, solution_state, **kwargs)
+    solution_state.cost = child_smp.global_costs.min()
+    if not satisfies_cost_threshold(smp, solution_state.cost):
+        return
     bisect.insort(solutions, solution_state)
 
     if len(solutions) == k and not smp.strict_threshold:
+        print("SETTING STRICT THRESH")
         kth_cost = solutions[-1].cost
         smp.global_cost_threshold = min(smp.global_cost_threshold, kth_cost)
         smp.strict_threshold = True
-        iterate_to_convergence(smp, reduce_world=False, nodewise=nodewise, edgewise=edgewise)
+        iterate_to_convergence(smp, **kwargs)
         return True
     # TODO: Why not `k = np.inf` instead of `k = -1` for infinite matches?
     if k > 0 and len(solutions) > k:
+        print("POPPING SOLUTION")
         solutions.pop()
         kth_cost = solutions[-1].cost
         if kth_cost < smp.global_cost_threshold:
             smp.global_cost_threshold = min(smp.global_cost_threshold,
                                             kth_cost)
-            iterate_to_convergence(smp, reduce_world=False, nodewise=nodewise, edgewise=edgewise)
+            iterate_to_convergence(smp, **kwargs)
             return True
     return False
 
 def next_matchings(smp, state):
-    # TODO: doing this manually is weird. Maybe `global_costs < kth_cost` should be the job of smp or something inherting from smp.
     candidates = smp.candidates()
 
     # TODO: Wrap the next few lines into a function in search_utils.py unless you reuse them.
@@ -233,7 +241,22 @@ def next_matchings(smp, state):
     cand_counts[list(matching_dict)] = np.max(cand_counts) + 1
 
     tmplt_idx = cand_counts.argmin()
-    cand_idxs = np.argwhere(candidates[tmplt_idx]).flatten()
+
+    if hasattr(smp, "template_importance"):
+        # The lower the number the more important the node
+        # Most important nodes should be chosen first
+        for new_tmplt_idx in range(smp.tmplt.n_nodes):
+            if new_tmplt_idx not in matching_dict:
+                curr_importance = smp.template_importance[str(smp.tmplt.nodes[tmplt_idx])]
+                new_importance = smp.template_importance[str(smp.tmplt.nodes[new_tmplt_idx])]
+                if curr_importance > new_importance and cand_counts[tmplt_idx] >= cand_counts[new_tmplt_idx]:
+                    tmplt_idx = new_tmplt_idx
+        #         print(tmplt_idx, new_tmplt_idx)
+        #         print(curr_importance, new_importance)
+        #         print(cand_counts[tmplt_idx], cand_counts[new_tmplt_idx])
+        # raise Exception()
+
+    cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
 
     return tmplt_idx, cand_idxs
 
@@ -241,6 +264,10 @@ def sort_by_cost(smp, tmplt_idx, cand_idxs):
     if len(cand_idxs) > 0:
         reorder = smp.global_costs[tmplt_idx, cand_idxs].argsort()
         cand_idxs[:] = cand_idxs[reorder]
+
+def pop_least_cost_cand(smp, tmplt_idx, cand_idxs):
+    min_idx = smp.global_costs[tmplt_idx, cand_idxs].argmin()
+    return cand_idxs.pop(min_idx)
 
 def _greedy_best_k_matching_recursive(smp, *, current_state, k,
                                       nodewise, edgewise, solutions, verbose):
@@ -267,12 +294,13 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
               "with {} possibilities".format(len(cand_idxs)))
 
     # Sort candidates for the template node by global cost bound
-    sort_by_cost(smp, tmplt_idx, cand_idxs)
+    # sort_by_cost(smp, tmplt_idx, cand_idxs)
 
     while len(cand_idxs) > 0:
-        # Pop the candidate with the lowest cost
-        cand_idx = cand_idxs[0]
-        cand_idxs = cand_idxs[1:]
+        # # Pop the candidate with the lowest cost
+        # cand_idx = cand_idxs[0]
+        # cand_idxs = cand_idxs[1:]
+        cand_idx = pop_least_cost_cand(smp, tmplt_idx, cand_idxs)
 
         new_state = create_new_state(smp, tmplt_idx, cand_idx, current_state.matching)
 
@@ -280,7 +308,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
             break
 
         if len(new_state.matching) == smp.tmplt.n_nodes:
-            costs_changed = add_new_solution(smp, new_state, solutions, k,
+            add_new_solution(smp, new_state, tmplt_idx, solutions, k,
                              reduce_world=False, nodewise=nodewise, edgewise=edgewise)
         else:
             child_smp = copy_smp_shallow_graphs(smp)
@@ -288,6 +316,8 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
             impose_state_assignments_on_smp(child_smp, tmplt_idx, new_state,
                                    reduce_world=False, nodewise=nodewise,
                                    edgewise=edgewise)
+            if not satisfies_cost_threshold(smp, new_state.cost):
+                continue
 
             _greedy_best_k_matching_recursive(child_smp, current_state=new_state,
                                              k=k, nodewise=nodewise,
@@ -297,8 +327,8 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
 
             costs_changed = propagate_cost_threshold_changes(smp, child_smp)
 
-        if costs_changed:
-            sort_by_cost(smp, tmplt_idx, cand_idxs)
+        # if costs_changed:
+            # sort_by_cost(smp, tmplt_idx, cand_idxs)
 
 def matching_dict_from_candidates(candidates):
     matching_dict = {}
@@ -337,7 +367,13 @@ def greedy_best_k_matching_recursive(orig_smp, k=1, nodewise=True, edgewise=True
         solutions.append(current_state)
         return solutions
 
-    iterate_to_convergence(smp, reduce_world=False, nodewise=nodewise,
+    changed_cands = np.zeros((smp.tmplt.n_nodes,), dtype=np.bool)
+    for tmplt_idx, cand_idx in current_state.matching:
+        changed_cands[tmplt_idx] = True
+    smp.enforce_matching(current_state.matching)
+
+    iterate_to_convergence(smp, changed_cands=changed_cands, reduce_world=False,
+                           nodewise=nodewise,
                            edgewise=edgewise)
 
     _greedy_best_k_matching_recursive(smp, current_state=current_state,

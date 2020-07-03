@@ -18,6 +18,7 @@ class State:
         self.cost = float("inf")
 
     def __lt__(self, other):
+        # TODO: Is this function the source of your sorting related time expenditures?
         if len(self.matching) != len(other.matching):
             return len(self.matching) > len(other.matching)
         return self.cost < other.cost
@@ -53,6 +54,7 @@ def dict_from_tuple(tuple):
     """
     return dict(tuple)
 
+# This function is now deprecated, use MatchingProblem.enforce_matching instead
 def set_fixed_costs(fixed_costs, matching):
     """Set fixed costs to float("inf") to enforce the given matching."""
     mask = np.zeros(fixed_costs.shape, dtype=np.bool)
@@ -97,11 +99,11 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
     if changed_cands is None:
         changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
 
+    old_candidates = smp.candidates().copy()
     global_cost_bound.from_local_bounds(smp)
 
     # TODO: Does this break if nodewise changes the candidates?
     while True:
-        old_candidates = smp.candidates().copy()
         if nodewise:
             if verbose:
                 print(smp)
@@ -112,7 +114,9 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
             if verbose:
                 print(smp)
                 print("Running edgewise cost bound")
-            local_cost_bound.edgewise(smp, changed_cands=changed_cands)
+            # TODO: does changed_cands work for edgewise?
+            # local_cost_bound.edgewise(smp, changed_cands=changed_cands)
+            local_cost_bound.edgewise(smp)
             global_cost_bound.from_local_bounds(smp)
         changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
         if ~np.any(changed_cands):
@@ -121,5 +125,6 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
             break
         if reduce_world:
             smp.reduce_world()
+        old_candidates = smp.candidates().copy()
     if verbose:
         print(smp)
