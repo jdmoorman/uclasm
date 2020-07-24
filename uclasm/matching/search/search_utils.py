@@ -118,13 +118,18 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
             # local_cost_bound.edgewise(smp, changed_cands=changed_cands)
             local_cost_bound.edgewise(smp)
             global_cost_bound.from_local_bounds(smp)
-        changed_cands = np.any(smp.candidates() != old_candidates, axis=1)
-        if ~np.any(changed_cands):
+        candidates = smp.candidates()
+        if ~np.any(candidates):
             break
-        if ~np.any(smp.candidates()):
+        changed_cands = np.any(candidates != old_candidates, axis=1)
+        if ~np.any(changed_cands):
             break
         if reduce_world:
             smp.reduce_world()
         old_candidates = smp.candidates().copy()
+        # Remove non-candidates permanently by setting fixed costs to infinity
+        non_cand_mask = np.ones(smp.shape, dtype=np.bool)
+        non_cand_mask[old_candidates] = False
+        smp.fixed_costs[non_cand_mask] = float("inf")
     if verbose:
         print(smp)
