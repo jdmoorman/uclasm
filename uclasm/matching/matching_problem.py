@@ -60,6 +60,8 @@ class MatchingProblem:
     candidate_print_limit : int, optional
         When summarizing the candidates of each template node, limit the list
         of candidates to this many.
+    use_monotone : bool, optional
+        Whether to use monotone arrays for the cost. Defaults to true.
 
     Attributes
     ----------
@@ -92,7 +94,8 @@ class MatchingProblem:
                  global_cost_threshold=0,
                  strict_threshold=False,
                  ground_truth_provided=False,
-                 candidate_print_limit=10):
+                 candidate_print_limit=10,
+                 use_monotone=True):
 
         # Various important matrices will have this shape.
         self.shape = (tmplt.n_nodes, world.n_nodes)
@@ -120,8 +123,16 @@ class MatchingProblem:
             tmplt = tmplt.loopless_subgraph()
             world = world.loopless_subgraph()
 
-        self._fixed_costs = fixed_costs.view(MonotoneArray)
-        self._local_costs = local_costs.view(MonotoneArray)
+        self.use_monotone = use_monotone
+
+        if use_monotone:
+            self._fixed_costs = fixed_costs.view(MonotoneArray)
+            self._local_costs = local_costs.view(MonotoneArray)
+            # self._global_costs = global_costs.view(MonotoneArray)
+        else:
+            self._fixed_costs = fixed_costs
+            self._local_costs = local_costs
+            # self._global_costs = global_costs
         self._global_costs = global_costs.view(MonotoneArray)
 
         # No longer care about self-edges because they are fixed costs.
@@ -141,6 +152,8 @@ class MatchingProblem:
         self.edge_attr_fn = edge_attr_fn
         self.missing_edge_cost_fn = missing_edge_cost_fn
 
+        self.matching = set()
+
     def copy(self):
         """Returns a copy of the MatchingProblem."""
         smp_copy = MatchingProblem(self.tmplt.copy(), self.world.copy(),
@@ -154,7 +167,8 @@ class MatchingProblem:
             global_cost_threshold=self.global_cost_threshold,
             strict_threshold=self.strict_threshold,
             ground_truth_provided=self._ground_truth_provided,
-            candidate_print_limit=self._candidate_print_limit)
+            candidate_print_limit=self._candidate_print_limit,
+            use_monotone=self.use_monotone)
         if hasattr(self, "template_importance"):
             smp_copy.template_importance = self.template_importance
         return smp_copy
@@ -169,14 +183,24 @@ class MatchingProblem:
         global_costs : 2darray, optional
 
         """
-        if fixed_costs is not None:
-            self._fixed_costs = fixed_costs.view(MonotoneArray)
+        if self.use_monotone:
+            if fixed_costs is not None:
+                self._fixed_costs = fixed_costs.view(MonotoneArray)
 
-        if local_costs is not None:
-            self._local_costs = local_costs.view(MonotoneArray)
+            if local_costs is not None:
+                self._local_costs = local_costs.view(MonotoneArray)
 
-        if global_costs is not None:
-            self._global_costs = global_costs.view(MonotoneArray)
+            if global_costs is not None:
+                self._global_costs = global_costs.view(MonotoneArray)
+        else:
+            if fixed_costs is not None:
+                self._fixed_costs = fixed_costs
+
+            if local_costs is not None:
+                self._local_costs = local_costs
+
+            if global_costs is not None:
+                self._global_costs = global_costs
 
     @property
     def fixed_costs(self):
@@ -239,8 +263,10 @@ class MatchingProblem:
             corresponding to the row.
         """
         if self.strict_threshold:
-            return self.global_costs < self.global_cost_threshold
-        return self.global_costs <= self.global_cost_threshold
+            return np.logical_and(self.global_costs < self.global_cost_threshold,
+                                  ~np.isclose(self.global_costs, self.global_cost_threshold))
+        return np.logical_or(self.global_costs <= self.global_cost_threshold,
+                             np.isclose(self.global_costs, self.global_cost_threshold))
 
     def __str__(self):
         """Summarize the state of the matching problem.
@@ -385,6 +411,7 @@ class MatchingProblem:
         mask[:,[pair[1] for pair in matching]] = True
         mask[tuple(np.array(matching).T)] = False
         self.fixed_costs[mask] = float("inf")
+        self.matching = matching
 
     def prevent_match(self, tmplt_idx, world_idx):
         """Prevent matching the template node with the given index to the world
@@ -397,3 +424,8 @@ class MatchingProblem:
             The index of the world node not to be matched.
         """
         self.fixed_costs[tmplt_idx, world_idx] = float("inf")
+
+    def assigned_tmplt_idxs(self):
+        """Returns the list of template indices that have already been
+        assigned to a candidate"""
+        return {tmplt_idx for tmplt_idx, cand_idx in self.matching}

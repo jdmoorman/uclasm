@@ -3,6 +3,7 @@ total costs."""
 
 import numpy as np
 import bisect
+import math
 
 from .search_utils import *
 from ..global_cost_bound import *
@@ -150,7 +151,8 @@ def copy_smp_shallow_graphs(smp):
         global_cost_threshold=smp.global_cost_threshold,
         strict_threshold=smp.strict_threshold,
         ground_truth_provided=smp._ground_truth_provided,
-        candidate_print_limit=smp._candidate_print_limit)
+        candidate_print_limit=smp._candidate_print_limit,
+        use_monotone=smp.use_monotone)
     if hasattr(smp, "template_importance"):
         smp_copy.template_importance = smp.template_importance
     return smp_copy
@@ -158,9 +160,12 @@ def copy_smp_shallow_graphs(smp):
 def satisfies_cost_threshold(smp, cost):
     # Ignore states whose cost is too high
     if smp.strict_threshold:
+        # Handle floating point arithmetic issues
+        if math.isclose(cost, smp.global_cost_threshold):
+            return False
         if cost < smp.global_cost_threshold:
             return True
-    elif cost <= smp.global_cost_threshold:
+    elif cost <= smp.global_cost_threshold or math.isclose(cost, smp.global_cost_threshold):
         return True
     return False
 
@@ -202,12 +207,13 @@ def propagate_cost_threshold_changes(smp, child_smp):
     return False
 
 def add_new_solution(smp, solution_state, tmplt_idx, solutions, k, **kwargs):
-    print("ADDING SOLUTION")
     child_smp = copy_smp_shallow_graphs(smp)
     impose_state_assignments_on_smp(child_smp, tmplt_idx, solution_state, **kwargs)
+    old_cost = solution_state.cost
     solution_state.cost = child_smp.global_costs.min()
+    print("ADDING SOLUTION WITH COST:", solution_state.cost)
     if not satisfies_cost_threshold(smp, solution_state.cost):
-        return
+        return False
     bisect.insort(solutions, solution_state)
 
     if len(solutions) == k and not smp.strict_threshold:
@@ -242,19 +248,44 @@ def next_matchings(smp, state):
 
     tmplt_idx = cand_counts.argmin()
 
-    if hasattr(smp, "template_importance"):
-        # The lower the number the more important the node
-        # Most important nodes should be chosen first
-        for new_tmplt_idx in range(smp.tmplt.n_nodes):
-            if new_tmplt_idx not in matching_dict:
-                curr_importance = smp.template_importance[str(smp.tmplt.nodes[tmplt_idx])]
-                new_importance = smp.template_importance[str(smp.tmplt.nodes[new_tmplt_idx])]
-                if curr_importance > new_importance and cand_counts[tmplt_idx] >= cand_counts[new_tmplt_idx]:
-                    tmplt_idx = new_tmplt_idx
-        #         print(tmplt_idx, new_tmplt_idx)
-        #         print(curr_importance, new_importance)
-        #         print(cand_counts[tmplt_idx], cand_counts[new_tmplt_idx])
-        # raise Exception()
+    cost_min = smp.global_costs.min()
+    min_cost_counts = np.sum(smp.global_costs == cost_min, axis=1)
+    for new_tmplt_idx in range(smp.tmplt.n_nodes):
+        # if cand_counts[tmplt_idx] >= cand_counts[new_tmplt_idx]:
+        if new_tmplt_idx not in matching_dict:
+            if min_cost_counts[tmplt_idx] > min_cost_counts[new_tmplt_idx]:
+                tmplt_idx = new_tmplt_idx
+
+    # if hasattr(smp, "template_importance"):
+    #     # The lower the number the more important the node
+    #     # Most important nodes should be chosen first
+    #     # Or maybe least important?
+    #     for new_tmplt_idx in range(smp.tmplt.n_nodes):
+    #         if str(smp.tmplt.nodes[new_tmplt_idx]) not in smp.template_importance:
+    #             print("Node missing from template importance:", str(smp.tmplt.nodes[new_tmplt_idx]))
+    #             smp.template_importance[str(smp.tmplt.nodes[new_tmplt_idx])] = 1000000
+    #         if new_tmplt_idx not in matching_dict:
+    #             curr_importance = smp.template_importance[str(smp.tmplt.nodes[tmplt_idx])]
+    #             new_importance = smp.template_importance[str(smp.tmplt.nodes[new_tmplt_idx])]
+    #             if curr_importance < new_importance and cand_counts[tmplt_idx] >= cand_counts[new_tmplt_idx]:
+    #                 tmplt_idx = new_tmplt_idx
+    #     #         print(tmplt_idx, new_tmplt_idx)
+    #     #         print(curr_importance, new_importance)
+    #     #         print(cand_counts[tmplt_idx], cand_counts[new_tmplt_idx])
+    #     # raise Exception()
+    #
+    # node_cover = smp.tmplt.node_cover()
+    # if tmplt_idx not in node_cover:
+    #     for new_tmplt_idx in node_cover:
+    #         if new_tmplt_idx not in matching_dict:
+    #             # tmplt_idx may have changed during the loop
+    #             if tmplt_idx not in node_cover:
+    #                 tmplt_idx = new_tmplt_idx
+    #             else:
+    #                 curr_importance = smp.template_importance[str(smp.tmplt.nodes[tmplt_idx])]
+    #                 new_importance = smp.template_importance[str(smp.tmplt.nodes[new_tmplt_idx])]
+    #                 if curr_importance < new_importance:
+    #                     tmplt_idx = new_tmplt_idx
 
     cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
 
@@ -293,10 +324,20 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
         print("Choosing candidate for", tmplt_idx,
               "with {} possibilities".format(len(cand_idxs)))
 
+    smp.next_tmplt_idx = tmplt_idx
+    iterate_to_convergence(smp, reduce_world=False, nodewise=nodewise, edgewise=edgewise)
+    candidates = smp.candidates()
+    cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
+    print("Updated current state: {} matches".format(len(current_state.matching)),
+          "current_cost:", current_state.cost,
+          "kth_cost:", kth_cost,  "max_cost", smp.global_cost_threshold,
+          "solutions found:", len(solutions))
+
     # Sort candidates for the template node by global cost bound
     # sort_by_cost(smp, tmplt_idx, cand_idxs)
 
     while len(cand_idxs) > 0:
+        print("Choosing least cost candidate out of", len(cand_idxs), "options")
         # # Pop the candidate with the lowest cost
         # cand_idx = cand_idxs[0]
         # cand_idxs = cand_idxs[1:]
@@ -308,15 +349,19 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
             break
 
         if len(new_state.matching) == smp.tmplt.n_nodes:
-            add_new_solution(smp, new_state, tmplt_idx, solutions, k,
+            costs_changed = add_new_solution(smp, new_state, tmplt_idx, solutions, k,
                              reduce_world=False, nodewise=nodewise, edgewise=edgewise)
         else:
             child_smp = copy_smp_shallow_graphs(smp)
 
+            print("Old cost:", smp.global_costs[tmplt_idx, cand_idx])
             impose_state_assignments_on_smp(child_smp, tmplt_idx, new_state,
                                    reduce_world=False, nodewise=nodewise,
                                    edgewise=edgewise)
             if not satisfies_cost_threshold(smp, new_state.cost):
+                print("Skipping state w", len(current_state.matching)+1, "matches, cost:", new_state.cost,
+                      "old_cost:", smp.global_costs[tmplt_idx, cand_idx], "parent cost:", current_state.cost,
+                      "threshold:", smp.global_cost_threshold)
                 continue
 
             _greedy_best_k_matching_recursive(child_smp, current_state=new_state,
@@ -326,7 +371,14 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
                                              verbose=verbose)
 
             costs_changed = propagate_cost_threshold_changes(smp, child_smp)
-
+        if costs_changed:
+            old_cost = current_state.cost
+            current_state.cost = smp.global_costs.min()
+            if not satisfies_cost_threshold(smp, current_state.cost):
+                print("Breaking out of current state with cost updated from", old_cost, "to", current_state.cost)
+                break
+            else:
+                print("Updated current state cost from", old_cost, "to:", current_state.cost)
         # if costs_changed:
             # sort_by_cost(smp, tmplt_idx, cand_idxs)
 
