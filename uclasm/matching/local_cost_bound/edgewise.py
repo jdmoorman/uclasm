@@ -37,7 +37,6 @@ def set_assignment_costs(assignment_costs, tmplt_idx, cand_idxs, attr_costs):
         if attr_cost < assignment_costs[tmplt_idx, cand_idx]:
             assignment_costs[tmplt_idx, cand_idx] = attr_cost
 
-@profile
 def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
     """Compute edge disagreements between candidates.
 
