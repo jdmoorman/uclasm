@@ -263,10 +263,12 @@ class MatchingProblem:
             corresponding to the row.
         """
         if self.strict_threshold:
-            return np.logical_and(self.global_costs < self.global_cost_threshold,
-                                  ~np.isclose(self.global_costs, self.global_cost_threshold))
-        return np.logical_or(self.global_costs <= self.global_cost_threshold,
-                             np.isclose(self.global_costs, self.global_cost_threshold))
+            # return np.logical_and(self.global_costs < self.global_cost_threshold,
+            #                       ~np.isclose(self.global_costs, self.global_cost_threshold))
+            return self.global_costs < (self.global_cost_threshold - 1e-8)
+        # return np.logical_or(self.global_costs <= self.global_cost_threshold,
+        #                      np.isclose(self.global_costs, self.global_cost_threshold))
+        return self.global_costs <= (self.global_cost_threshold + 1e-8)
 
     def __str__(self):
         """Summarize the state of the matching problem.
