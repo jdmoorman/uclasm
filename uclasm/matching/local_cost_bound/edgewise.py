@@ -29,6 +29,37 @@ def iter_adj_pairs(tmplt, world):
 class _cache():
     edgewise_costs_cache = None
 
+def get_src_dst_weights(smp, src_idx, dst_idx):
+    """ Returns a tuple of src_weight, dst_weight indicating the weighting for
+    edge costs to node costs. Weights sum to 2, as they will later be divided by
+    2 in from_local_bounds.
+    """
+    if not smp.use_monotone:
+        if hasattr(smp, "next_tmplt_idx") and smp.next_tmplt_idx in [src_idx, dst_idx]:
+            if src_idx == smp.next_tmplt_idx:
+                return (2, 0)
+            elif dst_idx == smp.next_tmplt_idx:
+                return (0, 2)
+        else:
+            if src_idx in assigned_tmplt_idxs and dst_idx not in assigned_tmplt_idxs:
+                return (0, 2)
+            elif dst_idx in assigned_tmplt_idxs and src_idx not in assigned_tmplt_idxs:
+                return (2, 0)
+            else:
+                return (1, 1)
+    else:
+        return (1, 1)
+
+def get_edgelist_iterator(edgelist, src_col, dst_col, attr_keys, node_as_str=True):
+    n_edges = len(edgelist.index)
+    srcs = edgelist[src_col]
+    dsts = edgelist[dst_col]
+    if node_as_str:
+        srcs = srcs.astype(str)
+        dsts = dsts.astype(str)
+    attr_cols = [edgelist[key] for key in attr_keys]
+    return zip(range(n_edges), srcs, dsts, *attr_cols)
+
 from numba import float64, int64, void
 
 @numba.njit(void(float64[:,:], int64, int64[:], float64[:]))
@@ -122,84 +153,48 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
     else:
         # Iterate over template edges and consider best matches for world edges
         if use_cost_cache:
+            src_col = smp.tmplt.source_col
+            dst_col = smp.tmplt.target_col
+            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
+
             global _cache
             n_tmplt_edges = len(smp.tmplt.edgelist.index)
             n_world_edges = len(smp.world.edgelist.index)
             if _cache.edgewise_costs_cache is None or _cache.edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
                 _cache.edgewise_costs_cache = np.zeros((n_tmplt_edges, n_world_edges))
-                src_col = smp.tmplt.source_col
-                dst_col = smp.tmplt.target_col
-                tmplt_edgelist = smp.tmplt.edgelist
-                tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
-                tmplt_srcs = tmplt_edgelist[src_col]
-                tmplt_dsts = tmplt_edgelist[dst_col]
-                tmplt_attr_cols = [tmplt_edgelist[key] for key in tmplt_attr_keys]
-                for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in zip(range(n_tmplt_edges), tmplt_srcs, tmplt_dsts, *tmplt_attr_cols):
+
+                for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys):
                     tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
-                    src_node, dst_node = str(src_node), str(dst_node)
-                    cand_edgelist = smp.world.edgelist
 
-                    cand_attr_keys = [attr for attr in cand_edgelist.columns if attr not in [src_col, dst_col]]
-                    src_cands = cand_edgelist[src_col].astype(str)
-                    dst_cands = cand_edgelist[dst_col].astype(str)
-                    attr_cols = [cand_edgelist[key] for key in cand_attr_keys]
-
-                    for world_edge_idx, src_cand, dst_cand, *cand_attrs in zip(range(n_world_edges), src_cands, dst_cands, *attr_cols):
+                    cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col, dst_col]]
+                    for world_edge_idx, src_cand, dst_cand, *cand_attrs in get_edgelist_iterator(smp.world.edgelist, src_col, dst_col, cand_attr_keys):
                         cand_attrs_dict = dict(zip(cand_attr_keys, cand_attrs))
                         attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict)
                         _cache.edgewise_costs_cache[tmplt_edge_idx, world_edge_idx] = attr_cost
 
-            src_col = smp.tmplt.source_col
-            dst_col = smp.tmplt.target_col
-            tmplt_edgelist = smp.tmplt.edgelist
-            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
-            tmplt_srcs = tmplt_edgelist[src_col]
-            tmplt_dsts = tmplt_edgelist[dst_col]
-            tmplt_attr_cols = [tmplt_edgelist[key] for key in tmplt_attr_keys]
             assigned_tmplt_idxs = smp.assigned_tmplt_idxs()
-            for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in zip(range(n_tmplt_edges), tmplt_srcs, tmplt_dsts, *tmplt_attr_cols):
-                src_col = smp.tmplt.source_col
-                dst_col = smp.tmplt.target_col
+            for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
                 # Get candidates for src and dst
                 src_idx = smp.tmplt.node_idxs[src_node]
                 dst_idx = smp.tmplt.node_idxs[dst_node]
                 src_node, dst_node = str(src_node), str(dst_node)
-                if changed_cands is not None and smp.use_monotone:
-                    # If neither the source nor destination has changed, there is no
-                    # point in filtering on this pair of nodes
-                    if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-                        continue
                 # Matrix of costs of assigning template node src_idx and dst_idx
                 # to candidates row_idx and col_idx
                 assignment_costs = np.zeros(smp.shape)
                 missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node))
                 # Put the weight of assignments on the unassigned nodes, when possible
                 # Only works if monotone is disabled
-                if not smp.use_monotone:
-                    if hasattr(smp, "next_tmplt_idx") and smp.next_tmplt_idx in [src_idx, dst_idx]:
-                        if src_idx == smp.next_tmplt_idx:
-                            assignment_costs[src_idx, :] = 2 * missing_edge_cost
-                        elif dst_idx == smp.next_tmplt_idx:
-                            assignment_costs[dst_idx, :] = 2 * missing_edge_cost
-                    else:
-                        if src_idx in assigned_tmplt_idxs and dst_idx not in assigned_tmplt_idxs:
-                            assignment_costs[dst_idx, :] = 2 * missing_edge_cost
-                        elif dst_idx in assigned_tmplt_idxs and src_idx not in assigned_tmplt_idxs:
-                            assignment_costs[src_idx, :] = 2 * missing_edge_cost
-                        else:
-                            assignment_costs[src_idx, :] = missing_edge_cost
-                            assignment_costs[dst_idx, :] = missing_edge_cost
-                else:
-                    assignment_costs[src_idx, :] = missing_edge_cost
-                    assignment_costs[dst_idx, :] = missing_edge_cost
+                src_weight, dst_weight = get_src_dst_weights(smp, src_idx, dst_idx)
+                if src_weight > 0:
+                    assignment_costs[src_idx, :] = src_weight * missing_edge_cost
+                if dst_weight > 0:
+                    assignment_costs[dst_idx, :] = dst_weight * missing_edge_cost
 
                 # TODO: add some data to the graph classes to store the node indexes
                 # of the source and destination of each edge. You can then use this
                 # to efficiently get your masks by:
                 # >>> candidates[src_idx, smp.world.src_idxs]
-                src_cands = smp.world.nodes[candidates[src_idx]]
-                dst_cands = smp.world.nodes[candidates[dst_idx]]
                 world_edge_src_idxs = smp.world.edge_src_idxs
                 cand_edge_src_mask = candidates[src_idx, world_edge_src_idxs]
                 world_edge_dst_idxs = smp.world.edge_dst_idxs
@@ -211,78 +206,40 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                     # Put the weight of assignments on the unassigned nodes, when possible
                     # Only works if monotone is disabled
                     attr_costs = _cache.edgewise_costs_cache[tmplt_edge_idx, cand_edge_mask]
-                    if not smp.use_monotone:
-                        if hasattr(smp, "next_tmplt_idx") and smp.next_tmplt_idx in [src_idx, dst_idx]:
-                            if src_idx == smp.next_tmplt_idx:
-                                set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, 2 * attr_costs)
-                            elif dst_idx == smp.next_tmplt_idx:
-                                set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, 2 * attr_costs)
-                        else:
-                            if src_idx in assigned_tmplt_idxs and dst_idx not in assigned_tmplt_idxs:
-                                set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, 2 * attr_costs)
-                            elif dst_idx in assigned_tmplt_idxs and src_idx not in assigned_tmplt_idxs:
-                                set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, 2 * attr_costs)
-                            else:
-                                set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, attr_costs)
-                                set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, attr_costs)
-                    else:
-                        set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, attr_costs)
-                        set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, attr_costs)
-
+                    if src_weight > 0:
+                        set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, src_weight * attr_costs)
+                    if dst_weight > 0:
+                        set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, dst_weight * attr_costs)
                 new_local_costs += assignment_costs
             return new_local_costs
         else:
             src_col = smp.tmplt.source_col
             dst_col = smp.tmplt.target_col
             tmplt_edgelist = smp.tmplt.edgelist
-            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
-            tmplt_srcs = tmplt_edgelist[src_col]
-            tmplt_dsts = tmplt_edgelist[dst_col]
-            tmplt_attr_cols = [tmplt_edgelist[key] for key in tmplt_attr_keys]
+            tmplt_attr_keys = [attr for attr in tmplt_edgelist.columns if attr not in [src_col, dst_col]]
             assigned_tmplt_idxs = smp.assigned_tmplt_idxs()
-            for src_node, dst_node, *tmplt_attrs in zip(tmplt_srcs, tmplt_dsts, *tmplt_attr_cols):
-                src_col = smp.tmplt.source_col
-                dst_col = smp.tmplt.target_col
+            for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(tmplt_edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
                 # Get candidates for src and dst
                 src_idx = smp.tmplt.node_idxs[src_node]
                 dst_idx = smp.tmplt.node_idxs[dst_node]
                 src_node, dst_node = str(src_node), str(dst_node)
-                if changed_cands is not None and smp.use_monotone:
-                    # If neither the source nor destination has changed, there is no
-                    # point in filtering on this pair of nodes
-                    if not (changed_cands[src_idx] or changed_cands[dst_idx]):
-                        continue
                 # Matrix of costs of assigning template node src_idx and dst_idx
                 # to candidates row_idx and col_idx
                 assignment_costs = np.zeros(smp.shape)
                 missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node))
                 # Put the weight of assignments on the unassigned nodes, when possible
                 # Only works if monotone is disabled
-                if not smp.use_monotone:
-                    if hasattr(smp, "next_tmplt_idx") and smp.next_tmplt_idx in [src_idx, dst_idx]:
-                        if src_idx == smp.next_tmplt_idx:
-                            assignment_costs[src_idx, :] = 2 * missing_edge_cost
-                        elif dst_idx == smp.next_tmplt_idx:
-                            assignment_costs[dst_idx, :] = 2 * missing_edge_cost
-                    else:
-                        if src_idx in assigned_tmplt_idxs and dst_idx not in assigned_tmplt_idxs:
-                            assignment_costs[dst_idx, :] = 2 * missing_edge_cost
-                        elif dst_idx in assigned_tmplt_idxs and src_idx not in assigned_tmplt_idxs:
-                            assignment_costs[src_idx, :] = 2 * missing_edge_cost
-                        else:
-                            assignment_costs[src_idx, :] = missing_edge_cost
-                            assignment_costs[dst_idx, :] = missing_edge_cost
-                else:
-                    assignment_costs[src_idx, :] = missing_edge_cost
-                    assignment_costs[dst_idx, :] = missing_edge_cost
+                src_weight, dst_weight = get_src_dst_weights(smp, src_idx, dst_idx)
+                if src_weight > 0:
+                    assignment_costs[src_idx, :] = src_weight * missing_edge_cost
+                if dst_weight > 0:
+                    assignment_costs[dst_idx, :] = dst_weight * missing_edge_cost
 
                 # TODO: add some data to the graph classes to store the node indexes
                 # of the source and destination of each edge. You can then use this
                 # to efficiently get your masks by:
                 # >>> candidates[src_idx, smp.world.src_idxs]
-                src_cands = smp.world.nodes[candidates[src_idx]]
-                dst_cands = smp.world.nodes[candidates[dst_idx]]
                 world_edge_src_idxs = smp.world.edge_src_idxs
                 cand_edge_src_mask = candidates[src_idx, world_edge_src_idxs]
                 world_edge_dst_idxs = smp.world.edge_dst_idxs
@@ -306,24 +263,10 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
 
                     # Put the weight of assignments on the unassigned nodes, when possible
                     # Only works if monotone is disabled
-                    if not smp.use_monotone:
-                        if hasattr(smp, "next_tmplt_idx") and smp.next_tmplt_idx in [src_idx, dst_idx]:
-                            if src_idx == smp.next_tmplt_idx:
-                                assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], 2 * attr_cost)
-                            elif dst_idx == smp.next_tmplt_idx:
-                                assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], 2 * attr_cost)
-                        else:
-                            if src_idx in assigned_tmplt_idxs and dst_idx not in assigned_tmplt_idxs:
-                                assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], 2 * attr_cost)
-                            elif dst_idx in assigned_tmplt_idxs and src_idx not in assigned_tmplt_idxs:
-                                assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], 2 * attr_cost)
-                            else:
-                                assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], attr_cost)
-                                assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], attr_cost)
-                    else:
-                        assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], attr_cost)
-                        assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], attr_cost)
-
+                    if src_weight > 0:
+                        assignment_costs[src_idx, src_cand_idx] = min(assignment_costs[src_idx, src_cand_idx], src_weight * attr_cost)
+                    if dst_weight > 0:
+                        assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], dst_weight * attr_cost)
                 new_local_costs += assignment_costs
 
     return new_local_costs
