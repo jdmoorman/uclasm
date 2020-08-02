@@ -269,6 +269,71 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                         assignment_costs[dst_idx, dst_cand_idx] = min(assignment_costs[dst_idx, dst_cand_idx], dst_weight * attr_cost)
                 new_local_costs += assignment_costs
 
+            # # Handle temporal costs
+            # if hasattr(smp, "use_temporal_dist"):
+            #     if smp.use_temporal_dist:
+            #         # Assume the columns with checkable datetimes are stored in smp.temporal_columns
+            #         for time_col in smp.temporal_columns:
+            #             #######################################
+            #             from itertools import combinations
+            #             for src_idx, dst_idx in combinations(non_null_idxs, 2):
+            #                 src_time, dst_time = ...
+            #                 # cost_matrix = np.zeros(src_cands, dst_cands)
+            #                 # for src_cand_idx, dst_cand_idx in product(src_non_null_cands, dst_non_null_cands):
+            #                 #     src_cand_time, dst_cand_time = ...
+            #                 #     if src_cand_time < dst_cand_time != ...:
+            #                 #         cost_matrix[src_cand_idx, dst_cand_idx] = 1
+            #                 src_cand_times = np.array([1, 2, 3, 4])
+            #                 dst_cand_times = np.array([2, 1, 4, 5])
+            #                 # maybe a big matrix
+            #                 cost_matrix = (src_cand_times[None, :] < dst_cand_times[:, None] ) != (src_time < dst_time)
+            #                 # cost_matrix[src_cand_idxs, dst_cand_idxs] = 1 if
+            #                 temporal_costs[src_idx,:] += np.min(cost_matrix, axis=1)
+            #                 temporal_costs[dst_idx,:] += np.min(cost_matrix, axis=0)
+            #             handle_null_cands()
+            #             ########################################
+            #
+            #             # Filter out template nodes without time attributes
+            #             # non_null_mask = smp.tmplt.nodelist[time_col].notnull()
+            #             # non_null_idx_list = np.arange(smp.shape[0])[non_null_mask]
+            #             non_null_idx_list = np.argwhere(smp.tmplt.nodelist[time_col].notnull()).flatten()
+            #             # Track which template nodes had a non null candidate
+            #             has_non_null_cand = np.zeros_like(non_null_idx_list, dtype=np.bool)
+            #             non_null_nodelist = smp.tmplt.nodelist[time_col][non_null_idx_list]
+            #             num_non_null = len(non_null_idx_list)
+            #             for tmplt_idx, tmplt_time in zip(non_null_idx_list, non_null_nodelist):
+            #                 # Single row of local costs corresponding to tmplt_idx
+            #                 temporal_costs = np.zeros((smp.shape[1],))
+            #                 cand_mask = candidates[tmplt_idx]
+            #                 cand_idx_list = np.arange(smp.shape[1])[cand_mask]
+            #                 for row_idx, cand_time in enumerate(smp.world.edgelist[time_col][cand_mask]):
+            #                     if cand_time is pd.NaT:
+            #                         temporal_costs[cand_idx_list[row_idx]] = 2 * num_non_null
+            #                     else:
+            #                         has_non_null_cand[tmplt_idx] = True
+            #                         for tmplt_idx2, tmplt_time2 in zip(non_null_idx_list, non_null_nodelist):
+            #                             if tmplt_idx == tmplt_idx2:
+            #                                 continue
+            #                             cand_mask2 = candidates[tmplt_idx2]
+            #                             cand_idx_list2 = np.arange(smp.shape[1])[cand_mask2]
+            #                             min_cost = num_non_null
+            #                             for row_idx2, cand_time2 in enumerate(smp.world.edgelist[time_col][cand_mask2]):
+            #                                 if cand_time2 is pd.NaT:
+            #                                     continue
+            #                                 # Metric is undefined if dates are equal
+            #                                 # Assume this corresponds to a cost of 0
+            #                                 # Also assume no two template times are equal
+            #                                 if cand_time == cand_time2:
+            #                                     min_cost = 0
+            #                                     break
+            #                                 elif (cand_time < cand_time2) == (tmplt_time < tmplt_time2):
+            #                                     min_cost = 0
+            #                                     break
+            #                                 else:
+            #                                     min_cost = 1
+            #                             temporal_costs[cand_idx_list[row_idx]] += 2 * min_cost
+            #
+            #                 new_local_costs[tmplt_idx,:] += temporal_costs
     return new_local_costs
 
 def edgewise(smp, changed_cands=None):
