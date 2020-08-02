@@ -41,6 +41,7 @@ def get_src_dst_weights(smp, src_idx, dst_idx):
             elif dst_idx == smp.next_tmplt_idx:
                 return (0, 2)
         else:
+            assigned_tmplt_idxs = smp.assigned_tmplt_idxs
             if src_idx in assigned_tmplt_idxs and dst_idx not in assigned_tmplt_idxs:
                 return (0, 2)
             elif dst_idx in assigned_tmplt_idxs and src_idx not in assigned_tmplt_idxs:
@@ -172,7 +173,7 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                         attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict)
                         _cache.edgewise_costs_cache[tmplt_edge_idx, world_edge_idx] = attr_cost
 
-            assigned_tmplt_idxs = smp.assigned_tmplt_idxs()
+
             for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
                 # Get candidates for src and dst
@@ -217,7 +218,6 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
             dst_col = smp.tmplt.target_col
             tmplt_edgelist = smp.tmplt.edgelist
             tmplt_attr_keys = [attr for attr in tmplt_edgelist.columns if attr not in [src_col, dst_col]]
-            assigned_tmplt_idxs = smp.assigned_tmplt_idxs()
             for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(tmplt_edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
                 # Get candidates for src and dst

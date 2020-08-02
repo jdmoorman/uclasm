@@ -153,6 +153,7 @@ class MatchingProblem:
         self.missing_edge_cost_fn = missing_edge_cost_fn
 
         self.matching = set()
+        self.assigned_tmplt_idxs = set()
 
     def copy(self):
         """Returns a copy of the MatchingProblem."""
@@ -414,6 +415,7 @@ class MatchingProblem:
         mask[tuple(np.array(matching).T)] = False
         self.fixed_costs[mask] = float("inf")
         self.matching = matching
+        self.assigned_tmplt_idxs = {tmplt_idx for tmplt_idx, cand_idx in self.matching}
 
     def prevent_match(self, tmplt_idx, world_idx):
         """Prevent matching the template node with the given index to the world
@@ -426,8 +428,3 @@ class MatchingProblem:
             The index of the world node not to be matched.
         """
         self.fixed_costs[tmplt_idx, world_idx] = float("inf")
-
-    def assigned_tmplt_idxs(self):
-        """Returns the list of template indices that have already been
-        assigned to a candidate"""
-        return {tmplt_idx for tmplt_idx, cand_idx in self.matching}
