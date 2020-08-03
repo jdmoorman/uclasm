@@ -1,15 +1,17 @@
-# uclasm
-[![DOI](https://zenodo.org/badge/148378128.svg)](https://zenodo.org/badge/latestdoi/148378128)
+<div align="center">
+<img src="logo.png" alt="logo">
+</div>
 
-A python package for finding all the subgraph isomorphisms between template and background networks.
+<h2 align="center">Pattern matching on subgraphs</h2>
 
-# Getting Started
+<div align="center">
+<a href="https://zenodo.org/badge/latestdoi/148378128"><img alt="PyPI Version" src="https://zenodo.org/badge/148378128.svg"></a>
+</div>
 
-1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [anaconda](http://docs.anaconda.com/anaconda/install/)
-2. Clone the repository `git clone [link]`
-3. Create a conda environment
-    1. `cd [repository directory name]`
-    2. `conda env create -f environment.yml`
-4. Activate the environment `conda activate uclasm` or possibly `source activate uclasm`
-5. Move to the examples directory `cd examples`
-5. Try running the example code `python count_isomorphisms.py`
+<!-- <div align="center">
+<a href="https://pypi.org/project/kaczmarz-algorithms/"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/kaczmarz-algorithms.svg"></a>
+<a href="https://pypi.org/project/kaczmarz-algorithms/"><img alt="Supported Python Versions" src="https://img.shields.io/pypi/pyversions/kaczmarz-algorithms.svg"></a>
+<a href="https://github.com/jdmoorman/kaczmarz-algorithms/actions"><img alt="Build Status" src="https://github.com/jdmoorman/kaczmarz-algorithms/workflows/CI/badge.svg"></a>
+<a href="https://codecov.io/gh/jdmoorman/kaczmarz-algorithms"><img alt="Code Coverage" src="https://codecov.io/gh/jdmoorman/kaczmarz-algorithms/branch/master/graph/badge.svg"></a>
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+</div> -->
