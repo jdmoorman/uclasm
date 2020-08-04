@@ -7,10 +7,11 @@ Routines for running various other solvers.
 import os
 import subprocess
 import re
+import numpy as np
 
 
 def run_LAD(tmplt, world, timeout=600, stop_first=False, induced=False,
-            enum=False, verbose=False, keep_file=False):
+            enum=True, verbose=False, keep_file=False):
     """
     This will run the LAD solver on the specified template and world graph.
     The remaining arguments adjust the operation of the LAD solver.
@@ -40,7 +41,6 @@ def run_LAD(tmplt, world, timeout=600, stop_first=False, induced=False,
     command = "pathLAD/main -p {} -t {} -s {}".format(tmp_tmplt_filename,
                                                       tmp_world_filename,
                                                       timeout)
-
     if stop_first:
         command += " -f"
     if induced:
@@ -57,12 +57,19 @@ def run_LAD(tmplt, world, timeout=600, stop_first=False, induced=False,
         os.remove(tmp_tmplt_filename)
         os.remove(tmp_world_filename)
 
-    return parse_LAD_output(output.stdout)
+    return output.stdout
 
+def parse_LAD_output(tmplt, world, output):
+    """
+    Parse the output of the LAD solver.
+    """
+    candidates = np.zeros((tmplt.n_nodes, world.n_nodes), dtype=np.bool)
 
-def parse_LAD_output(output):
-    """
-    Parses the output from the Solnon Solver.
-    TODO: get the candidates out of the LAD output.
-    """
-    return list(map(float, re.findall("[\d\.]+", output)))
+    for t_node in range(tmplt.n_nodes):
+        cands = list(set(map(int, re.findall("{}=(\d+)".format(t_node), output))))
+        candidates[t_node, cands] = True
+
+    num_isomorphisms = int(re.findall("(\d+) solutions", output)[0])
+    runtime = float(re.findall("([\d\.]+) seconds", output)[0])
+
+    return candidates, num_isomorphisms, runtime

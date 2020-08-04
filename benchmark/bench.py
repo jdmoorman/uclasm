@@ -5,8 +5,13 @@ import networkx as nx
 from run_solvers import *
 
 
-tmplt = ds.from_networkx_graph(nx.erdos_renyi_graph(10, 0.4))
-world = ds.from_networkx_graph(nx.erdos_renyi_graph(20, 0.2))
+"""Note: Solnon benchmarks do not take isolated nodes into account."""
 
-# print(run_LAD(tmplt, world))
-print(run_LAD(tmplt, world, enum=True))
+
+tmplt = ds.from_networkx_graph(nx.erdos_renyi_graph(5, 0.2))
+world = ds.from_networkx_graph(nx.erdos_renyi_graph(10, 0.2))
+
+LAD_output = run_LAD(tmplt, world, enum=True)
+candidates, num_isomorphisms, runtime = parse_LAD_output(tmplt, world, LAD_output)
+
+import IPython; IPython.embed()
