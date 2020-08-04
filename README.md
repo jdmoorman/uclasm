@@ -2,7 +2,7 @@
 <img src="logo.png" alt="logo">
 </div>
 
-<h2 align="center">Pattern matching on subgraphs</h2>
+<h2 align="center">Pattern matching in graphs</h2>
 
 <div align="center">
 <a href="https://zenodo.org/badge/latestdoi/148378128"><img alt="PyPI Version" src="https://zenodo.org/badge/148378128.svg"></a>
