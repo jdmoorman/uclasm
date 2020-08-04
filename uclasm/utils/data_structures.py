@@ -141,9 +141,10 @@ class Graph:
 
 def from_networkx_graph(nx_graph):
     """
-    This will convert a networkx style graph into a uclasm style Graph.
+    This will convert a networkx style Graph into a uclasm style Graph.
     Currently this does not preserve node or edge labels. It just copies
     over the adjacency structure.
+
     Parameters
     ----------
     nx_graph : networkx.Graph
