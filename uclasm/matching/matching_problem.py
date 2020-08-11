@@ -115,7 +115,7 @@ class MatchingProblem:
             world = world.channel_subgraph(tmplt.channels)
 
         # Account for self edges in fixed costs.
-        if tmplt.has_loops:
+        if tmplt.adjs is not None and tmplt.has_loops:
             fixed_costs += feature_disagreements(
                 tmplt.self_edges,
                 world.self_edges

@@ -63,35 +63,52 @@ class Graph:
     target_col = "Target"
     channel_col = "eType"
 
-    def __init__(self, adjs, channels=None, nodelist=None, edgelist=None):
+    def __init__(self, adjs=None, channels=None, nodelist=None, edgelist=None,
+                 node_col=None, source_col=None, target_col=None, channel_col=None):
         """Derive attributes from parameters."""
         # Reverse compatibility with old format
-        if channels is not None and len(adjs) != len(channels):
+        if channels is not None and adjs is not None and len(adjs) != len(channels):
             # Old order is nodelist, channels, adjs
             temp = nodelist
             nodelist = pd.DataFrame(adjs, columns=[Graph.node_col])
             adjs = temp
-        if channels is not None and len(adjs) != len(channels):
+        if channels is not None and adjs is not None and len(adjs) != len(channels):
             raise Exception("Unable to match adjs to channels")
 
-        self.n_nodes = adjs[0].shape[0]
-        self.n_channels = len(adjs)
+        if node_col is not None:
+            self.node_col = node_col
+        if source_col is not None:
+            self.source_col = source_col
+        if target_col is not None:
+            self.target_col = target_col
+        if channel_col is not None:
+            self.channel_col = channel_col
+        if nodelist is not None:
+            # nodelist.shape[0]
+            self.n_nodes = len(nodelist.index)
+        else:
+            # If a nodelist is not supplied, generate a basic one
+            self.n_nodes = adjs[0].shape[0]
+            # e.g. ["node 0", "node 1", ...]
+            node_names = ["node {}".format(i) for i in range(self.n_nodes)]
+            nodelist = pd.DataFrame(node_names, columns=[self.node_col])
 
-        if channels is None:
+        if channels is not None:
+            self.n_channels = len(channels)
+        else:
+            self.n_channels = len(adjs)
             # e.g. ["channel 0", "channel 1", ...]
             channels = ["channel {}".format(i) for i in range(self.n_channels)]
 
         self.channels = list(channels)
-        self.adjs = list(adjs)
-        self.ch_to_adj = dict(zip(self.channels, self.adjs))
+        if adjs is not None:
+            self.adjs = list(adjs)
+            self.ch_to_adj = dict(zip(self.channels, self.adjs))
+        else:
+            self.adjs = None
+            self.ch_to_adj = None
 
         # TODO: If an edgelist was supplied, use it to compute this stuff.
-
-        # If a nodelist is not supplied, generate a basic one
-        if nodelist is None:
-            # e.g. ["node 0", "node 1", ...]
-            node_names = ["node {}".format(i) for i in range(self.n_nodes)]
-            nodelist = pd.DataFrame(node_names, columns=[self.node_col])
 
         self.nodelist = nodelist
         self.nodes = self.nodelist[self.node_col]
@@ -110,7 +127,10 @@ class Graph:
         Graph
             A copy of the graph.
         """
-        adjs_copy = [adj.copy() for adj in self.adjs]
+        if self.adjs is not None:
+            adjs_copy = [adj.copy() for adj in self.adjs]
+        else:
+            adjs_copy = None
         edgelist_copy = None
         if self.edgelist is not None:
             edgelist_copy = self.edgelist.copy()
@@ -155,7 +175,21 @@ class Graph:
         either direction in any channel. The entry will be True if the nodes
         are connected by an edge in some channel and False otherwise.
         """
-        return self.sym_composite_adj > 0
+        if self.adjs is not None:
+            return self.sym_composite_adj > 0
+        else:
+            is_nbr = np.zeros((self.n_nodes, self.n_nodes), dtype=np.bool)
+            for edge in self.edgelist.iterrows():
+                if isinstance(edge[self.source_col], list):
+                    src_idxs = [self.node_idxs[src_node] for src_node in edge[self.source_col]]
+                    dst_idxs = [self.node_idxs[dst_node] for dst_node in edge[self.target_col]]
+                    is_nbr[np.ix_(src_idxs, dst_idxs)] = True
+                else:
+                    src_idx = self.node_idxs[edge[self.source_col]]
+                    dst_idx = self.node_idxs[edge[self.target_col]]
+                    is_nbr[src_idx, dst_idx] = True
+                    is_nbr[dst_idx, src_idx] = True
+            return is_nbr
 
     @cached_property
     def nbr_idx_pairs(self):
@@ -275,7 +309,10 @@ class Graph:
             The induced subgraph.
         """
         # throw out nodes not belonging to the desired subgraph
-        adjs = [adj[node_idxs, :][:, node_idxs] for adj in self.adjs]
+        if self.adjs is not None:
+            adjs = [adj[node_idxs, :][:, node_idxs] for adj in self.adjs]
+        else:
+            adjs = None
         nodelist = self.nodelist.iloc[node_idxs].reset_index(drop=True)
         nodes = nodelist[self.node_col]
 
@@ -304,7 +341,10 @@ class Graph:
             The induced subgraph.
         """
         # throw out nodes not belonging to the desired subgraph
-        adjs = [self.adjs[self.channels.index(ch)] for ch in channels]
+        if self.adjs is not None:
+            adjs = [self.adjs[self.channels.index(ch)] for ch in channels]
+        else:
+            adjs = None
 
         if self.edgelist is not None:
             # Drop edges that do not have types among the desired channels.

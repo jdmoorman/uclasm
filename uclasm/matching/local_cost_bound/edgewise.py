@@ -167,12 +167,16 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                 for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys):
                     tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
 
-                    cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col, dst_col]]
-                    for world_edge_idx, src_cand, dst_cand, *cand_attrs in get_edgelist_iterator(smp.world.edgelist, src_col, dst_col, cand_attr_keys):
+                    src_col_world = smp.world.source_col
+                    dst_col_world = smp.world.target_col
+                    cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col_world, dst_col_world]]
+                    for world_edge_idx, src_cand, dst_cand, *cand_attrs in get_edgelist_iterator(smp.world.edgelist, src_col_world, dst_col_world, cand_attr_keys):
                         cand_attrs_dict = dict(zip(cand_attr_keys, cand_attrs))
-                        attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict)
+                        if 'importance' in tmplt_attr_keys:
+                            attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict, importance_value=tmplt_attrs_dict['importance'])
+                        else:
+                            attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict)
                         _cache.edgewise_costs_cache[tmplt_edge_idx, world_edge_idx] = attr_cost
-
 
             for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
@@ -183,7 +187,10 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                 # Matrix of costs of assigning template node src_idx and dst_idx
                 # to candidates row_idx and col_idx
                 assignment_costs = np.zeros(smp.shape)
-                missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node))
+                if 'importance' in tmplt_attr_keys:
+                    missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node), tmplt_attrs_dict['importance'])
+                else:
+                    missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node))
                 # Put the weight of assignments on the unassigned nodes, when possible
                 # Only works if monotone is disabled
                 src_weight, dst_weight = get_src_dst_weights(smp, src_idx, dst_idx)
@@ -249,7 +256,9 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                 src_cand_idxs = world_edge_src_idxs[cand_edge_mask]
                 dst_cand_idxs = world_edge_dst_idxs[cand_edge_mask]
 
-                cand_attr_keys = [attr for attr in cand_edgelist.columns if attr not in [src_col, dst_col]]
+                src_col_world = smp.world.source_col
+                dst_col_world = smp.world.target_col
+                cand_attr_keys = [attr for attr in cand_edgelist.columns if attr not in [src_col_world, dst_col_world]]
                 src_cands = cand_edgelist[src_col].astype(str)
                 dst_cands = cand_edgelist[dst_col].astype(str)
                 attr_cols = [cand_edgelist[key] for key in cand_attr_keys]
