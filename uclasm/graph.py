@@ -136,7 +136,12 @@ class Graph:
             edgelist_copy = self.edgelist.copy()
         return Graph(adjs_copy, channels=self.channels,
                      nodelist=self.nodelist.copy(),
-                     edgelist=edgelist_copy)
+                     edgelist=edgelist_copy,
+                     node_col=self.node_col,
+                     source_col=self.source_col,
+                     target_col=self.target_col,
+                     channel_col=self.channel_col
+                     )
 
     @cached_property
     def has_loops(self):
