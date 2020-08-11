@@ -135,8 +135,8 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True,
     """
 
     if candidates is None:
-        tmplt, world, candidates = uclasm.run_filters(
-            tmplt, world, filters=uclasm.all_filters, verbose=verbose)
+        tmplt, world, candidates = run_filters(
+            tmplt, world, filters=all_filters, verbose=verbose)
 
     matching = []
     spec_nodes = np.where(candidates.sum(axis=1) == 1)[0]
