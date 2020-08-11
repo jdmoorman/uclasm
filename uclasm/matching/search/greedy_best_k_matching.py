@@ -139,9 +139,6 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
             print(solution)
     return solutions
 
-def copy_smp_shallow_graphs(smp):
-    return smp.copy(copy_graphs=False)
-
 def satisfies_cost_threshold(smp, cost):
     # Ignore states whose cost is too high
     if smp.strict_threshold:
@@ -192,7 +189,7 @@ def propagate_cost_threshold_changes(smp, child_smp):
     return False
 
 def add_new_solution(smp, solution_state, tmplt_idx, solutions, k, **kwargs):
-    child_smp = copy_smp_shallow_graphs(smp)
+    child_smp = smp.copy(copy_graphs=False)
     impose_state_assignments_on_smp(child_smp, tmplt_idx, solution_state, **kwargs)
     old_cost = solution_state.cost
     solution_state.cost = child_smp.global_costs.min()
@@ -337,7 +334,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
             costs_changed = add_new_solution(smp, new_state, tmplt_idx, solutions, k,
                              reduce_world=False, nodewise=nodewise, edgewise=edgewise)
         else:
-            child_smp = copy_smp_shallow_graphs(smp)
+            child_smp = smp.copy(copy_graphs=False)
 
             print("Old cost:", smp.global_costs[tmplt_idx, cand_idx])
             impose_state_assignments_on_smp(child_smp, tmplt_idx, new_state,
@@ -389,7 +386,7 @@ def greedy_best_k_matching_recursive(orig_smp, k=1, nodewise=True, edgewise=True
     # the smp can carry around some notion of `matching` as a dict from template
     # nodes that only have one candidate to that corresponding candidate.
 
-    smp = copy_smp_shallow_graphs(orig_smp)
+    smp = orig_smp.copy(copy_graphs=False)
     current_state = State()  # Consider initializing this at the end of the block with arguments of `matching` and `cost`
     candidates = smp.candidates()
 
