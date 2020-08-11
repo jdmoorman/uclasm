@@ -155,9 +155,15 @@ class MatchingProblem:
         self.matching = set()
         self.assigned_tmplt_idxs = set()
 
-    def copy(self):
+    def copy(self, copy_graphs=True):
         """Returns a copy of the MatchingProblem."""
-        smp_copy = MatchingProblem(self.tmplt.copy(), self.world.copy(),
+        if copy_graphs:
+            tmplt = self.tmplt.copy()
+            world = self.world.copy()
+        else:
+            tmplt = self.tmplt
+            world = self.world
+        smp_copy = MatchingProblem(tmplt, world,
             fixed_costs=self._fixed_costs.copy(),
             local_costs=self._local_costs.copy(),
             global_costs=self._global_costs.copy(),

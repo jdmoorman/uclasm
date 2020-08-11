@@ -140,22 +140,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
     return solutions
 
 def copy_smp_shallow_graphs(smp):
-    smp_copy = MatchingProblem(smp.tmplt, smp.world,
-        fixed_costs=smp._fixed_costs.copy(),
-        local_costs=smp._local_costs.copy(),
-        global_costs=smp._global_costs.copy(),
-        node_attr_fn=smp.node_attr_fn,
-        edge_attr_fn=smp.edge_attr_fn,
-        missing_edge_cost_fn=smp.missing_edge_cost_fn,
-        local_cost_threshold=smp.local_cost_threshold,
-        global_cost_threshold=smp.global_cost_threshold,
-        strict_threshold=smp.strict_threshold,
-        ground_truth_provided=smp._ground_truth_provided,
-        candidate_print_limit=smp._candidate_print_limit,
-        use_monotone=smp.use_monotone)
-    if hasattr(smp, "template_importance"):
-        smp_copy.template_importance = smp.template_importance
-    return smp_copy
+    return smp.copy(copy_graphs=False)
 
 def satisfies_cost_threshold(smp, cost):
     # Ignore states whose cost is too high
