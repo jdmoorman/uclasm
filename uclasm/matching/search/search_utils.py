@@ -63,12 +63,26 @@ def set_fixed_costs(fixed_costs, matching):
     mask[tuple(np.array(matching).T)] = False
     fixed_costs[mask] = float("inf")
 
+import tqdm
+
 def add_node_attr_costs(smp, node_attr_fn):
     """Increase the fixed costs to account for difference in node attributes."""
-    for tmplt_idx, tmplt_row in smp.tmplt.nodelist.iterrows():
-        for world_idx, world_row in smp.world.nodelist.iterrows():
-            if smp.fixed_costs[tmplt_idx, world_idx] != float("inf"):
-                smp.fixed_costs[tmplt_idx, world_idx] += node_attr_fn(tmplt_row, world_row)
+    tmplt_attr_keys = [attr for attr in smp.tmplt.nodelist.columns]
+    tmplt_attr_cols = [smp.tmplt.nodelist[key] for key in tmplt_attr_keys]
+    tmplt_attrs_zip = zip(*tmplt_attr_cols)
+    world_attr_keys = [attr for attr in smp.world.nodelist.columns]
+    world_attr_cols = [smp.world.nodelist[key] for key in world_attr_keys]
+    world_attrs_zip = zip(*world_attr_cols)
+    with tqdm.tqdm(total=smp.tmplt.n_nodes * smp.world.n_nodes) as pbar:
+        # for tmplt_idx, tmplt_row in smp.tmplt.nodelist.iterrows():
+        for tmplt_idx, tmplt_attrs in enumerate(tmplt_attrs_zip):
+            # for world_idx, world_row in smp.world.nodelist.iterrows():
+            for world_idx, world_attrs in enumerate(world_attrs_zip):
+                pbar.update(1)
+                if smp.fixed_costs[tmplt_idx, world_idx] != float("inf"):
+                    tmplt_row = dict(zip(tmplt_attr_keys, tmplt_attrs))
+                    world_row = dict(zip(world_attr_keys, world_attrs))
+                    smp.fixed_costs[tmplt_idx, world_idx] += node_attr_fn(tmplt_row, world_row)
 
 def add_node_attr_costs_identity(smp):
     """Assume node attr fn is the sum of the difference between attributes."""
