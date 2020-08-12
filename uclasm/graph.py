@@ -127,10 +127,9 @@ class Graph:
         Graph
             A copy of the graph.
         """
+        adjs_copy = None
         if self.adjs is not None:
             adjs_copy = [adj.copy() for adj in self.adjs]
-        else:
-            adjs_copy = None
         edgelist_copy = None
         if self.edgelist is not None:
             edgelist_copy = self.edgelist.copy()
