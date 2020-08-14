@@ -90,7 +90,7 @@ def recursive_isomorphism_finder(tmplt, world, candidates, *,
         for tmplt_idx, tmplt_node in enumerate(tmplt.nodes):
             if verbose:
                 print(str(tmplt_node)+":", world.nodes[candidates[tmplt_idx]])
-                new_isomorphism[tmplt_node] = world.nodes[candidates[tmplt_idx]]
+            new_isomorphism[tmplt_node] = world.nodes[candidates[tmplt_idx]][0]
         found_isomorphisms.append(new_isomorphism)
         return found_isomorphisms
 
