@@ -139,6 +139,65 @@ class Graph:
             channel = list(self.channels)[0]
             self.write_channel_solnon(filename, channel)
 
+    def graph_to_txt(self, file_name, dir="."):
+        """
+        Transform an uclasm graph to "nodes.txt" and "edges.txt".
+
+        Note: used for comparison with sumgra.
+
+        TODO: Support multi-labels.
+        """
+
+        nodes_file = open("{}/{}_nodes.txt".format(file_name, dir), "w")
+        for label in self.labels:
+            if label:
+                nodes_file.write(label+"\n")
+            else:
+                nodes_file.write("-1\n")
+        nodes_file.close()
+        print ("Total number of nodes is: {}".format(len(self.nodes)))
+
+        # Note: channels need to be named 0, ..., (# channels-1)
+        num_edges = 0
+        edges_file = open("{}/{}_edges.txt".format(file_name, dir), "w")
+        for src, dst in zip(self.is_nbr.nonzero()[0], self.is_nbr.nonzero()[1]):
+            channels_with_edges = \
+                [str(ch_idx) for ch_idx in range(len(self.channels)) \
+                             if self.adjs[ch_idx][src, dst]]
+            if len(channels_with_edges) > 0:
+                num_edges += 1
+                joined_string = ",".join(channels_with_edges)
+                edges_file.write("{} {} ".format(src, dst)+joined_string+"\n")
+        edges_file.close()
+        print ("Total number of edges is: {}".format(num_edges))
+
+    def graph_to_ged(self, file_name, dir="."):
+        """
+        Transform an uclasm graph to "nodes.txt" and "edges.txt".
+
+        Note: used for comparison with Multi-RI.
+        """
+        file = open("{}/{}.txt".format(dir, file_name), "w")
+        file.write(str(len(self.nodes))+"\n")
+        for label in self.labels:
+            if label:
+                file.write(label+"\n")
+            else:
+                file.write("-1\n")
+        print ("Total number of nodes is: {}".format(len(self.nodes)))
+
+        # Note: channels need to be named 0, ..., (# channels-1)
+        file.write(str(self.composite_adj.count_nonzero())+"\n")
+        print ("Total number of edges is: {}".format(self.composite_adj.count_nonzero()))
+        for src, dst in zip(self.is_nbr.nonzero()[0], self.is_nbr.nonzero()[1]):
+            channels_with_edges = \
+                [str(ch_idx) for ch_idx in range(len(self.channels)) \
+                             if self.adjs[ch_idx][src, dst]]
+            if len(channels_with_edges) > 0:
+                joined_string = ",".join(channels_with_edges)
+                file.write("{}\t{}\t".format(src, dst)+joined_string+"\n")
+        file.close()
+
 def from_networkx_graph(nx_graph):
     """
     This will convert a networkx style Graph into a uclasm style Graph.
