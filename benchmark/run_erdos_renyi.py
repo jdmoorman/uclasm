@@ -43,7 +43,7 @@ def process_fn(tmplt, world, result_queue=None, label=None, count_isomorphisms=F
 		result["has_iso"] = count > 0
 	else:
 		start_time = default_timer()
-		from filters.has_isomorphism import has_isomorphism
+		from uclasm.counting.has_isomorphism import has_isomorphism
 		has_iso, n_iterations = has_isomorphism(tmplt, world, candidates=candidates, verbose=False, count_iterations=True)
 		# if has_iso:
 		# 	print("Has isomorphism")
