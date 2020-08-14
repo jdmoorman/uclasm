@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 from multiprocessing import Process, Queue
 
 np.random.seed(0)
-timeout = 5000
+timeout = 1000
 
 def process_fn(tmplt, world, result_queue=None, label=None, count_isomorphisms=False):
 	result = {}
@@ -138,7 +138,7 @@ n_world_nodes = 150
 # n_layers = 1
 n_trials = 40
 n_cores = 40
-count_isomorphisms = True
+count_isomorphisms = False
 
 n_tmplt_nodes = 10
 tmplt_prob = 0.5
