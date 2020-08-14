@@ -83,7 +83,8 @@ def elimination_filter(tmplt, world, candidates, *,
             tmplt, world, candidates = run_filters(
                 tmplt, world, candidates=candidates, filters=cheap_filters,
                 init_changed_cands=init_changed_cands, verbose=False)
-        print("Eliminating", elim_count, "of", n_candidates, ";world now has", world.n_nodes, "nodes")
+        if verbose:
+            print("Eliminating", elim_count, "of", n_candidates, ";world now has", world.n_nodes, "nodes")
 
     if verbose:
         print("Elimination filter finished, skipped {} nodes".format(n_skipped))
