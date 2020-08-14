@@ -65,7 +65,7 @@ def topology_filter(tmplt, world, candidates, *,
                     enough_edges = world_sub_adj >= tmplt_adj_val2
                 else:
                     # enough_edges[world_sub_adj < tmplt_adj_val2] = False
-                    enough_edges = enough_edges.multiply(world_sub_adj >= tmplt_adj_val1)
+                    enough_edges = enough_edges.multiply(world_sub_adj >= tmplt_adj_val2)
 
         # i,j element is 1 if cands i and j have enough edges between them
 
