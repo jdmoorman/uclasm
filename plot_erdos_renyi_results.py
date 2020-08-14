@@ -1,4 +1,4 @@
-import uclasm 
+import uclasm
 
 from matplotlib import pyplot as plt
 import matplotlib.colors as colors
@@ -11,8 +11,8 @@ n_layers = 1
 # n_trials = 500
 n_trials = 40
 # n_layers = 1
-count_isomorphisms = True
-timeout = 5000
+count_isomorphisms = False
+timeout = 1000
 
 if False:
     results = np.load("erdos_renyi_results_{}_trials_{}_layers.npy".format(n_trials, n_layers), allow_pickle=True)
@@ -60,7 +60,7 @@ if True:
     #   else:
     #       mean_iters.append(0)
     # plt.plot(range(10,300,10), mean_iters)
-    
+
     results = np.load("erdos_renyi_results_{}_trials_{}_layers{}_timeout_{}_vary_world_size.npy".format(n_trials, n_layers, "_count_iso" if count_isomorphisms else "", timeout), allow_pickle=True)
     results_df = pd.DataFrame([x for x in results])
     w_nodes_list = pd.unique(results_df['n_world_nodes'])
