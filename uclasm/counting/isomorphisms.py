@@ -7,9 +7,12 @@ from functools import reduce
 
 # TODO: count how many isomorphisms each background node participates in.
 # TODO: switch from recursive to iterative implementation for readability
+n_iterations = 0
 
 def recursive_isomorphism_counter(tmplt, world, candidates, *,
-                                  unspec_cover, verbose, init_changed_cands):
+                                  unspec_cover, verbose, init_changed_cands, count_iterations=False):
+    global n_iterations
+    n_iterations += 1
     # If the node cover is empty, the unspec nodes are disconnected. Thus, we
     # can skip straight to counting solutions to the alldiff constraint problem
     if len(unspec_cover) == 0:
@@ -37,7 +40,7 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
         # recurse to make assignment for the next node in the unspecified cover
         n_isomorphisms += recursive_isomorphism_counter(
             tmplt, world, candidates_copy, unspec_cover=unspec_cover[1:],
-            verbose=verbose, init_changed_cands=one_hot(node_idx, tmplt.n_nodes))
+            verbose=verbose, init_changed_cands=one_hot(node_idx, tmplt.n_nodes), count_iterations=count_iterations)
 
         # TODO: more useful progress summary
         if verbose:
@@ -46,7 +49,7 @@ def recursive_isomorphism_counter(tmplt, world, candidates, *,
     return n_isomorphisms
 
 
-def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
+def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True, count_iterations=False):
     """
     counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -56,6 +59,8 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
     if the set of unspecified template nodes is too large or too densely
     connected, this code may never finish.
     """
+    global n_iterations
+    n_iterations = 0
 
     if candidates is None:
         tmplt, world, candidates = uclasm.run_filters(
@@ -68,9 +73,13 @@ def count_isomorphisms(tmplt, world, *, candidates=None, verbose=True):
     unspec_cover_idxes = [tmplt.node_idxs[node] for node in unspec_cover_nodes]
 
     # Send zeros to init_changed_cands since we already just ran the filters
-    return recursive_isomorphism_counter(
+    count = recursive_isomorphism_counter(
         tmplt, world, candidates, verbose=verbose, unspec_cover=unspec_cover_idxes,
-        init_changed_cands=np.zeros(tmplt.nodes.shape, dtype=np.bool))
+        init_changed_cands=np.zeros(tmplt.nodes.shape, dtype=np.bool), count_iterations=count_iterations)
+    if count_iterations:
+        return count, n_iterations
+    else:
+        return count
 
 def recursive_isomorphism_finder(tmplt, world, candidates, *,
                                  unspec_node_idxs, verbose, init_changed_cands,
