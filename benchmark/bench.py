@@ -13,13 +13,12 @@ def connected_component_subgraphs(G):
             yield G.subgraph(c)
 
 tmplt_G = max(connected_component_subgraphs(nx.erdos_renyi_graph(10, 0.3)), key=len)
-world_G = max(connected_component_subgraphs(nx.erdos_renyi_graph(30, 0.2)), key=len)
+world_G = max(connected_component_subgraphs(nx.erdos_renyi_graph(50, 0.2)), key=len)
 
 tmplt = ds.from_networkx_graph(tmplt_G)
 world = ds.from_networkx_graph(world_G)
 
 LAD_output = run_LAD(tmplt, world, enum=True)
-print(LAD_output)
 
 candidates_LAD, num_isomorphisms, runtime_LAD = parse_LAD_output(tmplt, world, LAD_output)
 
