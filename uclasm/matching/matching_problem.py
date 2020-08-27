@@ -253,7 +253,7 @@ class MatchingProblem:
     def global_costs(self, value):
         self._global_costs[:] = value
 
-    def candidates(self):
+    def candidates(self, tmplt_idx=None):
         """Get the matrix of compatibility between template and world nodes.
 
         World node j is considered to be a candidate for a template node i if
@@ -272,9 +272,13 @@ class MatchingProblem:
         if self.strict_threshold:
             # return np.logical_and(self.global_costs < self.global_cost_threshold,
             #                       ~np.isclose(self.global_costs, self.global_cost_threshold))
+            if tmplt_idx is not None:
+                return self.global_costs[tmplt_idx] < (self.global_cost_threshold - 1e-8)
             return self.global_costs < (self.global_cost_threshold - 1e-8)
         # return np.logical_or(self.global_costs <= self.global_cost_threshold,
         #                      np.isclose(self.global_costs, self.global_cost_threshold))
+        if tmplt_idx is not None:
+            return self.global_costs[tmplt_idx] <= (self.global_cost_threshold + 1e-8)
         return self.global_costs <= (self.global_cost_threshold + 1e-8)
 
     def __str__(self):
