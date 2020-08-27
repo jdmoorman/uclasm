@@ -329,7 +329,11 @@ class Graph:
             edgelist = None
 
         # Return a new graph object for the induced subgraph
-        return Graph(adjs, self.channels, nodelist, edgelist)
+        return Graph(adjs, self.channels, nodelist, edgelist,
+                    node_col=self.node_col,
+                    source_col=self.source_col,
+                    target_col=self.target_col,
+                    channel_col=self.channel_col)
 
     def channel_subgraph(self, channels):
         """Get the subgraph induced by the specified channels.
@@ -358,7 +362,11 @@ class Graph:
             edgelist = None
 
         # Return a new graph object for the induced subgraph
-        return Graph(adjs, channels, self.nodelist, edgelist)
+        return Graph(adjs, channels, self.nodelist, edgelist,
+                    node_col=self.node_col,
+                    source_col=self.source_col,
+                    target_col=self.target_col,
+                    channel_col=self.channel_col)
 
     def node_cover(self):
         """Get the indices of nodes for a node cover, sorted by importance.
