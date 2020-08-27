@@ -113,7 +113,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
                     continue
                 cost_map[new_matching_tuple] = new_state.cost
                 if len(new_state.matching) == smp.tmplt.n_nodes:
-                    # temp_smp = curr_smp.copy()
+                    # temp_smp = curr_smp.copy(copy_graphs=False)
                     # temp_smp.enforce_matching(new_state.matching)
                     # # Do not reduce world as it can mess up the world indices in the matching
                     # iterate_to_convergence(temp_smp, reduce_world=False,
@@ -308,8 +308,9 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
 
     smp.next_tmplt_idx = tmplt_idx
     iterate_to_convergence(smp, reduce_world=False, nodewise=nodewise, edgewise=edgewise)
-    candidates = smp.candidates()
-    cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
+    # candidates = smp.candidates()
+    # cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
+    cand_idxs = list(np.argwhere(smp.candidates(tmplt_idx)).flatten())
     print("Updated current state: {} matches".format(len(current_state.matching)),
           "current_cost:", current_state.cost,
           "kth_cost:", kth_cost,  "max_cost", smp.global_cost_threshold,
