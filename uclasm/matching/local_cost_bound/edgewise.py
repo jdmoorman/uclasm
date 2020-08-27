@@ -34,6 +34,11 @@ def get_src_dst_weights(smp, src_idx, dst_idx):
     edge costs to node costs. Weights sum to 2, as they will later be divided by
     2 in from_local_bounds.
     """
+    if isinstance(src_idx, list) or isinstance(dst_idx, list):
+        if len(src_idx) == 1:
+            return (2, 0)
+        elif len(dst_idx) == 1:
+            return (0, 2)
     if not smp.use_monotone:
         if hasattr(smp, "next_tmplt_idx") and smp.next_tmplt_idx in [src_idx, dst_idx]:
             if src_idx == smp.next_tmplt_idx:
@@ -180,10 +185,24 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
 
             for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
-                # Get candidates for src and dst
-                src_idx = smp.tmplt.node_idxs[src_node]
-                dst_idx = smp.tmplt.node_idxs[dst_node]
-                src_node, dst_node = str(src_node), str(dst_node)
+                if isinstance(src_node, list) or isinstance(dst_node, list):
+                    # Handle templates with multiple alternatives
+                    if len(src_node) > 1 and len(dst_node) > 1:
+                        raise Exception("Edgewise cost bound cannot handle template edges with both multiple sources and multiple destinations.")
+                    elif len(src_node) == 1 and len(dst_node) == 1:
+                        src_node = src_node[0]
+                        dst_node = dst_node[0]
+                        src_idx = smp.tmplt.node_idxs[src_node]
+                        dst_idx = smp.tmplt.node_idxs[dst_node]
+                        src_node, dst_node = str(src_node), str(dst_node)
+                    else:
+                        src_idx = [smp.tmplt.node_idxs[src_node_i] for src_node_i in src_node]
+                        dst_idx = [smp.tmplt.node_idxs[dst_node_i] for dst_node_i in dst_node]
+                else:
+                    # Get candidates for src and dst
+                    src_idx = smp.tmplt.node_idxs[src_node]
+                    dst_idx = smp.tmplt.node_idxs[dst_node]
+                    src_node, dst_node = str(src_node), str(dst_node)
                 # Matrix of costs of assigning template node src_idx and dst_idx
                 # to candidates row_idx and col_idx
                 assignment_costs = np.zeros(smp.shape)
@@ -204,9 +223,15 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                 # to efficiently get your masks by:
                 # >>> candidates[src_idx, smp.world.src_idxs]
                 world_edge_src_idxs = smp.world.edge_src_idxs
-                cand_edge_src_mask = candidates[src_idx, world_edge_src_idxs]
+                if isinstance(src_idx, list):
+                    cand_edge_src_mask = np.sum(candidates[src_idx, :][:, world_edge_src_idxs], axis=0)
+                else:
+                    cand_edge_src_mask = candidates[src_idx, world_edge_src_idxs]
                 world_edge_dst_idxs = smp.world.edge_dst_idxs
-                cand_edge_dst_mask = candidates[dst_idx, world_edge_dst_idxs]
+                if isinstance(dst_idx, list):
+                    cand_edge_dst_mask = np.sum(candidates[dst_idx, :][:, world_edge_dst_idxs], axis=0)
+                else:
+                    cand_edge_dst_mask = candidates[dst_idx, world_edge_dst_idxs]
                 cand_edge_mask = np.logical_and(cand_edge_src_mask, cand_edge_dst_mask)
                 if np.any(cand_edge_mask):
                     src_cand_idxs = world_edge_src_idxs[cand_edge_mask]
