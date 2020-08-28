@@ -2,6 +2,8 @@
 import numpy as np
 import pandas as pd
 import numba
+import os
+import tqdm
 
 def iter_adj_pairs(tmplt, world):
     """Generator for pairs of adjacency matrices.
@@ -25,9 +27,6 @@ def iter_adj_pairs(tmplt, world):
         world_adj = world.ch_to_adj[channel]
         yield (tmplt_adj, world_adj)
         yield (tmplt_adj.T, world_adj.T)
-
-class _cache():
-    edgewise_costs_cache = None
 
 def get_src_dst_weights(smp, src_idx, dst_idx):
     """ Returns a tuple of src_weight, dst_weight indicating the weighting for
@@ -163,12 +162,11 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
             dst_col = smp.tmplt.target_col
             tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
 
-            global _cache
             n_tmplt_edges = len(smp.tmplt.edgelist.index)
             n_world_edges = len(smp.world.edgelist.index)
-            if _cache.edgewise_costs_cache is None or _cache.edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
-                _cache.edgewise_costs_cache = np.zeros((n_tmplt_edges, n_world_edges))
-
+            if smp._edgewise_costs_cache is None:
+                smp._edgewise_costs_cache = np.zeros((n_tmplt_edges, n_world_edges))
+                pbar = tqdm.tqdm(total=len(smp.tmplt.edgelist.index), position=0, leave=True, ascii=True)
                 for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys):
                     tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
 
@@ -181,7 +179,18 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                             attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict, importance_value=tmplt_attrs_dict['importance'])
                         else:
                             attr_cost = smp.edge_attr_fn((src_node, dst_node), (src_cand, dst_cand), tmplt_attrs_dict, cand_attrs_dict)
-                        _cache.edgewise_costs_cache[tmplt_edge_idx, world_edge_idx] = attr_cost
+                        smp._edgewise_costs_cache[tmplt_edge_idx, world_edge_idx] = attr_cost
+                    pbar.update(1)
+                pbar.close()
+                if smp.cache_path is not None:
+                    np.save(os.path.join(smp.cache_path, "edgewise_costs_cache.npy"), smp._edgewise_costs_cache)
+                    try:
+                        os.chmod(smp.cache_path, 0o770)
+                    except:
+                        pass
+            else:
+                 if smp._edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
+                     raise Exception("Edgewise costs cache not properly computed!")
 
             for tmplt_edge_idx, src_node, dst_node, *tmplt_attrs in get_edgelist_iterator(smp.tmplt.edgelist, src_col, dst_col, tmplt_attr_keys, node_as_str=False):
                 tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
@@ -238,7 +247,7 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                     dst_cand_idxs = world_edge_dst_idxs[cand_edge_mask]
                     # Put the weight of assignments on the unassigned nodes, when possible
                     # Only works if monotone is disabled
-                    attr_costs = _cache.edgewise_costs_cache[tmplt_edge_idx, cand_edge_mask]
+                    attr_costs = smp._edgewise_costs_cache[tmplt_edge_idx, cand_edge_mask]
                     if src_weight > 0:
                         set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, src_weight * attr_costs)
                     if dst_weight > 0:

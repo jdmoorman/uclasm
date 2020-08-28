@@ -95,6 +95,7 @@ class MatchingProblem:
                  strict_threshold=False,
                  ground_truth_provided=False,
                  candidate_print_limit=10,
+                 cache_path=None,
                  use_monotone=True):
 
         # Various important matrices will have this shape.
@@ -134,6 +135,15 @@ class MatchingProblem:
             self._local_costs = local_costs
             # self._global_costs = global_costs
         self._global_costs = global_costs.view(MonotoneArray)
+
+        # Cache of edge-to-edge costs for the edgewise local cost bound
+        self._edgewise_costs_cache = None
+        self.cache_path = cache_path
+        if self.cache_path is not None:
+            try:
+                self._edgewise_costs_cache = np.load(os.path.join(self.cache_path, "edgewise_costs_cache"))
+            except:
+                pass
 
         # No longer care about self-edges because they are fixed costs.
         self.tmplt = tmplt
@@ -374,7 +384,7 @@ class MatchingProblem:
 
         # If some world node does not serve as candidates to any tmplt node
         if ~is_cand.all():
-            self.world = self.world.node_subgraph(is_cand)
+            self.world, edge_is_cand = self.world.node_subgraph(is_cand, get_edge_is_cand)
             self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
             # Update parameters based on new world
@@ -382,6 +392,9 @@ class MatchingProblem:
             self.set_costs(fixed_costs=self.fixed_costs[:, is_cand])
             self.set_costs(global_costs=self.global_costs[:, is_cand])
             from_local_bounds(self)
+
+            if edge_is_cand is not None and self._edgewise_costs_cache is not None:
+                self._edgewise_costs_cache = self._edgewise_costs_cache[:, edge_is_cand]
         return is_cand
 
     def have_candidates_changed(self):

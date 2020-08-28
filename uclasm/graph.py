@@ -296,7 +296,7 @@ class Graph:
         # Return a new graph object for the subgraph
         return Graph(adjs, self.channels, self.nodelist, edgelist)
 
-    def node_subgraph(self, node_idxs):
+    def node_subgraph(self, node_idxs, get_edge_is_cand=False):
         """Get the subgraph induced by the specified node indices.
 
         TODO: Any of the composite adjacency matrices should be subgraphed if
@@ -320,20 +320,26 @@ class Graph:
         nodelist = self.nodelist.iloc[node_idxs].reset_index(drop=True)
         nodes = nodelist[self.node_col]
 
+        edge_is_cand = None
         if self.edgelist is not None:
             # TODO: Test this to see if it works with dask DataFrames.
             _sources = self.edgelist[self.source_col].isin(nodes)
             _targets = self.edgelist[self.target_col].isin(nodes)
+            edge_is_cand = _sources & _targets
             edgelist = self.edgelist[_sources & _targets].reset_index(drop=True)
         else:
             edgelist = None
 
         # Return a new graph object for the induced subgraph
-        return Graph(adjs, self.channels, nodelist, edgelist,
+        subgraph = Graph(adjs, self.channels, nodelist, edgelist,
                     node_col=self.node_col,
                     source_col=self.source_col,
                     target_col=self.target_col,
                     channel_col=self.channel_col)
+        if get_edge_is_cand:
+            return subgraph, edge_is_cand
+        else:
+            return subgraph
 
     def channel_subgraph(self, channels):
         """Get the subgraph induced by the specified channels.
