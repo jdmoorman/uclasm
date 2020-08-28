@@ -141,7 +141,8 @@ class MatchingProblem:
         self.cache_path = cache_path
         if self.cache_path is not None:
             try:
-                self._edgewise_costs_cache = np.load(os.path.join(self.cache_path, "edgewise_costs_cache"))
+                self._edgewise_costs_cache = np.load(os.path.join(self.cache_path, "edgewise_costs_cache.npy"))
+                print("Edge-to-edge costs loaded from cache")
             except:
                 pass
 
