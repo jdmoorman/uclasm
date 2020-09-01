@@ -1,6 +1,3 @@
-import sys
-sys.path.append("..")
-
 import uclasm
 
 nodelist = uclasm.load_nodelist(

@@ -1,6 +1,3 @@
-import sys
-sys.path.append("..")
-
 import uclasm
 import numpy as np
 from scipy import sparse

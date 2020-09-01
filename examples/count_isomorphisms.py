@@ -1,7 +1,3 @@
-import sys
-sys.path.append("..")
-import numpy as np
-
 import uclasm
 
 from load_data_combo import tmplt, world
