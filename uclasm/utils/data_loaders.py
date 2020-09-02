@@ -14,8 +14,9 @@ def edgelist_to_adjs(edgelist, nodelist=None):
 
     if nodelist is None:
         nodes = pd.concat([edgecounts.src, edgecounts.dst]).unique()
-    else:
-        nodes = nodelist.node
+        nodelist = pd.DataFrame({"node": nodes, "label": None})
+
+    nodes = nodelist.node
 
     node_to_idx = {node: idx for idx, node in enumerate(nodes)}
     edgecounts[["src", "dst"]] = edgecounts[["src", "dst"]].applymap(node_to_idx.get)
