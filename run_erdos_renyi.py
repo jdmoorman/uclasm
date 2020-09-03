@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 from multiprocessing import Process, Queue
 
 np.random.seed(0)
-timeout = 1000
+timeout = 10000
 
 def process_fn(tmplt, world, result_queue=None, label=None, count_isomorphisms=False):
     result = {}
@@ -145,11 +145,11 @@ tmplt_prob = 0.5
 world_prob = 0.5
 
 # for n_layers in [1,3,5,7,9]:
-n_layers = 1
+n_layers = 2
 if True:
     results = []
     import tqdm
-    for n_world_nodes in tqdm.tqdm(range(10, 3000, 5)):
+    for n_world_nodes in tqdm.tqdm(range(10, 3000, 5), ascii=True):
         n_trials_remaining = n_trials
         while n_trials_remaining > 0:
             process_list = []
