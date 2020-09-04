@@ -40,8 +40,6 @@ def validate_alldiff_solns(tmplt, world, candidates):
         for var in var_to_vals}
 
     def recursive_validate(var_to_vars_list, vars_to_vals, vars_to_val_counts):
-        global n_iterations
-        n_iterations += 1
         if len(var_to_vars_list) == 0:
             return True
         # Retrieve an arbitrary unspecified variable
