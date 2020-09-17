@@ -15,5 +15,6 @@ world = uclasm.load_edgelist("world.csv",
 smp = uclasm.MatchingProblem(tmplt, world)
 
 uclasm.matching.local_cost_bound.nodewise(smp)
+uclasm.matching.global_cost_bound.from_local_bounds(smp)
 
 print(smp)
