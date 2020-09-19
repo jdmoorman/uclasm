@@ -141,9 +141,10 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
         if reduce_world:
             smp.reduce_world()
         old_candidates = smp.candidates().copy()
-        # Remove non-candidates permanently by setting fixed costs to infinity
-        non_cand_mask = np.ones(smp.shape, dtype=np.bool)
-        non_cand_mask[old_candidates] = False
-        smp.fixed_costs[non_cand_mask] = float("inf")
+        if smp.match_fixed_costs:
+            # Remove non-candidates permanently by setting fixed costs to infinity
+            non_cand_mask = np.ones(smp.shape, dtype=np.bool)
+            non_cand_mask[old_candidates] = False
+            smp.fixed_costs[non_cand_mask] = float("inf")
     if verbose:
         print(smp)

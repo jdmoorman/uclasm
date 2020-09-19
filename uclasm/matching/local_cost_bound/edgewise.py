@@ -188,6 +188,7 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                         os.chmod(smp.cache_path, 0o770)
                     except:
                         pass
+                    print("Edge-to-edge costs saved to cache")
             else:
                  if smp._edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
                      raise Exception("Edgewise costs cache not properly computed!")

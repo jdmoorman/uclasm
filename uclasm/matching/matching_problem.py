@@ -1,5 +1,6 @@
 """This module provides a class for representing subgraph matching problems."""
 import numpy as np
+import os
 
 from .matching_utils import inspect_channels, MonotoneArray, \
     feature_disagreements
@@ -96,7 +97,9 @@ class MatchingProblem:
                  ground_truth_provided=False,
                  candidate_print_limit=10,
                  cache_path=None,
-                 use_monotone=True):
+                 edgewise_costs_cache=None,
+                 use_monotone=True,
+                 match_fixed_costs=False):
 
         # Various important matrices will have this shape.
         self.shape = (tmplt.n_nodes, world.n_nodes)
@@ -125,6 +128,7 @@ class MatchingProblem:
             world = world.loopless_subgraph()
 
         self.use_monotone = use_monotone
+        self.match_fixed_costs = match_fixed_costs
 
         if use_monotone:
             self._fixed_costs = fixed_costs.view(MonotoneArray)
@@ -137,14 +141,14 @@ class MatchingProblem:
         self._global_costs = global_costs.view(MonotoneArray)
 
         # Cache of edge-to-edge costs for the edgewise local cost bound
-        self._edgewise_costs_cache = None
+        self._edgewise_costs_cache = edgewise_costs_cache
         self.cache_path = cache_path
-        if self.cache_path is not None:
+        if self.cache_path is not None and self._edgewise_costs_cache is None:
             try:
                 self._edgewise_costs_cache = np.load(os.path.join(self.cache_path, "edgewise_costs_cache.npy"))
                 print("Edge-to-edge costs loaded from cache")
-            except:
-                pass
+            except IOError as e:
+                print("No edgewise cost cache found.")
 
         # No longer care about self-edges because they are fixed costs.
         self.tmplt = tmplt
@@ -175,7 +179,7 @@ class MatchingProblem:
             tmplt = self.tmplt
             world = self.world
         smp_copy = MatchingProblem(tmplt, world,
-            fixed_costs=self._fixed_costs.copy(),
+            fixed_costs=self._fixed_costs.copy() if self.match_fixed_costs else self._fixed_costs,
             local_costs=self._local_costs.copy(),
             global_costs=self._global_costs.copy(),
             node_attr_fn=self.node_attr_fn,
@@ -186,9 +190,16 @@ class MatchingProblem:
             strict_threshold=self.strict_threshold,
             ground_truth_provided=self._ground_truth_provided,
             candidate_print_limit=self._candidate_print_limit,
-            use_monotone=self.use_monotone)
+            cache_path=self.cache_path,
+            edgewise_costs_cache=self._edgewise_costs_cache,
+            use_monotone=self.use_monotone,
+            match_fixed_costs=self.match_fixed_costs)
         if hasattr(self, "template_importance"):
             smp_copy.template_importance = self.template_importance
+        if hasattr(self.tmplt, "time_constraints"):
+            smp_copy.tmplt.time_constraints = self.tmplt.time_constraints
+        if hasattr(self.tmplt, "geo_constraints"):
+            smp_copy.tmplt.geo_constraints = self.tmplt.geo_constraints
         return smp_copy
 
     def set_costs(self, fixed_costs=None, local_costs=None, global_costs=None):
@@ -385,7 +396,7 @@ class MatchingProblem:
 
         # If some world node does not serve as candidates to any tmplt node
         if ~is_cand.all():
-            self.world, edge_is_cand = self.world.node_subgraph(is_cand, get_edge_is_cand)
+            self.world, edge_is_cand = self.world.node_subgraph(is_cand, get_edge_is_cand=True)
             self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
             # Update parameters based on new world
@@ -431,15 +442,21 @@ class MatchingProblem:
         matching : iterable
             Iterable of 2-tuples indicating pairs of template-world indexes
         """
-        # TODO: Store intermediate matching in MatchingProblem and update it
-        # here
-        mask = np.zeros(self.fixed_costs.shape, dtype=np.bool)
-        mask[[pair[0] for pair in matching],:] = True
-        mask[:,[pair[1] for pair in matching]] = True
-        mask[tuple(np.array(matching).T)] = False
-        self.fixed_costs[mask] = float("inf")
         self.matching = matching
+        if self.match_fixed_costs:
+            mask = self.get_non_matching_mask()
+            self.fixed_costs[mask] = float("inf")
         self.assigned_tmplt_idxs = {tmplt_idx for tmplt_idx, cand_idx in self.matching}
+
+    def get_non_matching_mask(self):
+        """Gets a boolean mask for the costs array corresponding to all entries
+        that would violate the matching."""
+        mask = np.zeros(self.fixed_costs.shape, dtype=np.bool)
+        if len(self.matching) > 0:
+            mask[[pair[0] for pair in self.matching],:] = True
+            mask[:,[pair[1] for pair in self.matching]] = True
+            mask[tuple(np.array(self.matching).T)] = False
+        return mask
 
     def prevent_match(self, tmplt_idx, world_idx):
         """Prevent matching the template node with the given index to the world
