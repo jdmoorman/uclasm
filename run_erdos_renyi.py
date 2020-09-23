@@ -135,21 +135,25 @@ def make_graphs(n_tmplt_nodes, n_world_nodes, n_layers, tmplt_prob, world_prob):
 
 # n_tmplt_nodes = 10
 n_world_nodes = 150
-# n_layers = 1
 n_trials = 500
 n_cores = 40
 count_isomorphisms = True
 
 n_tmplt_nodes = 10
+n_layers = 3
+
 tmplt_prob = 0.5
-world_prob = 0.5
+layer_probs = True
+if layer_probs:
+    world_prob = 1 + ((0.75)**(1.0/n_layers) - 1) / tmplt_prob
+else:
+    world_prob = 0.5
 
 # for n_layers in [1,3,5,7,9]:
-n_layers = 2
 if True:
     results = []
     import tqdm
-    for n_world_nodes in tqdm.tqdm(range(10, 3000, 5), ascii=True):
+    for n_world_nodes in tqdm.tqdm(range(10, 205, 5), ascii=True):
         n_trials_remaining = n_trials
         while n_trials_remaining > 0:
             process_list = []
@@ -187,4 +191,4 @@ if True:
                 results.append(result)
             n_trials_remaining -= n_processes
 
-        np.save("erdos_renyi_results_{}_trials_{}_layers{}_timeout_{}_vary_world_size".format(n_trials, n_layers, "_count_iso" if count_isomorphisms else "", timeout), results)
+        np.save("erdos_renyi_results_{}_trials_{}_layers{}{}_timeout_{}_vary_world_size".format(n_trials, n_layers, "_count_iso" if count_isomorphisms else "", "_layerprobs" if layer_probs else "", timeout), results)
