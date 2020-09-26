@@ -15,3 +15,5 @@ from .elimination_filter import elimination_filter
 
 # Elimination filter is also frequently used
 all_filters = cheap_filters + [elimination_filter]
+
+from .validation_filter import validation_filter
