@@ -167,7 +167,7 @@ class MatchingProblem:
         self.edge_attr_fn = edge_attr_fn
         self.missing_edge_cost_fn = missing_edge_cost_fn
 
-        self.matching = set()
+        self.matching = tuple()
         self.assigned_tmplt_idxs = set()
 
     def copy(self, copy_graphs=True):
