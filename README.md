@@ -29,10 +29,23 @@ $ python -m pip install .
 
 #### Erdős–Rényi Experiments
 
+Run `run_erdos_renyi.py` to perform the experiments and `plot_erdos_renyi.py` to plot the results. Running the experiments will take a while depending on your hardware. Both of these files are in the `experiments` directory.
+
+```bash
+$ cd experiments
+$ python run_erdos_renyi.py
+$ python plot_erdos_renyi.py
+```
+
+THOMAS FILL IN THE DETAILS.
+
 #### Sudoku Experiments
+
+THOMAS FILL IN THE DETAILS.
 
 #### Histograms
 
+QINYI FILL IN THE DETAILS. or maybe I'll do it.
 
 ### TODO
 * **Update Zenodo badge after new release if necessary, not sure how that really works.**
