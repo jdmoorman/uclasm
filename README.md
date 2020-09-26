@@ -27,7 +27,7 @@ $ cd ucla-subgraph-matching
 $ python -m pip install .
 ```
 
-#### Erdős–Rényi Experiments
+### Erdős–Rényi Experiments
 
 Running the experiments will take a while depending on your hardware.
 
@@ -41,7 +41,7 @@ This will generate figures called XXX which correspond to figures XXX in the pap
 
 THOMAS FILL IN THE DETAILS.
 
-#### Sudoku Experiments
+### Sudoku Experiments
 
 Running the experiments will take a while depending on your hardware.
 
