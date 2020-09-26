@@ -29,7 +29,7 @@ $ python -m pip install .
 
 #### Erdős–Rényi Experiments
 
-Run `run_erdos_renyi.py` to perform the experiments and `plot_erdos_renyi.py` to plot the results. Running the experiments will take a while depending on your hardware. Both of these files are in the `experiments` directory.
+Running the experiments will take a while depending on your hardware.
 
 ```bash
 $ cd experiments
@@ -37,9 +37,21 @@ $ python run_erdos_renyi.py
 $ python plot_erdos_renyi.py
 ```
 
+This will generate figures called XXX which correspond to figures XXX in the paper.
+
 THOMAS FILL IN THE DETAILS.
 
 #### Sudoku Experiments
+
+Running the experiments will take a while depending on your hardware.
+
+```bash
+$ cd experiments
+$ python run_sudoku.py
+$ python plot_sudoku_times.py
+```
+
+This will generate figures called XXX which correspond to figures XXX in the paper.
 
 THOMAS FILL IN THE DETAILS.
 
