@@ -27,7 +27,7 @@ $ cd ucla-subgraph-matching
 $ python -m pip install .
 ```
 
-#### Erdős–Rényi Experiments
+### Erdős–Rényi Experiments
 
 Running the experiments will take a while depending on your hardware.
 
@@ -39,7 +39,7 @@ $ python plot_erdos_renyi.py
 
 This will generate a figure called n_iter_vs_n_world_nodes_3_layers_500_trials_iso_count.pdf which corresponds to figure 7 in the paper. Other figures related to time and number of isomorphisms will also be generated.
 
-#### Sudoku Experiments
+### Sudoku Experiments
 
 Running the experiments will take a while depending on your hardware.
 
@@ -50,10 +50,6 @@ $ python plot_sudoku_times.py
 ```
 
 This will generate a figure called test_sudoku_scatter_all_log.pdf which corresponds to figure 6 in the paper. Other figures for each individual dataset will also be generated.
-
-#### Histograms
-
-QINYI FILL IN THE DETAILS. or maybe I'll do it.
 
 ### TODO
 * **Update Zenodo badge after new release if necessary, not sure how that really works.**
