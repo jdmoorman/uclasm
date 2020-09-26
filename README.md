@@ -51,16 +51,3 @@ $ python plot_sudoku_times.py
 ```
 
 plot_sudoku_times.py will generate a figure called `test_sudoku_scatter_all_log.pdf` which corresponds to figure 6 in the paper. Other figures for each individual dataset will also be generated.
-
-### TODO
-* **Update Zenodo badge after new release if necessary, not sure how that really works.**
-* **Add PyPI version badge.**
-* **Add supported python versions badge.**
-
-<!-- <div align="center">
-<a href="https://pypi.org/project/kaczmarz-algorithms/"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/kaczmarz-algorithms.svg"></a>
-<a href="https://pypi.org/project/kaczmarz-algorithms/"><img alt="Supported Python Versions" src="https://img.shields.io/pypi/pyversions/kaczmarz-algorithms.svg"></a>
-<a href="https://github.com/jdmoorman/kaczmarz-algorithms/actions"><img alt="Build Status" src="https://github.com/jdmoorman/kaczmarz-algorithms/workflows/CI/badge.svg"></a>
-<a href="https://codecov.io/gh/jdmoorman/kaczmarz-algorithms"><img alt="Code Coverage" src="https://codecov.io/gh/jdmoorman/kaczmarz-algorithms/branch/master/graph/badge.svg"></a>
-<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
-</div> -->
