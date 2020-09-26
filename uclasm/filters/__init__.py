@@ -3,6 +3,7 @@ from .stats_filter import stats_filter
 from .topology_filter import topology_filter
 from .neighborhood_filter import neighborhood_filter
 from .permutation_filter import permutation_filter
+from .permutation_filter import gac_filter
 from .run_filters import run_filters
 
 # These are the most commonly used filters
@@ -14,3 +15,5 @@ from .elimination_filter import elimination_filter
 
 # Elimination filter is also frequently used
 all_filters = cheap_filters + [elimination_filter]
+
+from .validation_filter import validation_filter

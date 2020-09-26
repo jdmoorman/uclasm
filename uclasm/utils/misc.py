@@ -1,6 +1,5 @@
-import numpy as np
-
 def one_hot(idx, length):
+    import numpy as np
     one_hot = np.zeros(length, dtype=np.bool)
     one_hot[idx] = True
     return one_hot
