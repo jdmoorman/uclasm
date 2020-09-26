@@ -55,10 +55,6 @@ This will generate figures called XXX which correspond to figures XXX in the pap
 
 THOMAS FILL IN THE DETAILS.
 
-#### Histograms
-
-QINYI FILL IN THE DETAILS. or maybe I'll do it.
-
 ### TODO
 * **Update Zenodo badge after new release if necessary, not sure how that really works.**
 * **Add PyPI version badge.**
