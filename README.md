@@ -36,8 +36,9 @@ $ cd experiments
 $ python run_erdos_renyi.py
 $ python plot_erdos_renyi.py
 ```
+Change the variables in run_erdos_renyi.py to run with different settings i.e. number of layers and whether isomorphism counting is being done.
 
-This will generate a figure called n_iter_vs_n_world_nodes_3_layers_500_trials_iso_count.pdf which corresponds to figure 7 in the paper. Other figures related to time and number of isomorphisms will also be generated.
+plot_erdos_renyi.py will generate a figure called n_iter_vs_n_world_nodes_3_layers_500_trials_iso_count.pdf which corresponds to figure 7 in the paper. Other figures related to time and number of isomorphisms will also be generated.
 
 ### Sudoku Experiments
 
@@ -49,7 +50,7 @@ $ python run_sudoku.py
 $ python plot_sudoku_times.py
 ```
 
-This will generate a figure called test_sudoku_scatter_all_log.pdf which corresponds to figure 6 in the paper. Other figures for each individual dataset will also be generated.
+plot_sudoku_times.py will generate a figure called test_sudoku_scatter_all_log.pdf which corresponds to figure 6 in the paper. Other figures for each individual dataset will also be generated.
 
 ### TODO
 * **Update Zenodo badge after new release if necessary, not sure how that really works.**
