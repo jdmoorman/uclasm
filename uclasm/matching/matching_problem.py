@@ -432,7 +432,9 @@ class MatchingProblem:
         world_idx : int
             The index of the world node to be matched.
         """
-        self.enforce_matching(((tmplt_idx, world_idx),))
+        new_matching = [match for match in self.matching]
+        new_matching.append((tmplt_idx, world_idx))
+        self.enforce_matching(tuple(new_matching))
 
     def enforce_matching(self, matching):
         """Enforce the given matching tuple by setting fixed costs in off-match
