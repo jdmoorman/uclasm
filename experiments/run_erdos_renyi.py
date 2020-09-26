@@ -7,7 +7,7 @@ import numpy as np
 import scipy as sp
 from scipy.sparse import csr_matrix
 
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, cpu_count
 
 np.random.seed(0)
 timeout = 10000
@@ -134,26 +134,27 @@ def make_graphs(n_tmplt_nodes, n_world_nodes, n_layers, tmplt_prob, world_prob):
     return tmplt, world
 
 # n_tmplt_nodes = 10
+n_world_nodes_min = 10
+n_world_nodes_max = 205
+n_world_nodes_inc = 5
 n_world_nodes = 150
 n_trials = 500
-n_cores = 40
+n_cores = int(cpu_count()/2)
 count_isomorphisms = True
 
 n_tmplt_nodes = 10
-n_layers = 3
+n_layers_list = [1, 2, 3]
 
 tmplt_prob = 0.5
 layer_probs = True
-if layer_probs:
-    world_prob = 1 + ((0.75)**(1.0/n_layers) - 1) / tmplt_prob
-else:
-    world_prob = 0.5
 
-# for n_layers in [1,3,5,7,9]:
-if True:
+for n_layers in n_layers_list:
+    world_prob = 1 - (1 - (1 - tmplt_prob + tmplt_prob**2)**(1.0/n_layers)) / tmplt_prob
     results = []
     import tqdm
-    for n_world_nodes in tqdm.tqdm(range(10, 205, 5), ascii=True):
+    for n_world_nodes in tqdm.tqdm(range(n_world_nodes_min,
+                                         n_world_nodes_max,
+                                         n_world_nodes_inc), ascii=True):
         n_trials_remaining = n_trials
         while n_trials_remaining > 0:
             process_list = []
