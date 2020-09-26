@@ -140,7 +140,7 @@ n_world_nodes_inc = 5
 n_world_nodes = 150
 n_trials = 500
 n_cores = int(cpu_count()/2)
-count_isomorphisms = True
+count_isomorphisms_list = [True, False]
 
 n_tmplt_nodes = 10
 n_layers_list = [1, 2, 3]
@@ -152,44 +152,45 @@ for n_layers in n_layers_list:
     world_prob = 1 - (1 - (1 - tmplt_prob + tmplt_prob**2)**(1.0/n_layers)) / tmplt_prob
     results = []
     import tqdm
-    for n_world_nodes in tqdm.tqdm(range(n_world_nodes_min,
-                                         n_world_nodes_max,
-                                         n_world_nodes_inc), ascii=True):
-        n_trials_remaining = n_trials
-        while n_trials_remaining > 0:
-            process_list = []
-            result_queue = Queue()
-            n_processes = n_cores if n_cores < n_trials_remaining else n_trials_remaining
-            for i in range(n_processes):
-                # print("Creating process {}".format(i))
-                # run_trial(n_tmplt_nodes, n_world_nodes, n_layers, tmplt_prob, world_prob, results, use_timeout=True)
-                new_process = create_process(n_tmplt_nodes, n_world_nodes, n_layers, tmplt_prob, world_prob, result_queue, count_isomorphisms=count_isomorphisms)
-                process_list.append(new_process)
-                new_process.start()
-            start_time = default_timer()
-            n_finished = n_processes
-            while default_timer() - start_time < timeout:
-                any_alive = False
+    for count_isomorphisms in count_isomorphisms_list:
+        for n_world_nodes in tqdm.tqdm(range(n_world_nodes_min,
+                                             n_world_nodes_max,
+                                             n_world_nodes_inc), ascii=True):
+            n_trials_remaining = n_trials
+            while n_trials_remaining > 0:
+                process_list = []
+                result_queue = Queue()
+                n_processes = n_cores if n_cores < n_trials_remaining else n_trials_remaining
+                for i in range(n_processes):
+                    # print("Creating process {}".format(i))
+                    # run_trial(n_tmplt_nodes, n_world_nodes, n_layers, tmplt_prob, world_prob, results, use_timeout=True)
+                    new_process = create_process(n_tmplt_nodes, n_world_nodes, n_layers, tmplt_prob, world_prob, result_queue, count_isomorphisms=count_isomorphisms)
+                    process_list.append(new_process)
+                    new_process.start()
+                start_time = default_timer()
+                n_finished = n_processes
+                while default_timer() - start_time < timeout:
+                    any_alive = False
+                    for process in process_list:
+                        if process.is_alive():
+                            any_alive = True
+                    if not any_alive:
+                        break
+                    sleep(0.5)
                 for process in process_list:
                     if process.is_alive():
-                        any_alive = True
-                if not any_alive:
-                    break
-                sleep(0.5)
-            for process in process_list:
-                if process.is_alive():
-                    process.terminate()
-                    n_finished -= 1
-            if n_finished != n_processes:
-                print("Finished {} processes out of {}".format(n_finished, n_processes))
-            for i in range(n_finished):
-                result = result_queue.get()
-                result['n_tmplt_nodes'] = n_tmplt_nodes
-                result['n_world_nodes'] = n_world_nodes
-                result['tmplt_prob'] = tmplt_prob
-                result['world_prob'] = world_prob
-                result['n_layers'] = n_layers
-                results.append(result)
-            n_trials_remaining -= n_processes
+                        process.terminate()
+                        n_finished -= 1
+                if n_finished != n_processes:
+                    print("Finished {} processes out of {}".format(n_finished, n_processes))
+                for i in range(n_finished):
+                    result = result_queue.get()
+                    result['n_tmplt_nodes'] = n_tmplt_nodes
+                    result['n_world_nodes'] = n_world_nodes
+                    result['tmplt_prob'] = tmplt_prob
+                    result['world_prob'] = world_prob
+                    result['n_layers'] = n_layers
+                    results.append(result)
+                n_trials_remaining -= n_processes
 
-        np.save("erdos_renyi_results_{}_trials_{}_layers{}{}_timeout_{}_vary_world_size".format(n_trials, n_layers, "_count_iso" if count_isomorphisms else "", "_layerprobs" if layer_probs else "", timeout), results)
+            np.save("erdos_renyi_results_{}_trials_{}_layers{}{}_timeout_{}_vary_world_size".format(n_trials, n_layers, "_count_iso" if count_isomorphisms else "", "_layerprobs" if layer_probs else "", timeout), results)
