@@ -2,19 +2,22 @@
 <img src="logo.png" alt="logo">
 </div>
 
-<h2 align="center">Subgraph matching in graphs</h2>
+<h2 align="center">Subgraph Matching on Multiplex Networks</h2>
 
 <div align="center">
 <a href="https://zenodo.org/badge/latestdoi/148378128"><img alt="Zenodo Archive" src="https://zenodo.org/badge/148378128.svg"></a>
-<a href="https://zenodo.org/badge/latestdoi/148378128"><img alt="PyPI Version" src="https://zenodo.org/badge/148378128.svg"></a>
-<a href="https://zenodo.org/badge/latestdoi/148378128"><img alt="Supported Python Versions" src="https://zenodo.org/badge/148378128.svg"></a>
+<a href="https://pypi.org/project/ucla-subgraph-matching/"><img alt="PyPI Version" src="https://img.shields.io/pypi/v/ucla-subgraph-matching.svg"></a>
+<a href="https://pypi.org/project/ucla-subgraph-matching/"><img alt="Supported Python Versions" src="https://img.shields.io/pypi/pyversions/ucla-subgraph-matching.svg"></a>
 </div>
 
-To reproduce our experiments, you will need at least python 3.6 and a few packages
+To reproduce our experiments, you will need at least Python 3.7 and a few packages installed. You can check your python version with
 
 ```bash
 $ python --version
-$ python -m pip install numpy scipy pandas tqdm matplotlib
+```
+and install the necessary packages with
+```bash
+$ python -m pip install numpy scipy pandas tqdm matplotlib networkx
 ```
 
 You will also need a local copy of our code either cloned from GitHub or downloaded from a Zenodo archive. To install our package from your local copy of the code, change to the code directory and use pip.
@@ -24,6 +27,11 @@ $ cd ucla-subgraph-matching
 $ python -m pip install .
 ```
 
+#### Erdős–Rényi Experiments
+
+#### Sudoku Experiments
+
+#### Histograms
 
 
 ### TODO
