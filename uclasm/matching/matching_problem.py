@@ -396,6 +396,14 @@ class MatchingProblem:
 
         # If some world node does not serve as candidates to any tmplt node
         if ~is_cand.all():
+            # Update matching
+            new_matching = []
+            for tmplt_idx, world_idx in self.matching:
+                if is_cand[world_idx]:
+                    new_world_idx = np.sum(is_cand[:world_idx])
+                    new_matching.append((tmplt_idx, new_world_idx))
+            self.matching = tuple(new_matching)
+
             self.world, edge_is_cand = self.world.node_subgraph(is_cand, get_edge_is_cand=True)
             self.shape = (self.tmplt.n_nodes, self.world.n_nodes)
 
