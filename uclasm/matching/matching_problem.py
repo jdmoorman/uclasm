@@ -400,7 +400,7 @@ class MatchingProblem:
             new_matching = []
             for tmplt_idx, world_idx in self.matching:
                 if is_cand[world_idx]:
-                    new_world_idx = np.sum(is_cand[:world_idx])
+                    new_world_idx = int(np.sum(is_cand[:world_idx]))
                     new_matching.append((tmplt_idx, new_world_idx))
             self.matching = tuple(new_matching)
 
