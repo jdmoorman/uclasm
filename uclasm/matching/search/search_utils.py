@@ -72,11 +72,11 @@ def add_node_attr_costs(smp, node_attr_fn):
     tmplt_attrs_zip = zip(*tmplt_attr_cols)
     world_attr_keys = [attr for attr in smp.world.nodelist.columns]
     world_attr_cols = [smp.world.nodelist[key] for key in world_attr_keys]
-    world_attrs_zip = zip(*world_attr_cols)
     with tqdm.tqdm(total=smp.tmplt.n_nodes * smp.world.n_nodes, ascii=True) as pbar:
         # for tmplt_idx, tmplt_row in smp.tmplt.nodelist.iterrows():
         for tmplt_idx, tmplt_attrs in enumerate(tmplt_attrs_zip):
             # for world_idx, world_row in smp.world.nodelist.iterrows():
+            world_attrs_zip = zip(*world_attr_cols)
             for world_idx, world_attrs in enumerate(world_attrs_zip):
                 pbar.update(1)
                 if smp.fixed_costs[tmplt_idx, world_idx] != float("inf"):
