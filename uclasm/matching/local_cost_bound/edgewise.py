@@ -254,6 +254,13 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True):
                     if dst_weight > 0:
                         set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, dst_weight * attr_costs)
                 new_local_costs += assignment_costs
+
+            if hasattr(smp.tmplt, 'time_constraints'):
+                add_time_costs(smp, candidates, new_local_costs)
+
+            if hasattr(smp.tmplt, 'geo_constraints'):
+                add_geo_costs(smp, candidates, new_local_costs)
+
             return new_local_costs
         else:
             src_col = smp.tmplt.source_col
@@ -324,3 +331,170 @@ def edgewise(smp, changed_cands=None):
         A subgraph matching problem on which to compute edgewise cost bounds.
     """
     smp.local_costs = edgewise_local_costs(smp, changed_cands)
+
+def add_time_costs(smp, candidates, local_costs):
+    """Add costs associated with time constraints
+
+    Parameters
+    ----------
+    smp: MatchingProblem
+        A subgraph matching problem on which to compute edgewise cost bounds.
+    candidates: array
+        The precomputed array of candidates. Avoids recomputing candidates.
+    local_costs: array
+        Array of local costs to add the time costs to.
+    """
+    import datetime
+    for time_constraint in smp.tmplt.time_constraints:
+        node1_idx = smp.tmplt.node_idxs[time_constraint["node1"]]
+        node2_idx = smp.tmplt.node_idxs[time_constraint["node2"]]
+        importance = time_constraint["importance"]
+        cand1_times = smp.world.nodelist["start"][candidates[node1_idx]].to_numpy()
+        cand2_times = smp.world.nodelist["start"][candidates[node2_idx]].to_numpy()
+
+        # Flat inverse importance for missing information
+        cand1_costs = np.ones(cand1_times.shape) / importance
+        cand2_costs = np.ones(cand2_times.shape) / importance
+
+        cand1_nonnat_mask = np.logical_not(np.isnat(cand1_times))
+        cand2_nonnat_mask = np.logical_not(np.isnat(cand2_times))
+        cand1_times = cand1_times[cand1_nonnat_mask]
+        cand2_times = cand2_times[cand2_nonnat_mask]
+        cand1_nonnat_costs = np.ones(cand1_times.shape) / importance
+        cand2_nonnat_costs = np.ones(cand2_times.shape) / importance
+
+        # TODO: support constraints measured in units other than days
+        min_timedelta = np.timedelta64(int(time_constraint["minValue"]), 'D')
+        if 'maxValue' in time_constraint:
+            max_timedelta = np.timedelta64(int(time_constraint["maxValue"]), 'D')
+
+        if len(cand1_times) == 0:
+            pass
+        elif len(cand2_times) == 0:
+            pass
+        else:
+            cand1_sorted_idxs = cand1_times.argsort()
+            cand2_sorted_idxs = cand2_times.argsort()
+
+            cand2_idx_idx = 0
+            cand2_idx = cand2_sorted_idxs[cand2_idx_idx]
+            cand2_time = cand2_times[cand2_idx]
+            last_valid_cand2_idx_idx = 0
+            for cand1_idx_idx, cand1_idx in enumerate(cand1_sorted_idxs):
+                cand1_time = cand1_times[cand1_idx]
+                while cand2_time - cand1_time < min_timedelta:
+                    cand2_idx_idx += 1
+                    if cand2_idx_idx >= len(cand2_sorted_idxs):
+                        cand2_time = None
+                        break
+                    cand2_idx = cand2_sorted_idxs[cand2_idx_idx]
+                    cand2_time = cand2_times[cand2_idx]
+                if cand2_time is not None:
+                    if 'maxValue' in time_constraint:
+                        if cand2_time - cand1_time > max_timedelta:
+                            continue
+                    cand1_nonnat_costs[cand1_idx] = 0
+                    if 'maxValue' in time_constraint:
+                        cand2_nonnat_costs[cand2_idx] = 0
+                        temp_cand2_idx_idx = max(last_valid_cand2_idx_idx, cand2_idx_idx) + 1
+                        if temp_cand2_idx_idx < len(cand2_sorted_idxs):
+                            next_cand2_idx = cand2_sorted_idxs[temp_cand2_idx_idx]
+                            next_cand2_time = cand2_times[next_cand2_idx]
+                            while next_cand2_time - cand1_time <= max_timedelta:
+                                cand2_nonnat_costs[next_cand2_idx] = 0
+                                last_valid_cand2_idx_idx = temp_cand2_idx_idx
+                                temp_cand2_idx_idx += 1
+                                if temp_cand2_idx_idx < len(cand2_sorted_idxs):
+                                    next_cand2_idx = cand2_sorted_idxs[temp_cand2_idx_idx]
+                                    next_cand2_time = cand2_times[next_cand2_idx]
+                                else:
+                                    break
+                    elif cand1_idx_idx == 0:
+                        # With only minimum timedelta, all future cand2_times are valid
+                        cand2_nonnat_costs[cand2_sorted_idxs[cand2_idx_idx:]] = 0
+                else:
+                    break
+        cand1_costs[cand1_nonnat_mask] = cand1_nonnat_costs
+        cand2_costs[cand2_nonnat_mask] = cand2_nonnat_costs
+        node1_weight, node2_weight = get_src_dst_weights(smp, node1_idx, node2_idx)
+        if node1_weight > 0:
+            local_costs[node1_idx, candidates[node1_idx]] += cand1_costs * node1_weight
+        if node2_weight > 0:
+            local_costs[node2_idx, candidates[node2_idx]] += cand2_costs * node2_weight
+
+def valid_lat_lng(lat, lng):
+    """Checks that the lat and lng values are valid
+
+    Parameters
+    ----------
+    lat: float
+        Latitude value.
+    lng: float
+        Longitude value.
+    """
+    return (lat >= -90.0) and (lat <= 90.0) and (lng >= -180.0) and (lng <= 180.0)
+
+def add_geo_costs(smp, candidates, local_costs):
+    """Add costs associated with geo constraints
+
+    Parameters
+    ----------
+    smp: MatchingProblem
+        A subgraph matching problem on which to compute edgewise cost bounds.
+    candidates: array
+        The precomputed array of candidates. Avoids recomputing candidates.
+    local_costs: array
+        Array of local costs to add the geo costs to.
+    """
+    from geopy import distance
+    for geo_constraint in smp.tmplt.geo_constraints:
+        node1_idx = smp.tmplt.node_idxs[geo_constraint["node1"]]
+        node2_idx = smp.tmplt.node_idxs[geo_constraint["node2"]]
+        importance = geo_constraint["importance"]
+        cand1_lats = smp.world.nodelist["latitude"][candidates[node1_idx]]
+        cand1_lngs = smp.world.nodelist["longitude"][candidates[node1_idx]]
+        cand2_lats = smp.world.nodelist["latitude"][candidates[node2_idx]]
+        cand2_lngs = smp.world.nodelist["longitude"][candidates[node2_idx]]
+
+        # Flat inverse importance costs for missing information
+        cand1_costs = np.ones(cand1_lats.shape) / importance
+        cand2_costs = np.ones(cand2_lats.shape) / importance
+
+        cand1_nonnull_mask = np.logical_and(~cand1_lats.isin(["", "%NA%", "%NULL%"]).to_numpy(),
+                                            ~cand1_lngs.isin(["", "%NA%", "%NULL%"]).to_numpy())
+        cand2_nonnull_mask = np.logical_and(~cand2_lats.isin(["", "%NA%", "%NULL%"]).to_numpy(),
+                                            ~cand2_lngs.isin(["", "%NA%", "%NULL%"]).to_numpy())
+        cand1_costs[cand1_nonnull_mask] = 0
+        cand2_costs[cand2_nonnull_mask] = 0
+
+        cand1_lats = cand1_lats[cand1_nonnull_mask].astype("float")
+        cand1_lngs = cand1_lngs[cand1_nonnull_mask].astype("float")
+        cand2_lats = cand2_lats[cand2_nonnull_mask].astype("float")
+        cand2_lngs = cand2_lngs[cand2_nonnull_mask].astype("float")
+
+        # Calculate geo costs matrix: memory inefficient, only use for a low number of nodes
+        cand1_n_geo_nodes = len(cand1_lats)
+        cand2_n_geo_nodes = len(cand2_lats)
+        geo_costs = np.zeros((cand1_n_geo_nodes, cand2_n_geo_nodes))
+        for cand1_i, cand1_lat, cand1_lng in zip(range(cand1_n_geo_nodes), cand1_lats, cand1_lngs):
+            if not valid_lat_lng(cand1_lat, cand1_lng):
+                geo_costs[cand1_i, :] = 1.0/importance
+                continue
+            for cand2_i, cand2_lat, cand2_lng in zip(range(cand2_n_geo_nodes), cand2_lats, cand2_lngs):
+                if not valid_lat_lng(cand2_lat, cand2_lng):
+                    geo_costs[cand1_i, cand2_i] = 1.0/importance
+                    continue
+
+                # TODO: Support constraints measured in units other than meters
+                geo_distance = distance.distance((cand1_lat, cand1_lng), (cand2_lat, cand2_lng)).meters
+
+                if geo_distance > geo_constraint["maxValue"] or geo_distance < geo_constraint["minValue"]:
+                    geo_costs[cand1_i, cand2_i] = 1.0/importance
+        cand1_costs[cand1_nonnull_mask] = np.min(geo_costs, axis=1)
+        cand2_costs[cand2_nonnull_mask] = np.min(geo_costs, axis=0)
+
+        node1_weight, node2_weight = get_src_dst_weights(smp, node1_idx, node2_idx)
+        if node1_weight > 0:
+            local_costs[node1_idx, candidates[node1_idx]] += cand1_costs * node1_weight
+        if node2_weight > 0:
+            local_costs[node2_idx, candidates[node2_idx]] += cand2_costs * node2_weight
