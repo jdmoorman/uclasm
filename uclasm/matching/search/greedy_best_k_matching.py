@@ -174,7 +174,7 @@ def impose_state_assignments_on_smp(smp, tmplt_idx, state, **kwargs):
     matching_dict = dict(state.matching)
     state.cost = smp.global_costs[tmplt_idx, matching_dict[tmplt_idx]]
 
-def propagate_cost_threshold_changes(smp, child_smp):
+def propagate_cost_threshold_changes(smp, child_smp, nodewise, edgewise):
     if child_smp.global_cost_threshold < smp.global_cost_threshold:
         smp.strict_threshold = child_smp.strict_threshold
         smp.global_cost_threshold = child_smp.global_cost_threshold
@@ -353,7 +353,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
                                              solutions=solutions,
                                              verbose=verbose)
 
-            costs_changed = propagate_cost_threshold_changes(smp, child_smp)
+            costs_changed = propagate_cost_threshold_changes(smp, child_smp, nodewise=nodewise, edgewise=edgewise)
         if costs_changed:
             old_cost = current_state.cost
             current_state.cost = smp.global_costs.min()
