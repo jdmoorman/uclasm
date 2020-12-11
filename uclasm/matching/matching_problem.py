@@ -140,19 +140,31 @@ class MatchingProblem:
             # self._global_costs = global_costs
         self._global_costs = global_costs.view(MonotoneArray)
 
+        # No longer care about self-edges because they are fixed costs.
+        self.tmplt = tmplt
+        self.world = world
+
         # Cache of edge-to-edge costs for the edgewise local cost bound
         self._edgewise_costs_cache = edgewise_costs_cache
         self.cache_path = cache_path
         if self.cache_path is not None and self._edgewise_costs_cache is None:
             try:
                 self._edgewise_costs_cache = np.load(os.path.join(self.cache_path, "edgewise_costs_cache.npy"))
+                n_tmplt_edges = len(self.tmplt.edgelist.index)
+                n_world_edges = len(self.world.edgelist.index)
+                if self._edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
+                    from .local_cost_bound.edgewise import get_edge_to_unique_attr
+                    tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(self.tmplt.edgelist, self.tmplt.source_col, self.tmplt.target_col)
+                    world_unique_attrs, world_edge_to_attr_idx = get_edge_to_unique_attr(self.world.edgelist, self.world.source_col, self.world.target_col)
+
+                    self.tmplt_edge_to_attr_idx = tmplt_edge_to_attr_idx
+                    self.world_edge_to_attr_idx = world_edge_to_attr_idx
+
+                    if len(self.tmplt_edge_to_attr_idx) != n_tmplt_edges or len(self.world_edge_to_attr_idx) != n_world_edges:
+                        raise Exception("Edgewise costs cache not properly computed!")
                 print("Edge-to-edge costs loaded from cache")
             except IOError as e:
                 print("No edgewise cost cache found.")
-
-        # No longer care about self-edges because they are fixed costs.
-        self.tmplt = tmplt
-        self.world = world
 
         self.local_cost_threshold = local_cost_threshold
         self.global_cost_threshold = global_cost_threshold
@@ -196,6 +208,10 @@ class MatchingProblem:
             match_fixed_costs=self.match_fixed_costs)
         if hasattr(self, "template_importance"):
             smp_copy.template_importance = self.template_importance
+        if hasattr(self, "tmplt_edge_to_attr_idx"):
+            smp_copy.tmplt_edge_to_attr_idx = self.tmplt_edge_to_attr_idx
+        if hasattr(self, "world_edge_to_attr_idx"):
+            smp_copy.world_edge_to_attr_idx = self.world_edge_to_attr_idx
         if hasattr(self.tmplt, "time_constraints"):
             smp_copy.tmplt.time_constraints = self.tmplt.time_constraints
         if hasattr(self.tmplt, "geo_constraints"):
@@ -414,7 +430,10 @@ class MatchingProblem:
             from_local_bounds(self)
 
             if edge_is_cand is not None and self._edgewise_costs_cache is not None:
-                self._edgewise_costs_cache = self._edgewise_costs_cache[:, edge_is_cand]
+                if hasattr(self, 'world_edge_to_attr_idx'):
+                    self.world_edge_to_attr_idx = self.world_edge_to_attr_idx[edge_is_cand]
+                else:
+                    self._edgewise_costs_cache = self._edgewise_costs_cache[:, edge_is_cand]
         return is_cand
 
     def have_candidates_changed(self):
