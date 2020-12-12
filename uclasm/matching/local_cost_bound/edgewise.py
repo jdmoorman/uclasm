@@ -191,7 +191,7 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
             # Avoid recalculating edge distance for identical attribute tuples
             src_col = smp.tmplt.source_col
             dst_col = smp.tmplt.target_col
-            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col]]
+            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col, 'id']]
 
             n_tmplt_edges = len(smp.tmplt.edgelist.index)
             n_world_edges = len(smp.world.edgelist.index)
@@ -206,13 +206,13 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
                     smp._edgewise_costs_cache = np.zeros((len(tmplt_unique_attrs), len(world_unique_attrs)))
                     pbar = tqdm.tqdm(total=len(tmplt_unique_attrs), position=0, leave=True, ascii=True)
 
-                    for tmplt_unique_idx, *tmplt_attrs in enumerate(tmplt_unique_attrs):
+                    for tmplt_unique_idx, tmplt_attrs in enumerate(tmplt_unique_attrs):
                         tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
 
                         src_col_world = smp.world.source_col
                         dst_col_world = smp.world.target_col
-                        cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col_world, dst_col_world]]
-                        for world_unique_idx, *cand_attrs in enumerate(world_unique_attrs):
+                        cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col_world, dst_col_world, 'id']]
+                        for world_unique_idx, cand_attrs in enumerate(world_unique_attrs):
                             cand_attrs_dict = dict(zip(cand_attr_keys, cand_attrs))
                             if 'importance' in tmplt_attr_keys:
                                 attr_cost = smp.edge_attr_fn(None, None, tmplt_attrs_dict, cand_attrs_dict, importance_value=tmplt_attrs_dict['importance'])
