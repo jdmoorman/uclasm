@@ -274,7 +274,10 @@ class MatchingProblem:
 
     @local_costs.setter
     def local_costs(self, value):
-        self._local_costs[:] = value
+        if self._local_costs is not None:
+            self._local_costs[:] = value
+        else:
+            self._local_costs = value
 
     @property
     def global_costs(self):
