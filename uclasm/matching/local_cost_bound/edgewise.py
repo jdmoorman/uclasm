@@ -197,7 +197,13 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
             n_world_edges = len(smp.world.edgelist.index)
             if smp._edgewise_costs_cache is None:
                 if cache_by_unique_attrs:
-                    tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, smp.tmplt.source_col, smp.tmplt.target_col)
+                    if 'importance' not in smp.tmplt.edgelist.columns:
+                        # Template edges with the same attributes could still be different if they have different importances
+                        # For now, prevent the code from removing them as duplicates
+                        tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in ['id']]
+                        tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, None, None)
+                    else:
+                        tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, smp.tmplt.source_col, smp.tmplt.target_col)
                     world_unique_attrs, world_edge_to_attr_idx = get_edge_to_unique_attr(smp.world.edgelist, smp.world.source_col, smp.world.target_col)
 
                     smp.tmplt_edge_to_attr_idx = tmplt_edge_to_attr_idx
@@ -208,16 +214,20 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
 
                     for tmplt_unique_idx, tmplt_attrs in enumerate(tmplt_unique_attrs):
                         tmplt_attrs_dict = dict(zip(tmplt_attr_keys, tmplt_attrs))
+                        if 'importance' in tmplt_attr_keys:
+                            edge_key = None
+                        else:
+                            # Retrieve the source and destination, and reconstruct the edge key
+                            edge_key = (str(tmplt_attrs_dict[smp.tmplt.source_col]), str(tmplt_attrs_dict[smp.tmplt.target_col]))
+                            del tmplt_attrs_dict[smp.tmplt.source_col]
+                            del tmplt_attrs_dict[smp.tmplt.target_col]
 
                         src_col_world = smp.world.source_col
                         dst_col_world = smp.world.target_col
                         cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col_world, dst_col_world, 'id']]
                         for world_unique_idx, cand_attrs in enumerate(world_unique_attrs):
                             cand_attrs_dict = dict(zip(cand_attr_keys, cand_attrs))
-                            if 'importance' in tmplt_attr_keys:
-                                attr_cost = smp.edge_attr_fn(None, None, tmplt_attrs_dict, cand_attrs_dict, importance_value=tmplt_attrs_dict['importance'])
-                            else:
-                                attr_cost = smp.edge_attr_fn(None, None, tmplt_attrs_dict, cand_attrs_dict)
+                            attr_cost = smp.edge_attr_fn(edge_key, None, tmplt_attrs_dict, cand_attrs_dict)
                             smp._edgewise_costs_cache[tmplt_unique_idx, world_unique_idx] = attr_cost
                         pbar.update(1)
                     pbar.close()
