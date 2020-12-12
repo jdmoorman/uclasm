@@ -61,35 +61,31 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
 
     heappush(open_list, start_state)
 
-    # Maximum cost for a matching to be considered
-    max_cost = smp.global_cost_threshold
     # Cost of the kth solution
     kth_cost = float("inf")
 
     while len(open_list) > 0:
         current_state = heappop(open_list)
         # Ignore states whose cost is too high
-        if current_state.cost > max_cost or current_state.cost >= kth_cost:
+        if current_state.cost > smp.global_cost_threshold or current_state.cost >= kth_cost:
             # Only print multiples of 10000 for skipped states
             if verbose and len(open_list) % 10000 == 0:
                 print("Skipped state: {} matches".format(len(current_state.matching)),
                       "{} open states".format(len(open_list)), "current_cost:", current_state.cost,
-                      "kth_cost:", kth_cost, "max_cost", smp.global_cost_threshold, "solutions found:", len(solutions))
+                      "kth cost:", kth_cost, "max cost", smp.global_cost_threshold, "solutions found:", len(solutions))
             continue
         if verbose:
             print("Current state: {} matches".format(len(current_state.matching)),
                   "{} open states".format(len(open_list)), "current_cost:", current_state.cost,
-                  "kth_cost:", kth_cost, "max_cost", smp.global_cost_threshold, "solutions found:", len(solutions))
+                  "kth cost:", kth_cost, "max cost", smp.global_cost_threshold, "solutions found:", len(solutions))
 
         curr_smp = smp.copy()
         curr_smp.enforce_matching(current_state.matching)
         # Do not reduce world as it can mess up the world indices in the matching
         iterate_to_convergence(curr_smp, reduce_world=False, nodewise=nodewise,
                                edgewise=edgewise)
-        global_costs = curr_smp.global_costs
         matching_dict = dict_from_tuple(current_state.matching)
-        max_cost = curr_smp.global_cost_threshold
-        candidates = np.logical_and(global_costs <= max_cost, global_costs < kth_cost)
+        candidates = curr_smp.candidates()
         # Identify template node with the least number of candidates
         cand_counts = np.sum(candidates, axis=1)
         # Prevent previously matched template idxs from being chosen
@@ -108,8 +104,8 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
             if new_matching_tuple not in cost_map:
                 new_state = State()
                 new_state.matching = new_matching_tuple
-                new_state.cost = global_costs[tmplt_idx, cand_idx]
-                if new_state.cost > max_cost or new_state.cost >= kth_cost:
+                new_state.cost = smp.global_costs[tmplt_idx, cand_idx]
+                if new_state.cost > smp.global_cost_threshold or new_state.cost >= kth_cost:
                     continue
                 cost_map[new_matching_tuple] = new_state.cost
                 if len(new_state.matching) == smp.tmplt.n_nodes:
@@ -293,7 +289,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
 
         print("Current state: {} matches".format(len(current_state.matching)),
               "current_cost:", current_state.cost,
-              "kth_cost:", kth_cost,  "max_cost", smp.global_cost_threshold,
+              "kth cost:", kth_cost,  "max cost", smp.global_cost_threshold,
               "solutions found:", len(solutions))
 
     # Ignore states whose cost is too high
@@ -313,7 +309,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
     cand_idxs = list(np.argwhere(smp.candidates(tmplt_idx)).flatten())
     print("Updated current state: {} matches".format(len(current_state.matching)),
           "current_cost:", current_state.cost,
-          "kth_cost:", kth_cost,  "max_cost", smp.global_cost_threshold,
+          "kth_cost:", kth_cost,  "max cost", smp.global_cost_threshold,
           "solutions found:", len(solutions))
 
     # Sort candidates for the template node by global cost bound
