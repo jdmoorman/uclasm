@@ -227,7 +227,11 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
                         cand_attr_keys = [attr for attr in smp.world.edgelist.columns if attr not in [src_col_world, dst_col_world, 'id']]
                         for world_unique_idx, cand_attrs in enumerate(world_unique_attrs):
                             cand_attrs_dict = dict(zip(cand_attr_keys, cand_attrs))
-                            attr_cost = smp.edge_attr_fn(edge_key, None, tmplt_attrs_dict, cand_attrs_dict)
+                            if 'importance' in tmplt_attr_keys:
+                                importance = tmplt_attrs_dict['importance']
+                            else:
+                                importance = None
+                            attr_cost = smp.edge_attr_fn(edge_key, None, tmplt_attrs_dict, cand_attrs_dict, importance_value=importance)
                             smp._edgewise_costs_cache[tmplt_unique_idx, world_unique_idx] = attr_cost
                         pbar.update(1)
                     pbar.close()
