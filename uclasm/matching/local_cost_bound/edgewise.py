@@ -95,8 +95,9 @@ def get_edge_to_unique_attr(edgelist, src_col, dst_col):
     """
     attr_names = [a for a in edgelist.columns if a not in [src_col, dst_col, 'id', 'template_id']]
     attrs = edgelist[attr_names].to_numpy()
-    attrs1d = [str(attr_row) for attr_row in attrs]
-    _, index, inverse = np.unique(attrs1d, return_index=True, return_inverse=True)
+    # attrs1d = [str(attr_row) for attr_row in attrs]
+    str_array = np.frompyfunc(str, 1, 1)
+    _, index, inverse = np.unique(str_array(attrs).astype(str), axis=0, return_index=True, return_inverse=True)
     unique_attrs = attrs[index]
     # Do we need to turn unique_attrs back into a dataframe?
 
