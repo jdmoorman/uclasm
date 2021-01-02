@@ -114,7 +114,8 @@ def iterate_to_convergence(smp, reduce_world=True, nodewise=True,
         changed_cands = np.ones((smp.tmplt.n_nodes,), dtype=np.bool)
 
     old_candidates = smp.candidates().copy()
-    global_cost_bound.from_local_bounds(smp)
+    if smp._local_costs is not None:
+        global_cost_bound.from_local_bounds(smp)
 
     # TODO: Does this break if nodewise changes the candidates?
     while True:

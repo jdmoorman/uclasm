@@ -192,8 +192,8 @@ class MatchingProblem:
             world = self.world
         smp_copy = MatchingProblem(tmplt, world,
             fixed_costs=self._fixed_costs.copy() if self.match_fixed_costs else self._fixed_costs,
-            local_costs=self._local_costs.copy(),
-            global_costs=self._global_costs.copy(),
+            local_costs=None if self._local_costs is None else self._local_costs.copy(),
+            global_costs=None if self._global_costs is None else self._global_costs.copy(),
             node_attr_fn=self.node_attr_fn,
             edge_attr_fn=self.edge_attr_fn,
             missing_edge_cost_fn=self.missing_edge_cost_fn,

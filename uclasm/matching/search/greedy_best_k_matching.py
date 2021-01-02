@@ -304,6 +304,10 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
 
     smp.next_tmplt_idx = tmplt_idx
     iterate_to_convergence(smp, reduce_world=False, nodewise=nodewise, edgewise=edgewise)
+    # Handle memory issues by deleting as many unnecessary SMP attributes as possible
+    del smp._local_costs
+    smp._local_costs = None
+
     # candidates = smp.candidates()
     # cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
     cand_idxs = list(np.argwhere(smp.candidates(tmplt_idx)).flatten())
@@ -369,7 +373,7 @@ def matching_dict_from_candidates(candidates):
     return matching_dict
 
 def greedy_best_k_matching_recursive(orig_smp, k=1, nodewise=True, edgewise=True,
-                                     solutions=None, verbose=False):
+                                     solutions=None, verbose=False, copy_smp=False):
     if orig_smp.global_cost_threshold == float("inf"):
         raise Exception("Invalid global cost threshold.")
     # Initialize matching with known matches
