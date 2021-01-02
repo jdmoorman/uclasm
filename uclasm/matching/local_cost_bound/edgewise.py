@@ -4,6 +4,7 @@ import pandas as pd
 import numba
 import os
 import tqdm
+import time
 
 def iter_adj_pairs(tmplt, world):
     """Generator for pairs of adjacency matrices.
@@ -92,7 +93,7 @@ def get_edge_to_unique_attr(edgelist, src_col, dst_col):
     unique_attrs : array_like(str)
         The unique attributes for the edges of `graph`
     """
-    attr_names = [a for a in edgelist.columns if a not in [src_col, dst_col, 'id']]
+    attr_names = [a for a in edgelist.columns if a not in [src_col, dst_col, 'id', 'template_id']]
     attrs = edgelist[attr_names].to_numpy()
     attrs1d = [str(attr_row) for attr_row in attrs]
     _, index, inverse = np.unique(attrs1d, return_index=True, return_inverse=True)
@@ -191,23 +192,26 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
             # Avoid recalculating edge distance for identical attribute tuples
             src_col = smp.tmplt.source_col
             dst_col = smp.tmplt.target_col
-            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col, 'id']]
+            tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col, 'id', 'template_id']]
 
             n_tmplt_edges = len(smp.tmplt.edgelist.index)
             n_world_edges = len(smp.world.edgelist.index)
             if smp._edgewise_costs_cache is None:
                 if cache_by_unique_attrs:
+                    print('Calculating edge to unique attr map')
+                    start_time = time.time()
                     if 'importance' not in smp.tmplt.edgelist.columns:
                         # Template edges with the same attributes could still be different if they have different importances
                         # For now, prevent the code from removing them as duplicates
-                        tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in ['id']]
+                        tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in ['id', 'template_id']]
                         tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, None, None)
                     else:
                         tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, smp.tmplt.source_col, smp.tmplt.target_col)
                     world_unique_attrs, world_edge_to_attr_idx = get_edge_to_unique_attr(smp.world.edgelist, smp.world.source_col, smp.world.target_col)
+                    print('Edge to unique attr map calculated in {} seconds'.format(time.time()-start_time))
 
-                    smp.tmplt_edge_to_attr_idx = tmplt_edge_to_attr_idx
-                    smp.world_edge_to_attr_idx = world_edge_to_attr_idx
+                    smp.tmplt_edge_to_attr_idx = np.array(tmplt_edge_to_attr_idx)
+                    smp.world_edge_to_attr_idx = np.array(world_edge_to_attr_idx)
 
                     smp._edgewise_costs_cache = np.zeros((len(tmplt_unique_attrs), len(world_unique_attrs)))
                     pbar = tqdm.tqdm(total=len(tmplt_unique_attrs), position=0, leave=True, ascii=True)
@@ -256,6 +260,9 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
                     pbar.close()
                 if smp.cache_path is not None:
                     np.save(os.path.join(smp.cache_path, "edgewise_costs_cache.npy"), smp._edgewise_costs_cache)
+                    if cache_by_unique_attrs:
+                        np.save(os.path.join(smp.cache_path, "tmplt_edge_to_attr_idx.npy"), smp.tmplt_edge_to_attr_idx)
+                        np.save(os.path.join(smp.cache_path, "world_edge_to_attr_idx.npy"), smp.world_edge_to_attr_idx)
                     try:
                         os.chmod(smp.cache_path, 0o770)
                     except:
@@ -263,9 +270,26 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
                     print("Edge-to-edge costs saved to cache")
             else:
                 if cache_by_unique_attrs:
+                    if not hasattr(smp, 'tmplt_edge_to_attr_idx'):
+                        try:
+                            smp.tmplt_edge_to_attr_idx = np.load(os.path.join(smp.cache_path, "tmplt_edge_to_attr_idx.npy"))
+                            smp.world_edge_to_attr_idx = np.load(os.path.join(smp.cache_path, "world_edge_to_attr_idx.npy"))
+                            print('Edge to attr maps loaded from cache')
+                        except:
+                            print('Edge to attr cache not found')
+                            print('Calculating edge to unique attr map')
+                            start_time = time.time()
+                            if 'importance' not in smp.tmplt.edgelist.columns:
+                                tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, None, None)
+                            else:
+                                tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, smp.tmplt.source_col, smp.tmplt.target_col)
+                            world_unique_attrs, world_edge_to_attr_idx = get_edge_to_unique_attr(smp.world.edgelist, smp.world.source_col, smp.world.target_col)
+                            smp.tmplt_edge_to_attr_idx = tmplt_edge_to_attr_idx
+                            smp.world_edge_to_attr_idx = world_edge_to_attr_idx
+                            print('Edge to unique attr map calculated in {} seconds'.format(time.time()-start_time))
                     if len(smp.tmplt_edge_to_attr_idx) != n_tmplt_edges or len(smp.world_edge_to_attr_idx) != n_world_edges:
-                        import IPython; IPython.embed()
                         raise Exception("Edgewise costs cache not properly computed!")
+                    # TODO: implement a more effective check here
                 else:
                     if smp._edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
                         raise Exception("Edgewise costs cache not properly computed!")
@@ -326,8 +350,9 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
                     # Put the weight of assignments on the unassigned nodes, when possible
                     # Only works if monotone is disabled
                     if cache_by_unique_attrs:
-                        cand_edge_idxs = np.arange(n_world_edges)[cand_edge_mask]
-                        cand_attr_idxs = [smp.world_edge_to_attr_idx[cand_edge_idx] for cand_edge_idx in cand_edge_idxs]
+                        # cand_edge_idxs = np.arange(n_world_edges)[cand_edge_mask]
+                        # cand_attr_idxs = [smp.world_edge_to_attr_idx[cand_edge_idx] for cand_edge_idx in cand_edge_idxs]
+                        cand_attr_idxs = smp.world_edge_to_attr_idx[cand_edge_mask]
                         attr_costs = smp._edgewise_costs_cache[smp.tmplt_edge_to_attr_idx[tmplt_edge_idx], cand_attr_idxs]
                     else:
                         attr_costs = smp._edgewise_costs_cache[tmplt_edge_idx, cand_edge_mask]

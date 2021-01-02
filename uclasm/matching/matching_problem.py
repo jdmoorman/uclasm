@@ -153,10 +153,10 @@ class MatchingProblem:
                 n_tmplt_edges = len(self.tmplt.edgelist.index)
                 n_world_edges = len(self.world.edgelist.index)
                 if self._edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
-                    from .local_cost_bound.edgewise import get_edge_to_unique_attr
-                    tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(self.tmplt.edgelist, self.tmplt.source_col, self.tmplt.target_col)
-                    world_unique_attrs, world_edge_to_attr_idx = get_edge_to_unique_attr(self.world.edgelist, self.world.source_col, self.world.target_col)
-
+                    tmplt_edge_to_attr_idx = np.load(os.path.join(self.cache_path, "tmplt_edge_to_attr_idx.npy"))
+                    world_edge_to_attr_idx = np.load(os.path.join(self.cache_path, "world_edge_to_attr_idx.npy"))
+                    print('Edge to attr maps loaded from cache')
+                    
                     self.tmplt_edge_to_attr_idx = tmplt_edge_to_attr_idx
                     self.world_edge_to_attr_idx = world_edge_to_attr_idx
 
@@ -209,9 +209,9 @@ class MatchingProblem:
         if hasattr(self, "template_importance"):
             smp_copy.template_importance = self.template_importance
         if hasattr(self, "tmplt_edge_to_attr_idx"):
-            smp_copy.tmplt_edge_to_attr_idx = self.tmplt_edge_to_attr_idx
+            smp_copy.tmplt_edge_to_attr_idx = self.tmplt_edge_to_attr_idx.copy()
         if hasattr(self, "world_edge_to_attr_idx"):
-            smp_copy.world_edge_to_attr_idx = self.world_edge_to_attr_idx
+            smp_copy.world_edge_to_attr_idx = self.world_edge_to_attr_idx.copy()
         if hasattr(self.tmplt, "time_constraints"):
             smp_copy.tmplt.time_constraints = self.tmplt.time_constraints
         if hasattr(self.tmplt, "geo_constraints"):
