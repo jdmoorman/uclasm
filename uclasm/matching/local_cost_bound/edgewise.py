@@ -187,6 +187,9 @@ def generate_edgewise_cost_cache(smp, cache_by_unique_attrs=True):
         Cache the edgewise costs between edges with unique attributes, and
         generate the mapping from edges to unique attribute indices.
     """
+    src_col = smp.tmplt.source_col
+    dst_col = smp.tmplt.target_col
+    tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in [src_col, dst_col, 'id', 'template_id']]
     if cache_by_unique_attrs:
         print('Calculating edge to unique attr map')
         start_time = time.time()
