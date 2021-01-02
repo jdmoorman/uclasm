@@ -446,7 +446,9 @@ def add_time_costs(smp, candidates, local_costs):
         cand2_nonnat_costs = np.ones(cand2_times.shape) / importance
 
         # TODO: support constraints measured in units other than days
-        min_timedelta = np.timedelta64(int(time_constraint["minValue"]), 'D')
+        min_timedelta = np.timedelta64(0, 'D')
+        if 'minValue' in time_constraint:
+            min_timedelta = np.timedelta64(int(time_constraint["minValue"]), 'D')
         if 'maxValue' in time_constraint:
             max_timedelta = np.timedelta64(int(time_constraint["maxValue"]), 'D')
 
