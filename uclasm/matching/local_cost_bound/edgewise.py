@@ -516,6 +516,26 @@ def valid_lat_lng(lat, lng):
     """
     return (lat >= -90.0) and (lat <= 90.0) and (lng >= -180.0) and (lng <= 180.0)
 
+from math import sin, cos, sqrt, atan2, radians
+def haversine(lat1, lon1, lat2, lon2):
+    #Haversine distance
+
+    # approximate radius of earth in meters
+    R = 6373.0 * 1000
+
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return R * c
+
 def add_geo_costs(smp, candidates, local_costs):
     """Add costs associated with geo constraints
 
@@ -557,23 +577,25 @@ def add_geo_costs(smp, candidates, local_costs):
         # Calculate geo costs matrix: memory inefficient, only use for a low number of nodes
         cand1_n_geo_nodes = len(cand1_lats)
         cand2_n_geo_nodes = len(cand2_lats)
-        geo_costs = np.zeros((cand1_n_geo_nodes, cand2_n_geo_nodes))
-        for cand1_i, cand1_lat, cand1_lng in zip(range(cand1_n_geo_nodes), cand1_lats, cand1_lngs):
-            if not valid_lat_lng(cand1_lat, cand1_lng):
-                geo_costs[cand1_i, :] = 1.0/importance
-                continue
-            for cand2_i, cand2_lat, cand2_lng in zip(range(cand2_n_geo_nodes), cand2_lats, cand2_lngs):
-                if not valid_lat_lng(cand2_lat, cand2_lng):
-                    geo_costs[cand1_i, cand2_i] = 1.0/importance
+        if cand1_n_geo_nodes > 0 and cand2_n_geo_nodes > 0:
+            geo_costs = np.zeros((cand1_n_geo_nodes, cand2_n_geo_nodes))
+            for cand1_i, cand1_lat, cand1_lng in zip(range(cand1_n_geo_nodes), cand1_lats, cand1_lngs):
+                if not valid_lat_lng(cand1_lat, cand1_lng):
+                    geo_costs[cand1_i, :] = 1.0/importance
                     continue
+                for cand2_i, cand2_lat, cand2_lng in zip(range(cand2_n_geo_nodes), cand2_lats, cand2_lngs):
+                    if not valid_lat_lng(cand2_lat, cand2_lng):
+                        geo_costs[cand1_i, cand2_i] = 1.0/importance
+                        continue
 
-                # TODO: Support constraints measured in units other than meters
-                geo_distance = distance.distance((cand1_lat, cand1_lng), (cand2_lat, cand2_lng)).meters
+                    # TODO: Support constraints measured in units other than meters
+                    geo_distance = distance.distance((cand1_lat, cand1_lng), (cand2_lat, cand2_lng)).meters
+                    # geo_distance = haversine(cand1_lat, cand1_lng, cand2_lat, cand2_lng)
 
-                if geo_distance > geo_constraint["maxValue"] or geo_distance < geo_constraint["minValue"]:
-                    geo_costs[cand1_i, cand2_i] = 1.0/importance
-        cand1_costs[cand1_nonnull_mask] = np.min(geo_costs, axis=1)
-        cand2_costs[cand2_nonnull_mask] = np.min(geo_costs, axis=0)
+                    if geo_distance > geo_constraint["maxValue"] or geo_distance < geo_constraint["minValue"]:
+                        geo_costs[cand1_i, cand2_i] = 1.0/importance
+            cand1_costs[cand1_nonnull_mask] = np.min(geo_costs, axis=1)
+            cand2_costs[cand2_nonnull_mask] = np.min(geo_costs, axis=0)
 
         node1_weight, node2_weight = get_src_dst_weights(smp, node1_idx, node2_idx)
         if node1_weight > 0:
