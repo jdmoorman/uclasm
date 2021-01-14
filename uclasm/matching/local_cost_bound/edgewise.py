@@ -667,7 +667,7 @@ def add_geo_costs(smp, candidates, local_costs):
                     geo_distance = distance.distance((cand1_lat, cand1_lng), (cand2_lat, cand2_lng)).meters
                     # geo_distance = haversine(cand1_lat, cand1_lng, cand2_lat, cand2_lng)
 
-                    if geo_distance > geo_constraint["maxValue"] or geo_distance < geo_constraint["minValue"]:
+                    if ("maxValue" in geo_constraint and geo_distance > geo_constraint["maxValue"]) or ("minValue" in geo_constraint and geo_distance < geo_constraint["minValue"]):
                         geo_costs[cand1_i, cand2_i] = 1.0/importance
             cand1_costs[cand1_nonnull_mask] = np.min(geo_costs, axis=1)
             cand2_costs[cand2_nonnull_mask] = np.min(geo_costs, axis=0)
