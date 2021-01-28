@@ -226,16 +226,6 @@ class Graph:
 
         return np.array(cover)
 
-    def to_simple_graph(self):
-        """
-        This will construct a simple directed graph by replacing any 
-        multichannel multiedges with a single node which connects to both 
-        incident node with a label indicating number of edges in each channel.
-
-        Returns:
-            Graph: The constructed simple graph
-        """
-        
     def write_to_file(self, filename):
         """
         Writes the graph out in the following format:
@@ -440,7 +430,7 @@ class Graph:
                 # 0 is a filler for the edge label
                 f.write('e {} {} 0\n'.format(src, dst))
 
-    def write_channel_gfd(self, filename, channel):
+    def write_channel_gfd(self, filename):
         """
         Write a single channel in gfd format for use in RI solver.
         """
@@ -450,10 +440,12 @@ class Graph:
             for i in range(self.n_nodes):
                 f.write('0\n') # 0 is a dummy label for each node since 
                 # our graphs are unlabelled
-            f.write('{}\n'.format(self.get_n_edges(channel)))
-            for _, fro, to, count in self.edge_iterator(channel):
-                for i in range(count):
-                    f.write('{} {}\n'.format(fro, to))
+            
+            f.write('{}\n'.format(self.get_n_edges()))
+            for channel in self.channels:
+                for _, fro, to, count in self.edge_iterator(channel):
+                    for i in range(count):
+                        f.write('{}\t{}\t{}\n'.format(fro, to, channel))
 
     def write_file_gfd(self, filename):
         """
