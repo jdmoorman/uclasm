@@ -94,6 +94,10 @@ def recursive_isomorphism_counter(smp, matching, *,
         # Remove matched node from the unspecified list
         new_unspec_cover = unspec_cover[:node_idx] + unspec_cover[node_idx+1:]
 
+        matching.append((node_idx, cand_idx))
+        # Remove matched node from the unspecified list
+        new_unspec_cover = unspec_cover[:node_idx] + unspec_cover[node_idx+1:]
+
         # recurse to make assignment for the next node in the unspecified cover
         n_isomorphisms += recursive_isomorphism_counter(
             smp_copy, matching, unspec_cover=new_unspec_cover,
@@ -151,7 +155,6 @@ def count_isomorphisms(smp, *, verbose=True,
         w_vert = np.where(candidates[t_vert,:])[0][0]
         matching.append((t_vert, w_vert))
 
-    unspec_nodes = np.where(candidates.sum(axis=1) > 1)[0]
     tmplt_subgraph = smp.tmplt.node_subgraph(unspec_nodes)
     unspec_cover_subgraph_idxs = tmplt_subgraph.node_cover()
     # Remap indices from subgraph back to original template
