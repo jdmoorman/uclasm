@@ -19,6 +19,7 @@ class Graph:
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(self.nodes)
         self.ch_to_adj = {ch: adj for ch, adj in zip(channels, adjs)}
+        self.ch_to_csc_adj = {ch: adj.tocsc() for ch, adj in zip(channels, adjs)}
         self.channels = channels
         self.adjs = adjs
         self.is_sparse = all([sparse.issparse(adj) for adj in adjs])
@@ -37,7 +38,7 @@ class Graph:
         self.out_degree_array = None
         self.degree_array = None
         self.neighbors_list = []
-
+        self.channel_neighbors_list = {}
 
     @property
     def composite_adj(self):
@@ -123,6 +124,25 @@ class Graph:
         else:
             self.compute_neighbors()
         return self.neighbors_list
+
+    def neighbors_in_channel(self, channel, t_vert, in_or_out='in'):
+        if self.channel_neighbors_list:
+            return self.channel_neighbors_list[channel][in_or_out][t_vert]
+        else:
+            self.compute_channel_neighbors()
+        return self.channel_neighbors_list[channel][in_or_out][t_vert]
+    
+    def compute_channel_neighbors(self):
+        self.channel_neighbors_list = {}
+        for ch in self.channels:
+            in_neighbors = []
+            out_neighbors = []
+            adj = self.ch_to_adj[ch]
+            csc_adj = self.ch_to_csc_adj[ch]
+            for i in range(self.n_nodes):
+                out_neighbors.append(adj[i].nonzero()[1])
+                in_neighbors.append(adj[:,i].nonzero()[0])
+            self.channel_neighbors_list[ch] = {'in': in_neighbors, 'out': out_neighbors}
 
     def compute_neighbors(self):
         for i in range(self.n_nodes):
