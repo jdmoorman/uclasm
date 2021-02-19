@@ -5,7 +5,7 @@ Filtering algorithms expect data to come in the form of Graph objects
 import os
 
 from ..equivalence.partition_sparse import bfs_partition_graph
-from .misc import index_map
+from .misc import index_map, one_hot
 import scipy.sparse as sparse
 import numpy as np
 import matplotlib
@@ -62,9 +62,9 @@ class Graph:
         is specified, return the total number of edges.
         """
         if channel is None:
-            return sum([self.ch_to_adj[ch].sum() for ch in self.channels])
+            return int(sum([self.ch_to_adj[ch].sum() for ch in self.channels]))
         else:
-            return self.ch_to_adj[channel].sum()
+            return int(self.ch_to_adj[channel].sum())
 
     @property
     def sym_composite_adj(self):
@@ -172,7 +172,10 @@ class Graph:
         adjs = [adj[node_idxs, :][:, node_idxs] for adj in self.adjs]
 
         # Return a new graph object for the induced subgraph
-        return Graph(nodes, self.channels, adjs, labels=labels)
+        graph = Graph(nodes, self.channels, adjs, labels=labels)
+        graph.is_sparse = self.is_sparse
+
+        return graph
 
     def sparsify(self):
         """
@@ -218,7 +221,7 @@ class Graph:
         """
         return Graph(self.nodes, self.channels,
                      [adj.copy() for adj in self.adjs],
-                     labels=self.labels)
+                     labels=self.labels, name=self.name)
 
     def get_node_cover(self):
         """
@@ -418,12 +421,12 @@ class Graph:
 
             for i in range(self.n_nodes):
                 node_label = self.labels[i] if self.labels[i] else default_label
-                out_degree = self.out_degree[channel][i]
+                out_degree = int(self.out_degree[channel][i])
 
                 f.write('{} {} {}'.format(i, node_label, out_degree))
-                for nbr in adj[i].nonzero()[0]:
+                for nbr in self.neighbors[i]:
                     f.write(' {}'.format(nbr))
-            f.write('\n')
+                f.write('\n')
 
     def write_world_file_CFLMatch(self, filename):
         with open(filename, 'w') as f:

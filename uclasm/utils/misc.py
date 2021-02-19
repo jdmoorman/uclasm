@@ -44,7 +44,11 @@ def time_limit(seconds):
     finally:
         signal.alarm(0)
 
-def time_with_timeout(f, args, kwargs, timeout=60):
+def time_with_timeout(f, args=None, kwargs=None, timeout=60):
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     try:
         with time_limit(timeout):
             start_time = time.time()
