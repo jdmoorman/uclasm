@@ -181,6 +181,7 @@ class MatchingProblem:
 
         self.matching = tuple()
         self.assigned_tmplt_idxs = set()
+        self.prevented_matches = []
 
     def copy(self, copy_graphs=True):
         """Returns a copy of the MatchingProblem."""
@@ -216,6 +217,7 @@ class MatchingProblem:
             smp_copy.tmplt.time_constraints = self.tmplt.time_constraints
         if hasattr(self.tmplt, "geo_constraints"):
             smp_copy.tmplt.geo_constraints = self.tmplt.geo_constraints
+        smp_copy.prevented_matches = self.prevented_matches.copy()
         return smp_copy
 
     def set_costs(self, fixed_costs=None, local_costs=None, global_costs=None):
@@ -500,4 +502,7 @@ class MatchingProblem:
         world_idx : int
             The index of the world node not to be matched.
         """
-        self.fixed_costs[tmplt_idx, world_idx] = float("inf")
+        if self.match_fixed_costs:
+            self.fixed_costs[tmplt_idx, world_idx] = float("inf")
+        else:
+            self.prevented_matches.append((tmplt_idx, world_idx))

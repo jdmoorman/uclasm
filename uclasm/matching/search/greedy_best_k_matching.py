@@ -278,6 +278,16 @@ def pop_least_cost_cand(smp, tmplt_idx, cand_idxs):
     min_idx = smp.global_costs[tmplt_idx, cand_idxs].argmin()
     return cand_idxs.pop(min_idx)
 
+def remove_equivalent_cands(smp, tmplt_idx, cand_idx, cand_idxs):
+    """Using the template's equivalence classes, remove candidates which would
+    not lead to other representative solutions."""
+    for equivalence_class in smp.tmplt.equivalence_classes:
+        if tmplt_idx in equivalence_class:
+            for other_tmplt_idx in equivalence_class:
+                # smp.candidates[other_tmplt_idx, cand_idx] = False
+                if other_tmplt_idx != tmplt_idx:
+                    smp.prevent_match(other_tmplt_idx, cand_idx)
+
 def _greedy_best_k_matching_recursive(smp, *, current_state, k,
                                       nodewise, edgewise, solutions, verbose):
 
@@ -325,6 +335,9 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
         # cand_idx = cand_idxs[0]
         # cand_idxs = cand_idxs[1:]
         cand_idx = pop_least_cost_cand(smp, tmplt_idx, cand_idxs)
+
+        if hasattr(smp.tmplt, 'equivalence_classes'):
+            remove_equivalent_cands(smp, tmplt_idx, cand_idx, cand_idxs)
 
         new_state = create_new_state(smp, tmplt_idx, cand_idx, current_state.matching)
 
