@@ -84,8 +84,7 @@ class Graph:
         if channel_col is not None:
             self.channel_col = channel_col
         if nodelist is not None:
-            # nodelist.shape[0]
-            self.n_nodes = len(nodelist.index)
+            self.n_nodes = len(nodelist)
         else:
             # If a nodelist is not supplied, generate a basic one
             self.n_nodes = adjs[0].shape[0]
