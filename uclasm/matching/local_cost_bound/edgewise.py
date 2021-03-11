@@ -494,7 +494,6 @@ def add_time_costs(smp, candidates, local_costs):
     ----------
     smp: MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
-    candidates: array
         The precomputed array of candidates. Avoids recomputing candidates.
     local_costs: array
         Array of local costs to add the time costs to.
@@ -533,44 +532,27 @@ def add_time_costs(smp, candidates, local_costs):
             cand1_sorted_idxs = cand1_times.argsort()
             cand2_sorted_idxs = cand2_times.argsort()
 
-            cand2_idx_idx = 0
-            cand2_idx = cand2_sorted_idxs[cand2_idx_idx]
-            cand2_time = cand2_times[cand2_idx]
-            last_valid_cand2_idx_idx = 0
-            for cand1_idx_idx, cand1_idx in enumerate(cand1_sorted_idxs):
-                cand1_time = cand1_times[cand1_idx]
-                while cand2_time - cand1_time < min_timedelta:
-                    cand2_idx_idx += 1
-                    if cand2_idx_idx >= len(cand2_sorted_idxs):
-                        cand2_time = None
-                        break
-                    cand2_idx = cand2_sorted_idxs[cand2_idx_idx]
-                    cand2_time = cand2_times[cand2_idx]
-                if cand2_time is not None:
-                    if 'maxValue' in time_constraint:
-                        if cand2_time - cand1_time > max_timedelta:
-                            continue
-                    cand1_nonnat_costs[cand1_idx] = 0
-                    if 'maxValue' in time_constraint:
-                        cand2_nonnat_costs[cand2_idx] = 0
-                        temp_cand2_idx_idx = max(last_valid_cand2_idx_idx, cand2_idx_idx) + 1
-                        if temp_cand2_idx_idx < len(cand2_sorted_idxs):
-                            next_cand2_idx = cand2_sorted_idxs[temp_cand2_idx_idx]
-                            next_cand2_time = cand2_times[next_cand2_idx]
-                            while next_cand2_time - cand1_time <= max_timedelta:
-                                cand2_nonnat_costs[next_cand2_idx] = 0
-                                last_valid_cand2_idx_idx = temp_cand2_idx_idx
-                                temp_cand2_idx_idx += 1
-                                if temp_cand2_idx_idx < len(cand2_sorted_idxs):
-                                    next_cand2_idx = cand2_sorted_idxs[temp_cand2_idx_idx]
-                                    next_cand2_time = cand2_times[next_cand2_idx]
-                                else:
-                                    break
-                    elif cand1_idx_idx == 0:
-                        # With only minimum timedelta, all future cand2_times are valid
-                        cand2_nonnat_costs[cand2_sorted_idxs[cand2_idx_idx:]] = 0
+            uniq_cand1_times = np.unique(cand1_times)
+
+            for cand1_time in uniq_cand1_times:
+                if 'minValue' in time_constraint:
+                    min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
+                                              sorter=cand2_sorted_idxs)
                 else:
-                    break
+                    min_idx = 0
+                if 'maxValue' in time_constraint:
+                    max_idx = np.searchsorted(cand2_times, cand1_time + max_timedelta,
+                                              'right', sorter=cand2_sorted_idxs)
+                else:
+                    max_idx = len(cand2_times)
+                
+                cand1s = (cand1_times == cand1_time).nonzero()[0]
+
+                # There are candidate 2 times are in desired range
+                if min_idx < max_idx:
+                    cand1_nonnat_costs[cand1s] = 0
+                    cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx+1]] = 0
+               
         cand1_costs[cand1_nonnat_mask] = cand1_nonnat_costs
         cand2_costs[cand2_nonnat_mask] = cand2_nonnat_costs
         node1_weight, node2_weight = get_src_dst_weights(smp, node1_idx, node2_idx)
