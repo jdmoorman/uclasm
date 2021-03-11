@@ -494,6 +494,7 @@ def add_time_costs(smp, candidates, local_costs):
     ----------
     smp: MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
+    candidates: array
         The precomputed array of candidates. Avoids recomputing candidates.
     local_costs: array
         Array of local costs to add the time costs to.
@@ -532,8 +533,10 @@ def add_time_costs(smp, candidates, local_costs):
             cand1_sorted_idxs = cand1_times.argsort()
             cand2_sorted_idxs = cand2_times.argsort()
 
+            # There are a lot of redundant times, only check unique times
             uniq_cand1_times = np.unique(cand1_times)
 
+            # For each initial event time
             for cand1_time in uniq_cand1_times:
                 if 'minValue' in time_constraint:
                     min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
@@ -548,7 +551,8 @@ def add_time_costs(smp, candidates, local_costs):
                 
                 cand1s = (cand1_times == cand1_time).nonzero()[0]
 
-                # There are candidate 2 times are in desired range
+                # If there are cand2 vertices in desired time range,
+                # set associated costs to 0.
                 if min_idx < max_idx:
                     cand1_nonnat_costs[cand1s] = 0
                     cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx+1]] = 0
