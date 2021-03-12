@@ -530,7 +530,6 @@ def add_time_costs(smp, candidates, local_costs):
         elif len(cand2_times) == 0:
             pass
         else:
-            cand1_sorted_idxs = cand1_times.argsort()
             cand2_sorted_idxs = cand2_times.argsort()
 
             # There are a lot of redundant times, only check unique times
@@ -538,24 +537,19 @@ def add_time_costs(smp, candidates, local_costs):
 
             # For each initial event time
             for cand1_time in uniq_cand1_times:
-                if 'minValue' in time_constraint:
-                    min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
-                                              sorter=cand2_sorted_idxs)
-                else:
-                    min_idx = 0
+                min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
+                                          sorter=cand2_sorted_idxs)
                 if 'maxValue' in time_constraint:
                     max_idx = np.searchsorted(cand2_times, cand1_time + max_timedelta,
-                                              'right', sorter=cand2_sorted_idxs)
+                                              side='right', sorter=cand2_sorted_idxs)
                 else:
                     max_idx = len(cand2_times)
                 
-                cand1s = (cand1_times == cand1_time).nonzero()[0]
-
                 # If there are cand2 vertices in desired time range,
                 # set associated costs to 0.
                 if min_idx < max_idx:
-                    cand1_nonnat_costs[cand1s] = 0
-                    cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx+1]] = 0
+                    cand1_nonnat_costs[cand1_times == cand1_time] = 0
+                    cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx]] = 0
                
         cand1_costs[cand1_nonnat_mask] = cand1_nonnat_costs
         cand2_costs[cand2_nonnat_mask] = cand2_nonnat_costs
