@@ -530,47 +530,27 @@ def add_time_costs(smp, candidates, local_costs):
         elif len(cand2_times) == 0:
             pass
         else:
-            cand1_sorted_idxs = cand1_times.argsort()
             cand2_sorted_idxs = cand2_times.argsort()
 
-            cand2_idx_idx = 0
-            cand2_idx = cand2_sorted_idxs[cand2_idx_idx]
-            cand2_time = cand2_times[cand2_idx]
-            last_valid_cand2_idx_idx = 0
-            for cand1_idx_idx, cand1_idx in enumerate(cand1_sorted_idxs):
-                cand1_time = cand1_times[cand1_idx]
-                while cand2_time - cand1_time < min_timedelta:
-                    cand2_idx_idx += 1
-                    if cand2_idx_idx >= len(cand2_sorted_idxs):
-                        cand2_time = None
-                        break
-                    cand2_idx = cand2_sorted_idxs[cand2_idx_idx]
-                    cand2_time = cand2_times[cand2_idx]
-                if cand2_time is not None:
-                    if 'maxValue' in time_constraint:
-                        if cand2_time - cand1_time > max_timedelta:
-                            continue
-                    cand1_nonnat_costs[cand1_idx] = 0
-                    if 'maxValue' in time_constraint:
-                        cand2_nonnat_costs[cand2_idx] = 0
-                        temp_cand2_idx_idx = max(last_valid_cand2_idx_idx, cand2_idx_idx) + 1
-                        if temp_cand2_idx_idx < len(cand2_sorted_idxs):
-                            next_cand2_idx = cand2_sorted_idxs[temp_cand2_idx_idx]
-                            next_cand2_time = cand2_times[next_cand2_idx]
-                            while next_cand2_time - cand1_time <= max_timedelta:
-                                cand2_nonnat_costs[next_cand2_idx] = 0
-                                last_valid_cand2_idx_idx = temp_cand2_idx_idx
-                                temp_cand2_idx_idx += 1
-                                if temp_cand2_idx_idx < len(cand2_sorted_idxs):
-                                    next_cand2_idx = cand2_sorted_idxs[temp_cand2_idx_idx]
-                                    next_cand2_time = cand2_times[next_cand2_idx]
-                                else:
-                                    break
-                    elif cand1_idx_idx == 0:
-                        # With only minimum timedelta, all future cand2_times are valid
-                        cand2_nonnat_costs[cand2_sorted_idxs[cand2_idx_idx:]] = 0
+            # There are a lot of redundant times, only check unique times
+            uniq_cand1_times = np.unique(cand1_times)
+
+            # For each initial event time
+            for cand1_time in uniq_cand1_times:
+                min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
+                                          sorter=cand2_sorted_idxs)
+                if 'maxValue' in time_constraint:
+                    max_idx = np.searchsorted(cand2_times, cand1_time + max_timedelta,
+                                              side='right', sorter=cand2_sorted_idxs)
                 else:
-                    break
+                    max_idx = len(cand2_times)
+                
+                # If there are cand2 vertices in desired time range,
+                # set associated costs to 0.
+                if min_idx < max_idx:
+                    cand1_nonnat_costs[cand1_times == cand1_time] = 0
+                    cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx]] = 0
+               
         cand1_costs[cand1_nonnat_mask] = cand1_nonnat_costs
         cand2_costs[cand2_nonnat_mask] = cand2_nonnat_costs
         node1_weight, node2_weight = get_src_dst_weights(smp, node1_idx, node2_idx)
