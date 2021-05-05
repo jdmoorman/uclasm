@@ -544,13 +544,13 @@ def add_time_costs(smp, candidates, local_costs):
                                               side='right', sorter=cand2_sorted_idxs)
                 else:
                     max_idx = len(cand2_times)
-                
+
                 # If there are cand2 vertices in desired time range,
                 # set associated costs to 0.
                 if min_idx < max_idx:
                     cand1_nonnat_costs[cand1_times == cand1_time] = 0
                     cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx]] = 0
-               
+
         cand1_costs[cand1_nonnat_mask] = cand1_nonnat_costs
         cand2_costs[cand2_nonnat_mask] = cand2_nonnat_costs
         node1_weight, node2_weight = get_src_dst_weights(smp, node1_idx, node2_idx)

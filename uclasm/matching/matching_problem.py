@@ -98,6 +98,7 @@ class MatchingProblem:
                  candidate_print_limit=10,
                  cache_path=None,
                  edgewise_costs_cache=None,
+                 ignore_edgewise_costs_cache=False,
                  use_monotone=True,
                  match_fixed_costs=False):
 
@@ -147,7 +148,9 @@ class MatchingProblem:
         # Cache of edge-to-edge costs for the edgewise local cost bound
         self._edgewise_costs_cache = edgewise_costs_cache
         self.cache_path = cache_path
-        if self.cache_path is not None and self._edgewise_costs_cache is None:
+        if ignore_edgewise_costs_cache:
+            print("Ignoring edgewise cost cache")
+        elif self.cache_path is not None and self._edgewise_costs_cache is None:
             try:
                 self._edgewise_costs_cache = np.load(os.path.join(self.cache_path, "edgewise_costs_cache.npy"))
                 n_tmplt_edges = len(self.tmplt.edgelist.index)
@@ -156,7 +159,7 @@ class MatchingProblem:
                     tmplt_edge_to_attr_idx = np.load(os.path.join(self.cache_path, "tmplt_edge_to_attr_idx.npy"))
                     world_edge_to_attr_idx = np.load(os.path.join(self.cache_path, "world_edge_to_attr_idx.npy"))
                     print('Edge to attr maps loaded from cache')
-                    
+
                     self.tmplt_edge_to_attr_idx = tmplt_edge_to_attr_idx
                     self.world_edge_to_attr_idx = world_edge_to_attr_idx
 
