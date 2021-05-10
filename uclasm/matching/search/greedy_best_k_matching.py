@@ -104,7 +104,7 @@ def greedy_best_k_matching(smp, k=1, nodewise=True, edgewise=True,
             if new_matching_tuple not in cost_map:
                 new_state = State()
                 new_state.matching = new_matching_tuple
-                new_state.cost = smp.global_costs[tmplt_idx, cand_idx]
+                new_state.cost = curr_smp.global_costs[tmplt_idx, cand_idx]
                 if new_state.cost > smp.global_cost_threshold or new_state.cost >= kth_cost:
                     continue
                 cost_map[new_matching_tuple] = new_state.cost
