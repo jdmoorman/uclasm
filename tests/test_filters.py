@@ -51,28 +51,29 @@ def smp_noisy():
                           local_cost_threshold=1)
     return smp
 
-class TestFilters:
-    """Tests related to the filters """
-    def test_stats_filter(self, smp):
-        filters.stats_filter(smp)
-        assert np.sum(smp.local_costs > 0) == 6
-
-    def test_stats_filter_noisy(self, smp_noisy):
-        filters.stats_filter(smp_noisy)
-        assert np.sum(smp_noisy.local_costs > 0) == 2
-
-    def test_topology_filter(self, smp):
-        filters.topology_filter(smp)
-        assert np.sum(smp.local_costs > 0) == 6
-
-    def test_topology_filter_noisy(self, smp_noisy):
-        filters.topology_filter(smp_noisy)
-        assert np.sum(smp_noisy.local_costs > 0) == 2
-
-    def test_run_filters(self, smp):
-        filters.run_filters(smp)
-        assert np.sum(smp.candidates()) == 3
-
-    def test_run_filters_noisy(self, smp_noisy):
-        filters.run_filters(smp_noisy)
-        assert np.sum(smp_noisy.candidates()) == 5
+# Deprecate old version of run_filters tests
+# class TestFilters:
+#     """Tests related to the filters """
+#     def test_stats_filter(self, smp):
+#         filters.stats_filter(smp)
+#         assert np.sum(smp.local_costs > 0) == 6
+#
+#     def test_stats_filter_noisy(self, smp_noisy):
+#         filters.stats_filter(smp_noisy)
+#         assert np.sum(smp_noisy.local_costs > 0) == 2
+#
+#     def test_topology_filter(self, smp):
+#         filters.topology_filter(smp)
+#         assert np.sum(smp.local_costs > 0) == 6
+#
+#     def test_topology_filter_noisy(self, smp_noisy):
+#         filters.topology_filter(smp_noisy)
+#         assert np.sum(smp_noisy.local_costs > 0) == 2
+#
+#     def test_run_filters(self, smp):
+#         filters.run_filters(smp)
+#         assert np.sum(smp.candidates()) == 3
+#
+#     def test_run_filters_noisy(self, smp_noisy):
+#         filters.run_filters(smp_noisy)
+#         assert np.sum(smp_noisy.candidates()) == 5

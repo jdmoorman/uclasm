@@ -1,4 +1,4 @@
-from .matching_problem import MatchingProblem
+from .matching_problem import MatchingProblem, ExactMatchingProblem, InexactMatchingProblem
 
 from .filters import *
 

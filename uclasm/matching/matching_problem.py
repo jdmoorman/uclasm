@@ -6,7 +6,136 @@ from .matching_utils import inspect_channels, MonotoneArray, \
     feature_disagreements
 from .global_cost_bound import *
 
-class MatchingProblem:
+class MatchingProblemBase:
+    def __init__(self,
+                 tmplt, world,
+                 ground_truth_provided=False,
+                 candidate_print_limit=10):
+        # Various important matrices will have this shape.
+        self.shape = (tmplt.n_nodes, world.n_nodes)
+        # Make sure graphs have the same channels in the same order.
+        if tmplt.channels != world.channels:
+            inspect_channels(tmplt, world)
+            world = world.channel_subgraph(tmplt.channels)
+        # No longer care about self-edges because they are fixed costs.
+        self.tmplt = tmplt
+        self.world = world
+
+        self._ground_truth_provided = ground_truth_provided
+        self._candidate_print_limit = candidate_print_limit
+
+    def candidates(self):
+        """Implement for each child class!"""
+        raise Exception("candidates() not implemented for instance of MatchingProblemBase!")
+
+    def __str__(self):
+        """Summarize the state of the matching problem.
+
+        Returns
+        -------
+        str
+            Information includes number of candidates for each template node,
+            number of template nodes which have exactly one candidate,
+            and size of the template and world graphs.
+        """
+        # Append info strings to this list throughout the function.
+        info_strs = []
+
+        info_strs.append("There are {} template nodes and {} world nodes."
+                         .format(self.tmplt.n_nodes, self.world.n_nodes))
+
+        # Wouldn't want to recompute this too often.
+        candidates = self.candidates
+
+        # Number of candidates for each template node.
+        cand_counts = candidates.sum(axis=1)
+
+        # TODO: if multiple nodes have the same candidates, condense them.
+
+        # Iterate over template nodes in decreasing order of candidates.
+        for idx in np.flip(np.argsort(cand_counts)):
+            node = self.tmplt.nodes[idx]
+            cands = sorted(self.world.nodes[candidates[idx]])
+            n_cands = len(cands)
+
+            if n_cands <= 1:
+                continue
+
+            if n_cands > self._candidate_print_limit:
+                cands = cands[:self._candidate_print_limit] + ["..."]
+
+            # TODO: abstract out the getting and setting before and after
+            info_strs.append("{} has {} candidates: {}"
+                             .format(node, n_cands, ", ".join(cands)))
+
+        # Nodes that have only one candidate
+        identified = list(self.tmplt.nodes[cand_counts == 1])
+        n_found = len(identified)
+
+        # If there are any nodes that have only one candidate, that is
+        # important information and should be recorded.
+        if n_found:
+            info_strs.append("{} template nodes have 1 candidate: {}"
+                             .format(n_found, ", ".join(identified)))
+
+        # Nodes that have no candidates
+        unidentified = list(self.tmplt.nodes[cand_counts == 0])
+        n_unidentified = len(unidentified)
+        if n_unidentified:
+            info_strs.append("{} template nodes have 0 candidates: {}"
+                             .format(n_unidentified, ", ".join(unidentified)))
+
+        # This message is useful for debugging datasets for which you have
+        # a ground truth signal.
+        if self._ground_truth_provided:
+            # Assuming ground truth nodes have same names, get the nodes for
+            # which ground truth identity is not a candidate
+            missing_ground_truth = [
+                node for idx, node in enumerate(self.tmplt.nodes)
+                if node not in self.world.nodes[candidates[idx]]
+            ]
+            n_missing = len(missing_ground_truth)
+
+            info_strs.append("{} nodes are missing ground truth candidate: {}"
+                             .format(n_missing, missing_ground_truth))
+
+        return "\n".join(info_strs)
+
+class ExactMatchingProblem(MatchingProblemBase):
+    def __init__(self,
+                 tmplt, world,
+                 candidates=None,
+                 ground_truth_provided=False,
+                 candidate_print_limit=10):
+        super().__init__(tmplt, world,
+                    ground_truth_provided=ground_truth_provided,
+                    candidate_print_limit=candidate_print_limit)
+        if candidates is not None:
+            self._candidates = candidates
+        else:
+            self._candidates = np.ones(self.shape, dtype=np.bool)
+
+    def copy(self, copy_graphs=False):
+        if copy_graphs:
+            tmplt = self.tmplt.copy()
+            world = self.world.copy()
+        else:
+            tmplt = self.tmplt
+            world = self.world
+        smp_copy = ExactMatchingProblem(tmplt, world,
+            candidates=self._candidates.copy(),
+            ground_truth_provided=self._ground_truth_provided,
+            candidate_print_limit=self._candidate_print_limit)
+        return smp_copy
+
+    @property
+    def candidates(self):
+        return self._candidates
+    @candidates.setter
+    def candidates(self, value):
+        self._candidates = value
+
+class InexactMatchingProblem(MatchingProblemBase):
     """A class representing any subgraph matching problem, noisy or otherwise.
 
     TODO: describe the class in more detail.
@@ -102,9 +231,9 @@ class MatchingProblem:
                  use_monotone=True,
                  match_fixed_costs=False):
 
-        # Various important matrices will have this shape.
-        self.shape = (tmplt.n_nodes, world.n_nodes)
-
+        super().__init__(tmplt, world,
+                    ground_truth_provided=ground_truth_provided,
+                    candidate_print_limit=candidate_print_limit)
         if fixed_costs is None:
             fixed_costs = np.zeros(self.shape)
 
@@ -114,19 +243,14 @@ class MatchingProblem:
         if global_costs is None:
             global_costs = np.zeros(self.shape)
 
-        # Make sure graphs have the same channels in the same order.
-        if tmplt.channels != world.channels:
-            inspect_channels(tmplt, world)
-            world = world.channel_subgraph(tmplt.channels)
-
         # Account for self edges in fixed costs.
-        if tmplt.adjs is not None and tmplt.has_loops:
+        if self.tmplt.adjs is not None and self.tmplt.has_loops:
             fixed_costs += feature_disagreements(
-                tmplt.self_edges,
-                world.self_edges
+                self.tmplt.self_edges,
+                self.world.self_edges
             )
-            tmplt = tmplt.loopless_subgraph()
-            world = world.loopless_subgraph()
+            self.tmplt = self.tmplt.loopless_subgraph()
+            self.world = self.world.loopless_subgraph()
 
         self.use_monotone = use_monotone
         self.match_fixed_costs = match_fixed_costs
@@ -140,10 +264,6 @@ class MatchingProblem:
             self._local_costs = local_costs
             # self._global_costs = global_costs
         self._global_costs = global_costs.view(MonotoneArray)
-
-        # No longer care about self-edges because they are fixed costs.
-        self.tmplt = tmplt
-        self.world = world
 
         # Cache of edge-to-edge costs for the edgewise local cost bound
         self._edgewise_costs_cache = edgewise_costs_cache
@@ -173,9 +293,6 @@ class MatchingProblem:
         self.global_cost_threshold = global_cost_threshold
         self.strict_threshold = strict_threshold
 
-        self._ground_truth_provided = ground_truth_provided
-        self._candidate_print_limit = candidate_print_limit
-
         self._num_valid_candidates = self.tmplt.n_nodes * self.world.n_nodes
 
         self.node_attr_fn = node_attr_fn
@@ -194,7 +311,7 @@ class MatchingProblem:
         else:
             tmplt = self.tmplt
             world = self.world
-        smp_copy = MatchingProblem(tmplt, world,
+        smp_copy = InexactMatchingProblem(tmplt, world,
             fixed_costs=self._fixed_costs.copy() if self.match_fixed_costs else self._fixed_costs,
             local_costs=None if self._local_costs is None else self._local_costs.copy(),
             global_costs=None if self._global_costs is None else self._global_costs.copy(),
@@ -327,79 +444,6 @@ class MatchingProblem:
             return self.global_costs[tmplt_idx] <= (self.global_cost_threshold + 1e-8)
         return self.global_costs <= (self.global_cost_threshold + 1e-8)
 
-    def __str__(self):
-        """Summarize the state of the matching problem.
-
-        Returns
-        -------
-        str
-            Information includes number of candidates for each template node,
-            number of template nodes which have exactly one candidate,
-            and size of the template and world graphs.
-        """
-        # Append info strings to this list throughout the function.
-        info_strs = []
-
-        info_strs.append("There are {} template nodes and {} world nodes."
-                         .format(self.tmplt.n_nodes, self.world.n_nodes))
-
-        # Wouldn't want to recompute this too often.
-        candidates = self.candidates()
-
-        # Number of candidates for each template node.
-        cand_counts = candidates.sum(axis=1)
-
-        # TODO: if multiple nodes have the same candidates, condense them.
-
-        # Iterate over template nodes in decreasing order of candidates.
-        for idx in np.flip(np.argsort(cand_counts)):
-            node = self.tmplt.nodes[idx]
-            cands = sorted(self.world.nodes[candidates[idx]])
-            n_cands = len(cands)
-
-            if n_cands <= 1:
-                continue
-
-            if n_cands > self._candidate_print_limit:
-                cands = cands[:self._candidate_print_limit] + ["..."]
-
-            # TODO: abstract out the getting and setting before and after
-            info_strs.append("{} has {} candidates: {}"
-                             .format(node, n_cands, ", ".join(cands)))
-
-        # Nodes that have only one candidate
-        identified = list(self.tmplt.nodes[cand_counts == 1])
-        n_found = len(identified)
-
-        # If there are any nodes that have only one candidate, that is
-        # important information and should be recorded.
-        if n_found:
-            info_strs.append("{} template nodes have 1 candidate: {}"
-                             .format(n_found, ", ".join(identified)))
-
-        # Nodes that have no candidates
-        unidentified = list(self.tmplt.nodes[cand_counts == 0])
-        n_unidentified = len(unidentified)
-        if n_unidentified:
-            info_strs.append("{} template nodes have 0 candidates: {}"
-                             .format(n_unidentified, ", ".join(unidentified)))
-
-        # This message is useful for debugging datasets for which you have
-        # a ground truth signal.
-        if self._ground_truth_provided:
-            # Assuming ground truth nodes have same names, get the nodes for
-            # which ground truth identity is not a candidate
-            missing_ground_truth = [
-                node for idx, node in enumerate(self.tmplt.nodes)
-                if node not in self.world.nodes[candidates[idx]]
-            ]
-            n_missing = len(missing_ground_truth)
-
-            info_strs.append("{} nodes are missing ground truth candidate: {}"
-                             .format(n_missing, missing_ground_truth))
-
-        return "\n".join(info_strs)
-
     def reduce_world(self):
         """Reduce the size of the world graph.
 
@@ -509,3 +553,6 @@ class MatchingProblem:
             self.fixed_costs[tmplt_idx, world_idx] = float("inf")
         else:
             self.prevented_matches.append((tmplt_idx, world_idx))
+
+# Default MatchingProblem to be inexact
+MatchingProblem = InexactMatchingProblem
