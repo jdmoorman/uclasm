@@ -1,19 +1,18 @@
 from ..matching_utils import feature_disagreements
 import numpy as np
 
-def stats_filter(smp):
+def stats_filter(exact_smp, changed_cands=None, verbose=False):
     """Filtering based on statistics.
 
     Parameters
     ----------
-    smp : MatchingProblem
-        A subgraph matching problem on which to compute nodewise cost bounds.
+    exact_smp : ExactMatchingProblem
+        A subgraph matching problem on which to use nodewise stats filter.
     """
-    disagreements = feature_disagreements(smp.tmplt.in_out_degrees,
-                                          smp.world.in_out_degrees)
+    disagreements = feature_disagreements(exact_smp.tmplt.in_out_degrees,
+                                          exact_smp.world.in_out_degrees)
 
-    is_cand = disagreements <= min(smp.global_cost_threshold,
-                                   smp.local_cost_threshold)
+    is_cand = disagreements <= 0
 
-    # TODO: check whether this works
-    smp.local_costs[~is_cand] = np.inf
+    candidates = exact_smp.candidates
+    candidates[~is_cand] = False
