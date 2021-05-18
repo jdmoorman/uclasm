@@ -321,10 +321,11 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
     # candidates = smp.candidates()
     # cand_idxs = list(np.argwhere(candidates[tmplt_idx]).flatten())
     cand_idxs = list(np.argwhere(smp.candidates(tmplt_idx)).flatten())
-    print("Updated current state: {} matches".format(len(current_state.matching)),
-          "current_cost:", current_state.cost,
-          "kth_cost:", kth_cost,  "max cost", smp.global_cost_threshold,
-          "solutions found:", len(solutions))
+    if verbose:
+        print("Updated current state: {} matches".format(len(current_state.matching)),
+              "current_cost:", current_state.cost,
+              "kth_cost:", kth_cost,  "max cost", smp.global_cost_threshold,
+              "solutions found:", len(solutions))
 
     # Sort candidates for the template node by global cost bound
     # sort_by_cost(smp, tmplt_idx, cand_idxs)
