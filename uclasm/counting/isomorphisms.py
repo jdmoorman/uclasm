@@ -1,4 +1,4 @@
-from ..matching.search.search_utils import iterate_to_convergence
+from ..matching.filters import run_filters
 from ..utils import invert, values_map_to_same_key, one_hot
 from .alldiffs import count_alldiffs
 import numpy as np
@@ -169,7 +169,7 @@ def recursive_isomorphism_finder(smp, *,
     if len(unspec_node_idxs) == 0:
         # All nodes have been assigned, add the isomorphism to the list
         new_isomorphism = {}
-        candidates = smp.candidates()
+        candidates = smp.candidates
         for tmplt_idx, tmplt_node in enumerate(smp.tmplt.nodes):
             if verbose:
                 world_node = smp.world.nodes[candidates[tmplt_idx]]
@@ -180,8 +180,8 @@ def recursive_isomorphism_finder(smp, *,
         found_isomorphisms.append(new_isomorphism)
         return found_isomorphisms
 
-    iterate_to_convergence(smp)
-    candidates = smp.candidates()
+    run_filters(smp)
+    candidates = smp.candidates
 
     node_idx = unspec_node_idxs[0]
     cand_idxs = np.argwhere(candidates[node_idx]).flat
@@ -196,13 +196,17 @@ def recursive_isomorphism_finder(smp, *,
             unspec_node_idxs=unspec_node_idxs[1:],
             verbose=verbose,
             init_changed_cands=one_hot(node_idx, smp.tmplt.n_nodes),
-            found_isomorphisms=found_isomorphisms)
+            found_isomorphisms=found_isomorphisms,
+            k=k)
+        if len(found_isomorphisms) == k:
+            return found_isomorphisms
     return found_isomorphisms
 
-def find_isomorphisms(smp, *, verbose=True):
+def find_isomorphisms(smp, *, k=-1, verbose=True):
     """ Returns a list of isomorphisms as dictionaries mapping template nodes to
     world nodes. Note: this is much slower than counting, and should only be
     done for small numbers of isomorphisms and fully filtered candidate matrices
+    k: Limit on number of solutions to return
     """
     unspec_node_idxs = np.where(smp.candidates().sum(axis=1) > 1)[0]
     found_isomorphisms = []
@@ -211,7 +215,8 @@ def find_isomorphisms(smp, *, verbose=True):
         smp, verbose=verbose,
         unspec_node_idxs=unspec_node_idxs,
         init_changed_cands=np.zeros(smp.tmplt.nodes.shape, dtype=np.bool),
-        found_isomorphisms=found_isomorphisms)
+        found_isomorphisms=found_isomorphisms,
+        k=k)
 
 def print_isomorphisms(smp, *, verbose=True):
     """ Prints the list of isomorphisms """
