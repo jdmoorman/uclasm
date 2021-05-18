@@ -74,7 +74,7 @@ def set_assignment_costs(assignment_costs, tmplt_idx, cand_idxs, attr_costs):
         if attr_cost < assignment_costs[tmplt_idx, cand_idx]:
             assignment_costs[tmplt_idx, cand_idx] = attr_cost
 
-def get_edge_to_unique_attr(edgelist, src_col, dst_col):
+def get_edge_to_unique_attr(edgelist, src_col, dst_col, cast_to_str=False):
     """Get a map from edge indexes to unique attribute indexes.
 
     Parameters
@@ -94,12 +94,25 @@ def get_edge_to_unique_attr(edgelist, src_col, dst_col):
         The unique attributes for the edges of `graph`
     """
     attr_names = [a for a in edgelist.columns if a not in [src_col, dst_col, 'id', 'template_id']]
-    attrs = edgelist[attr_names].to_numpy()
-    # attrs1d = [str(attr_row) for attr_row in attrs]
-    str_array = np.frompyfunc(str, 1, 1)
-    _, index, inverse = np.unique(str_array(attrs).astype(str), axis=0, return_index=True, return_inverse=True)
-    unique_attrs = attrs[index]
-    # Do we need to turn unique_attrs back into a dataframe?
+
+    if cast_to_str:
+        edgelist_str = edgelist.astype(str) # Can't use astype("string") since we want to convert lists
+        groups = edgelist_str.groupby(by=attr_names).groups
+    else:
+        groups = edgelist.groupby(by=attr_names).groups
+    unique_attrs = [x for x in groups]
+    inverse = np.zeros(len(edgelist.index), dtype=int)
+    for idx, x in enumerate(unique_attrs):
+        inverse[groups[x].tolist()] = idx
+    if cast_to_str:
+        index = np.zeros(len(unique_attrs), dtype=int)
+        for idx, x in enumerate(unique_attrs):
+            index[idx] = groups[x].tolist()[0]
+        unique_attrs = edgelist[attr_names].to_numpy()[index]
+    else:
+        unique_attrs = np.array(unique_attrs, ndmin=2)
+        if len(unique_attrs) == 1: # Handle case where there is only one attribute
+            unique_attrs = unique_attrs.transpose()
 
     return unique_attrs, inverse
 
@@ -197,9 +210,9 @@ def generate_edgewise_cost_cache(smp, cache_by_unique_attrs=True):
             # Template edges with the same attributes could still be different if they have different importances
             # For now, prevent the code from removing them as duplicates
             tmplt_attr_keys = [attr for attr in smp.tmplt.edgelist.columns if attr not in ['id', 'template_id']]
-            tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, None, None)
+            tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, None, None, cast_to_str=True)
         else:
-            tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, smp.tmplt.source_col, smp.tmplt.target_col)
+            tmplt_unique_attrs, tmplt_edge_to_attr_idx = get_edge_to_unique_attr(smp.tmplt.edgelist, smp.tmplt.source_col, smp.tmplt.target_col, cast_to_str=True)
         world_unique_attrs, world_edge_to_attr_idx = get_edge_to_unique_attr(smp.world.edgelist, smp.world.source_col, smp.world.target_col)
         print('Edge to unique attr map calculated in {} seconds'.format(time.time()-start_time))
 
