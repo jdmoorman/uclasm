@@ -106,7 +106,7 @@ def run_filters(exact_smp, *,
         # If not all world nodes are candidates for at least one template node
         if ~is_cand_any.all():
             # Get rid of unnecessary world nodes
-            world = world.subgraph(is_cand_any)
+            world = world.node_subgraph(is_cand_any)
             exact_smp.world = world
             candidates = candidates[:, is_cand_any]
             exact_smp.candidates = candidates
