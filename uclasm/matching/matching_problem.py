@@ -46,6 +46,10 @@ class MatchingProblemBase:
 
         # Wouldn't want to recompute this too often.
         candidates = self.candidates
+        try: # Handle difference between property and method
+            candidates = candidates()
+        except:
+            pass
 
         # Number of candidates for each template node.
         cand_counts = candidates.sum(axis=1)
