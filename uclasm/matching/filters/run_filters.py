@@ -78,7 +78,7 @@ def run_filters(exact_smp, *,
             # TODO: make logging less cumbersome
             if verbose:
                 end_time = time.time()
-                summarize(tmplt, world, candidates, alert_missing=exact_smp._ground_truth_provided)
+                print(exact_smp)
                 print("after", filter.__name__,
                       "on iteration", len(filters_so_far),
                       "took", end_time - start_time, "seconds")
