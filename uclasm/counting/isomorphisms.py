@@ -38,7 +38,7 @@ def pick_minimum_domain_vertex(candidates):
 
 def recursive_isomorphism_counter(smp, matching, *,
         unspec_cover, verbose, init_changed_cands, tmplt_equivalence=False,
-        world_equivalence=False):
+        world_equivalence=False, **kwargs):
     """
     Recursive routine for solving subgraph isomorphism.
 
@@ -66,8 +66,8 @@ def recursive_isomorphism_counter(smp, matching, *,
         The number of isomorphisms
     """
 
-    iterate_to_convergence(smp)
-    candidates = smp.candidates()
+    run_filters(smp, **kwargs)
+    candidates = smp.candidates
 
     # If the node cover is empty, the unspec nodes are disconnected. Thus, we
     # can skip straight to counting solutions to the alldiff constraint problem
@@ -98,7 +98,8 @@ def recursive_isomorphism_counter(smp, matching, *,
         n_isomorphisms += recursive_isomorphism_counter(
             smp_copy, matching, unspec_cover=new_unspec_cover,
             verbose=verbose,
-            init_changed_cands=one_hot(node_idx, smp.tmplt.n_nodes))
+            init_changed_cands=one_hot(node_idx, smp.tmplt.n_nodes),
+            **kwargs)
 
         # Unmatch template vertex
         matching.pop()
@@ -118,7 +119,7 @@ def recursive_isomorphism_counter(smp, matching, *,
 
 
 def count_isomorphisms(smp, *, verbose=True,
-                       tmplt_equivalence=False, world_equivalence=False):
+                       tmplt_equivalence=False, world_equivalence=False, **kwargs):
     """
     Counts the number of ways to assign template nodes to world nodes such that
     edges between template nodes also appear between the corresponding world
@@ -145,7 +146,7 @@ def count_isomorphisms(smp, *, verbose=True,
     """
 
     matching = []
-    candidates = smp.candidates()
+    candidates = smp.candidates
     spec_nodes = np.where(candidates.sum(axis=1) == 1)[0]
     for t_vert in spec_nodes:
         w_vert = np.where(candidates[t_vert,:])[0][0]
@@ -161,7 +162,7 @@ def count_isomorphisms(smp, *, verbose=True,
     # Send zeros to init_changed_cands since we already just ran the filters
     return recursive_isomorphism_counter(
         smp, matching, verbose=verbose, unspec_cover=unspec_cover_idxs,
-        init_changed_cands=np.zeros(smp.tmplt.nodes.shape, dtype=np.bool))
+        init_changed_cands=np.zeros(smp.tmplt.nodes.shape, dtype=np.bool), **kwargs)
 
 def recursive_isomorphism_finder(smp, *,
                                  unspec_node_idxs, verbose, init_changed_cands,
@@ -208,7 +209,7 @@ def find_isomorphisms(smp, *, k=-1, verbose=True, **kwargs):
     done for small numbers of isomorphisms and fully filtered candidate matrices
     k: Limit on number of solutions to return
     """
-    unspec_node_idxs = np.where(smp.candidates().sum(axis=1) > 1)[0]
+    unspec_node_idxs = np.where(smp.candidates.sum(axis=1) > 1)[0]
     found_isomorphisms = []
 
     return recursive_isomorphism_finder(
