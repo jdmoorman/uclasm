@@ -177,7 +177,7 @@ def recursive_isomorphism_finder(smp, *,
                 if isinstance(world_node, pd.Series):
                     world_node = world_node.iloc[0]
                 print(str(tmplt_node)+":", world_node)
-                new_isomorphism[tmplt_node] = world_node
+            new_isomorphism[tmplt_node] = world_node
         found_isomorphisms.append(new_isomorphism)
         return found_isomorphisms
 
