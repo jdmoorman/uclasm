@@ -189,7 +189,11 @@ def recursive_isomorphism_finder(smp, *,
 
     for i, cand_idx in enumerate(cand_idxs):
         smp_copy = smp.copy()
-        smp.add_match(node_idx, cand_idx)
+        smp.candidates[node_idx] = False
+        smp.candidates[:, cand_idx] = False
+        smp.candidates[node_idx, cand_idx] = True
+        # smp.add_match(node_idx, cand_idx)
+        # TODO: reimplement add_match
 
         # recurse to make assignment for the next node in the unspecified cover
         recursive_isomorphism_finder(
