@@ -13,7 +13,7 @@ def iter_adj_pairs(tmplt, world):
         yield (tmplt_adj.T, world_adj.T)
 
 def topology_filter(exact_smp, *,
-                    changed_cands=None, **kwargs):
+                    changed_cands=None, induced=False, **kwargs):
     """
     For each pair of neighbors in the template, ensure that any candidate for
     one neighbor has a corresponding candidate for the other neighbor to which
@@ -25,7 +25,16 @@ def topology_filter(exact_smp, *,
     world = exact_smp.world
     candidates = exact_smp.candidates
     ch_to_world_adj_T = {channel: world_adj.T[:,:] for channel, world_adj in world.ch_to_adj.items()}
-    for src_idx, dst_idx in np.argwhere(tmplt.is_nbr):
+
+    if induced:
+        idx_pairs = []
+        for src_idx in range(tmplt.n_nodes):
+            for dst_idx in range(tmplt.n_nodes):
+                idx_pairs.append((src_idx, dst_idx))
+    else:
+        idx_pairs = np.argwhere(tmplt.is_nbr)
+
+    for src_idx, dst_idx in idx_pairs:
         if changed_cands is not None:
             # If neither the source nor destination has changed, there is no
             # point in filtering on this pair of nodes
@@ -50,24 +59,36 @@ def topology_filter(exact_smp, *,
             if tmplt_adj_val1 == 0 and tmplt_adj_val2 == 0:
                 continue
             world_adj_T = ch_to_world_adj_T[channel]
-            if tmplt_adj_val1 > 0:
+            if tmplt_adj_val1 > 0 or induced:
                 # sub adjacency matrix corresponding to edges from the source
                 # candidates to the destination candidates
                 world_sub_adj = world_adj[:, dst_is_cand][src_is_cand, :]
 
                 if enough_edges is None:
-                    enough_edges = world_sub_adj >= tmplt_adj_val1
+                    if induced:
+                        enough_edges = world_sub_adj == tmplt_adj_val1
+                    else:
+                        enough_edges = world_sub_adj >= tmplt_adj_val1
                 else:
                     # enough_edges[world_sub_adj < tmplt_adj_val1] = False
-                    enough_edges = enough_edges.multiply(world_sub_adj >= tmplt_adj_val1)
+                    if induced:
+                        enough_edges = enough_edges.multiply(world_sub_adj == tmplt_adj_val1)
+                    else:
+                        enough_edges = enough_edges.multiply(world_sub_adj >= tmplt_adj_val1)
             if tmplt_adj_val2 > 0:
                 world_sub_adj = world_adj_T[:, dst_is_cand][src_is_cand, :]
 
                 if enough_edges is None:
-                    enough_edges = world_sub_adj >= tmplt_adj_val2
+                    if induced:
+                        enough_edges = world_sub_adj == tmplt_adj_val2
+                    else:
+                        enough_edges = world_sub_adj >= tmplt_adj_val2
                 else:
                     # enough_edges[world_sub_adj < tmplt_adj_val2] = False
-                    enough_edges = enough_edges.multiply(world_sub_adj >= tmplt_adj_val2)
+                    if induced:
+                        enough_edges = enough_edges.multiply(world_sub_adj == tmplt_adj_val2)
+                    else:
+                        enough_edges = enough_edges.multiply(world_sub_adj >= tmplt_adj_val2)
 
         # i,j element is 1 if cands i and j have enough edges between them
 

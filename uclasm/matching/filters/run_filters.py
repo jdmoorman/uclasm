@@ -10,7 +10,8 @@ def run_filters(exact_smp, *,
                 filters=None,
                 verbose=False,
                 max_iter=-1,
-                init_changed_cands=None):
+                init_changed_cands=None,
+                **kwargs):
     """
     Repeatedly run the desired filters until the candidates converge
     """
@@ -71,7 +72,7 @@ def run_filters(exact_smp, *,
 
             # Run whatever filter and the permutation filter
             filter(exact_smp, changed_cands=changed_cands,
-                verbose=verbose)
+                verbose=verbose, **kwargs)
             filters_so_far.append(filter.__name__.replace("_filter", ""))
             permutation_filter(exact_smp)
 

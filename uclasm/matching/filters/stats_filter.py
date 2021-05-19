@@ -1,7 +1,7 @@
 from ..matching_utils import feature_disagreements
 import numpy as np
 
-def stats_filter(exact_smp, changed_cands=None, verbose=False):
+def stats_filter(exact_smp, changed_cands=None, verbose=False, **kwargs):
     """Filtering based on statistics.
 
     Parameters

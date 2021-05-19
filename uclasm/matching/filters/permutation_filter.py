@@ -1,7 +1,7 @@
 import numpy as np
 
 def permutation_filter(exact_smp, *,
-                       changed_cands=None, verbose=False):
+                       changed_cands=None, verbose=False, **kwargs):
     """
     If k nodes in the template have the same k candidates, then those candidates
     are eliminated as candidates for all other template nodes
