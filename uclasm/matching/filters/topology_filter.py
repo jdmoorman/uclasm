@@ -56,7 +56,7 @@ def topology_filter(exact_smp, *,
             tmplt_adj_val2 = tmplt_adj[dst_idx, src_idx]
 
             # if there are no edges in this channel of the template, skip it
-            if tmplt_adj_val1 == 0 and tmplt_adj_val2 == 0:
+            if tmplt_adj_val1 == 0 and tmplt_adj_val2 == 0 and not induced:
                 continue
             world_adj_T = ch_to_world_adj_T[channel]
             if tmplt_adj_val1 > 0 or induced:
