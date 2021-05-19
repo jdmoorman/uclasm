@@ -23,7 +23,7 @@ $ python -m pip install numpy scipy pandas tqdm matplotlib networkx
 You will also need a local copy of our code either cloned from GitHub or downloaded from a Zenodo archive. To install our package from your local copy of the code, change to the code directory and use pip.
 
 ```bash
-$ cd ucla-subgraph-matching
+$ cd uclasm
 $ python -m pip install .
 ```
 
