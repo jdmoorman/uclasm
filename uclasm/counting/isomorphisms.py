@@ -165,7 +165,7 @@ def count_isomorphisms(smp, *, verbose=True,
 
 def recursive_isomorphism_finder(smp, *,
                                  unspec_node_idxs, verbose, init_changed_cands,
-                                 found_isomorphisms):
+                                 found_isomorphisms, **kwargs):
     if len(unspec_node_idxs) == 0:
         # All nodes have been assigned, add the isomorphism to the list
         new_isomorphism = {}
@@ -180,7 +180,7 @@ def recursive_isomorphism_finder(smp, *,
         found_isomorphisms.append(new_isomorphism)
         return found_isomorphisms
 
-    run_filters(smp)
+    run_filters(smp, **kwargs)
     candidates = smp.candidates
 
     node_idx = unspec_node_idxs[0]
@@ -202,7 +202,7 @@ def recursive_isomorphism_finder(smp, *,
             return found_isomorphisms
     return found_isomorphisms
 
-def find_isomorphisms(smp, *, k=-1, verbose=True):
+def find_isomorphisms(smp, *, k=-1, verbose=True, **kwargs):
     """ Returns a list of isomorphisms as dictionaries mapping template nodes to
     world nodes. Note: this is much slower than counting, and should only be
     done for small numbers of isomorphisms and fully filtered candidate matrices
@@ -216,7 +216,7 @@ def find_isomorphisms(smp, *, k=-1, verbose=True):
         unspec_node_idxs=unspec_node_idxs,
         init_changed_cands=np.zeros(smp.tmplt.nodes.shape, dtype=np.bool),
         found_isomorphisms=found_isomorphisms,
-        k=k)
+        k=k, **kwargs)
 
 def print_isomorphisms(smp, *, verbose=True):
     """ Prints the list of isomorphisms """
