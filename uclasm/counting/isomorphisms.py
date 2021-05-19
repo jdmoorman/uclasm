@@ -197,7 +197,7 @@ def recursive_isomorphism_finder(smp, *,
             verbose=verbose,
             init_changed_cands=one_hot(node_idx, smp.tmplt.n_nodes),
             found_isomorphisms=found_isomorphisms,
-            k=k)
+            k=k, **kwargs)
         if len(found_isomorphisms) == k:
             return found_isomorphisms
     return found_isomorphisms
