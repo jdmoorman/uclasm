@@ -166,7 +166,7 @@ def count_isomorphisms(smp, *, verbose=True,
 
 def recursive_isomorphism_finder(smp, *,
                                  unspec_node_idxs, verbose, init_changed_cands,
-                                 found_isomorphisms, **kwargs):
+                                 found_isomorphisms, k=-1, **kwargs):
     if len(unspec_node_idxs) == 0:
         # All nodes have been assigned, add the isomorphism to the list
         new_isomorphism = {}
