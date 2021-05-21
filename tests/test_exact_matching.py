@@ -28,6 +28,28 @@ def smp():
     return smp
 
 
+class TestMatching:
+    """Tests related to the matching"""
+    def test_add_match(self, smp):
+        assert len(smp.matching) == 0
+        smp.add_match(1, 1)
+        assert len(smp.matching) == 1
+        assert smp.candidates[1,1]
+        assert np.sum(smp.candidates[1,:]) == 1
+        assert np.sum(smp.candidates[:,1]) == 1
+
+    def test_enforce_matching(self, smp):
+        smp.enforce_matching(((0,1),(1,2)))
+        assert len(smp.matching) == 2
+        assert smp.candidates[0,1]
+        assert smp.candidates[1,2]
+        assert np.sum(smp.candidates[:2,:]) == 2
+        assert np.sum(smp.candidates[:,1:]) == 2
+
+    def test_prevent_match(self, smp):
+        smp.prevent_match(1,2)
+        assert not smp.candidates[1,2]
+
 class TestFilters:
     """Tests related to the filters """
     def test_stats_filter(self, smp):

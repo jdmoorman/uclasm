@@ -24,6 +24,10 @@ class MatchingProblemBase:
         self._ground_truth_provided = ground_truth_provided
         self._candidate_print_limit = candidate_print_limit
 
+        self.matching = tuple()
+        self.assigned_tmplt_idxs = set()
+        self.prevented_matches = []
+
     def candidates(self):
         """Implement for each child class!"""
         raise Exception("candidates() not implemented for instance of MatchingProblemBase!")
@@ -105,6 +109,52 @@ class MatchingProblemBase:
 
         return "\n".join(info_strs)
 
+    def add_match(self, tmplt_idx, world_idx):
+        """Enforce that the template node with the given index must match the
+        corresponding world node with the given index.
+        Parameters
+        ----------
+        tmplt_idx : int
+            The index of the template node to be matched.
+        world_idx : int
+            The index of the world node to be matched.
+        """
+        new_matching = [match for match in self.matching]
+        new_matching.append((tmplt_idx, world_idx))
+        self.enforce_matching(tuple(new_matching))
+
+    def enforce_matching(self, matching):
+        """Enforce the given matching tuple
+        Parameters
+        ----------
+        matching : iterable
+            Iterable of 2-tuples indicating pairs of template-world indexes
+        """
+        self.matching = matching
+        self.assigned_tmplt_idxs = {tmplt_idx for tmplt_idx, cand_idx in self.matching}
+
+    def get_non_matching_mask(self):
+        """Gets a boolean mask for the costs array corresponding to all entries
+        that would violate the matching."""
+        mask = np.zeros(self.shape, dtype=np.bool)
+        if len(self.matching) > 0:
+            mask[[pair[0] for pair in self.matching],:] = True
+            mask[:,[pair[1] for pair in self.matching]] = True
+            mask[tuple(np.array(self.matching).T)] = False
+        return mask
+
+    def prevent_match(self, tmplt_idx, world_idx):
+        """Prevent matching the template node with the given index to the world
+        node with the given index.
+        Parameters
+        ----------
+        tmplt_idx : int
+            The index of the template node not to be matched.
+        world_idx : int
+            The index of the world node not to be matched.
+        """
+        self.prevented_matches.append((tmplt_idx, world_idx))
+
 class ExactMatchingProblem(MatchingProblemBase):
     def __init__(self,
                  tmplt, world,
@@ -138,6 +188,26 @@ class ExactMatchingProblem(MatchingProblemBase):
     @candidates.setter
     def candidates(self, value):
         self._candidates = value
+
+    def enforce_matching(self, matching):
+        super().enforce_matching(matching)
+        for tmplt_idx, world_idx in matching:
+            self.candidates[tmplt_idx, :] = False
+            self.candidates[:, world_idx] = False
+            self.candidates[tmplt_idx, world_idx] = True
+
+    def prevent_match(self, tmplt_idx, world_idx):
+        """Prevent matching the template node with the given index to the world
+        node with the given index.
+        Parameters
+        ----------
+        tmplt_idx : int
+            The index of the template node not to be matched.
+        world_idx : int
+            The index of the world node not to be matched.
+        """
+        super().prevent_match(tmplt_idx, world_idx)
+        self.candidates[tmplt_idx, world_idx] = False
 
 class InexactMatchingProblem(MatchingProblemBase):
     """A class representing any subgraph matching problem, noisy or otherwise.
@@ -302,10 +372,6 @@ class InexactMatchingProblem(MatchingProblemBase):
         self.node_attr_fn = node_attr_fn
         self.edge_attr_fn = edge_attr_fn
         self.missing_edge_cost_fn = missing_edge_cost_fn
-
-        self.matching = tuple()
-        self.assigned_tmplt_idxs = set()
-        self.prevented_matches = []
 
     def copy(self, copy_graphs=True):
         """Returns a copy of the MatchingProblem."""
@@ -505,20 +571,6 @@ class InexactMatchingProblem(MatchingProblemBase):
         self._num_valid_candidates = np.count_nonzero(self.candidates())
         return num_valid_candidates != self._num_valid_candidates
 
-    def add_match(self, tmplt_idx, world_idx):
-        """Enforce that the template node with the given index must match the
-        corresponding world node with the given index.
-        Parameters
-        ----------
-        tmplt_idx : int
-            The index of the template node to be matched.
-        world_idx : int
-            The index of the world node to be matched.
-        """
-        new_matching = [match for match in self.matching]
-        new_matching.append((tmplt_idx, world_idx))
-        self.enforce_matching(tuple(new_matching))
-
     def enforce_matching(self, matching):
         """Enforce the given matching tuple by setting fixed costs in off-match
         rows and columns to float("inf")
@@ -527,21 +579,10 @@ class InexactMatchingProblem(MatchingProblemBase):
         matching : iterable
             Iterable of 2-tuples indicating pairs of template-world indexes
         """
-        self.matching = matching
+        super().enforce_matching(matching)
         if self.match_fixed_costs:
             mask = self.get_non_matching_mask()
             self.fixed_costs[mask] = float("inf")
-        self.assigned_tmplt_idxs = {tmplt_idx for tmplt_idx, cand_idx in self.matching}
-
-    def get_non_matching_mask(self):
-        """Gets a boolean mask for the costs array corresponding to all entries
-        that would violate the matching."""
-        mask = np.zeros(self.fixed_costs.shape, dtype=np.bool)
-        if len(self.matching) > 0:
-            mask[[pair[0] for pair in self.matching],:] = True
-            mask[:,[pair[1] for pair in self.matching]] = True
-            mask[tuple(np.array(self.matching).T)] = False
-        return mask
 
     def prevent_match(self, tmplt_idx, world_idx):
         """Prevent matching the template node with the given index to the world
@@ -553,10 +594,9 @@ class InexactMatchingProblem(MatchingProblemBase):
         world_idx : int
             The index of the world node not to be matched.
         """
+        super().prevent_match(tmplt_idx, world_idx)
         if self.match_fixed_costs:
             self.fixed_costs[tmplt_idx, world_idx] = float("inf")
-        else:
-            self.prevented_matches.append((tmplt_idx, world_idx))
 
 # Default MatchingProblem to be inexact
 MatchingProblem = InexactMatchingProblem
