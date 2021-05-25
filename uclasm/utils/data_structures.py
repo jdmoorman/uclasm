@@ -279,6 +279,22 @@ class Graph:
                 for _, fro, to, count in self.edge_iterator(channel):
                     f.write('{} {} {}\n'.format(fro, to, count))
 
+    def write_file_csv(self, filename):
+        """
+        Write out the graph as a csv file.
+        For each edge, write the edge according to its multiplicity.
+        It will be in the format <src>,<dest>,<channel>.
+        """
+        with open(filename, 'w') as f:
+            for i in range(self.n_nodes):
+                f.write(f'{i},\n')
+            for ch, adj in self.ch_to_adj.items():
+                for i in range(self.n_nodes):
+                    nbrs = self.get_outgoing_neighbors(i, ch)
+                    for nbr in nbrs:
+                        for j in range(adj[i,nbr]):
+                            f.write(f'{i}>{nbr},{ch}\n')
+
     def write_channel_solnon(self, filename, channel):
         """
         Write out adjacency matrix for specific channel as adjacency list to
@@ -577,19 +593,20 @@ class Graph:
 
         # This map has 8 different colors.
         cmap = plt.get_cmap('Set1')
+        cmap2 = plt.get_cmap('Set3')
         # We use the color gray for any trivial equivalence class.
         GRAY_INDEX = 8
 
         color_map = [""] * self.n_nodes
         count = 0
-        classes = equivalence.classes()
+        classes = equivalence.classes
         for eq_class in classes.values():
             if len(eq_class) == 1:
                 for elem in eq_class:
-                    color_map[elem] = cmap.colors[GRAY_INDEX]
+                    color_map[elem] = cmap2.colors[GRAY_INDEX]
             else:
                 for elem in eq_class:
-                    color_map[elem] = cmap.colors[count]
+                    color_map[elem] = cmap.colors[count % len(cmap.colors)]
                 count += 1
         
         comp_graph = self.to_networkx_composite_graph()
@@ -728,7 +745,7 @@ def read_solnon_graph(filename, graph_name=None):
     with open(filename) as f:
         n = int(f.readline())
         # The adjacency matrix for the graph
-        adj_mat = np.zeros((n,n))
+        adj_mat = np.zeros((n,n), dtype=np.int32)
         for i in range(n):
             count, *adjacents = list(map(int, f.readline().split()))
             for j in adjacents:
