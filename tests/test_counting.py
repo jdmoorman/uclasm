@@ -2,8 +2,8 @@
 import pytest
 import uclasm
 from uclasm.counting import count_alldiffs, count_isomorphisms, find_isomorphisms
-from uclasm.matching.search.search_utils import iterate_to_convergence
-from uclasm import Graph, MatchingProblem
+from uclasm.matching.filters.run_filters import run_filters
+from uclasm import Graph, ExactMatchingProblem
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ def smp():
                                                    Graph.channel_col])
     tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
     world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
-    smp = MatchingProblem(tmplt, world)
+    smp = ExactMatchingProblem(tmplt, world)
     return smp
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def smp_star():
                                                    Graph.channel_col])
     tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
     world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
-    smp = MatchingProblem(tmplt, world)
+    smp = ExactMatchingProblem(tmplt, world)
     return smp
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def smp_node_cover():
                                                    Graph.channel_col])
     tmplt = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
     world = Graph([adj0, adj1], ['c1', 'c2'], nodelist, edgelist)
-    smp = MatchingProblem(tmplt, world)
+    smp = ExactMatchingProblem(tmplt, world)
     return smp
 
 @pytest.fixture
@@ -97,7 +97,7 @@ def smp_overlapping_cands():
                        [0, 0, 0, 0, 0],
                        [0, 0, 0, 0, 0]])
     world = Graph([world_adj], ['c1'])
-    smp = MatchingProblem(tmplt, world)
+    smp = ExactMatchingProblem(tmplt, world)
     return smp
 
 
@@ -147,13 +147,13 @@ class TestAlldiffs:
 
 class TestIsomorphisms:
     def test_count_isomorphisms(self, smp):
-        iterate_to_convergence(smp)
-        assert np.sum(smp.candidates()) == 3
+        run_filters(smp)
+        assert np.sum(smp.candidates) == 3
         count = count_isomorphisms(smp, verbose=True)
         assert count == 1
 
     def test_find_isomorphisms(self, smp):
-        iterate_to_convergence(smp)
+        run_filters(smp)
         iso_list = find_isomorphisms(smp, verbose=True)
         assert len(iso_list) == 1
         iso = iso_list[0]
@@ -162,19 +162,19 @@ class TestIsomorphisms:
         assert iso['c'] == 'c'
 
     def test_count_isomorphisms_star(self, smp_star):
-        iterate_to_convergence(smp_star)
-        assert np.sum(smp_star.candidates()) == 9
+        run_filters(smp_star)
+        assert np.sum(smp_star.candidates) == 9
         count = count_isomorphisms(smp_star, verbose=True)
         assert count == 4
 
     def test_count_isomorphisms_node_cover(self, smp_node_cover):
-        iterate_to_convergence(smp_node_cover)
-        assert np.sum(smp_node_cover.candidates()) == 9
+        run_filters(smp_node_cover)
+        assert np.sum(smp_node_cover.candidates) == 9
         count = count_isomorphisms(smp_node_cover, verbose=True)
         assert count == 4
 
     def test_count_isomorphisms_overlapping_cands(self, smp_overlapping_cands):
-        iterate_to_convergence(smp_overlapping_cands)
-        assert np.sum(smp_overlapping_cands.candidates()) == 7
+        run_filters(smp_overlapping_cands)
+        assert np.sum(smp_overlapping_cands.candidates) == 7
         count = count_isomorphisms(smp_overlapping_cands, verbose=True)
         assert count == 6
