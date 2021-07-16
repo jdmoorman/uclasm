@@ -545,24 +545,37 @@ def add_time_costs(smp, candidates, local_costs):
         else:
             cand2_sorted_idxs = cand2_times.argsort()
 
-            # There are a lot of redundant times, only check unique times
-            uniq_cand1_times = np.unique(cand1_times)
-
-            # For each initial event time
-            for cand1_time in uniq_cand1_times:
-                min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
+            if 'maxValue' not in time_constraint:
+                max_cand2_time = cand2_times[cand2_sorted_idxs[-1]]
+                cand1_sorted_idxs = cand1_times.argsort()
+                min_cand1_time = cand1_times[cand1_sorted_idxs[0]]
+                # Rule out all times smaller than the lowest cand1 time (w/delta)
+                min_cand2_idx = np.searchsorted(cand2_times, min_cand1_time + min_timedelta,
                                           sorter=cand2_sorted_idxs)
-                if 'maxValue' in time_constraint:
-                    max_idx = np.searchsorted(cand2_times, cand1_time + max_timedelta,
-                                              side='right', sorter=cand2_sorted_idxs)
-                else:
-                    max_idx = len(cand2_times)
+                # Rule out all times greater than the largest cand2 time (w/delta)
+                max_cand1_idx = np.searchsorted(cand1_times, max_cand2_time - min_timedelta,
+                                          side='right', sorter=cand1_sorted_idxs)
+                cand1_nonnat_costs[cand1_sorted_idxs[:max_cand1_idx]] = 0
+                cand2_nonnat_costs[cand2_sorted_idxs[min_cand2_idx:]] = 0
+            else:
+                # There are a lot of redundant times, only check unique times
+                uniq_cand1_times = np.unique(cand1_times)
 
-                # If there are cand2 vertices in desired time range,
-                # set associated costs to 0.
-                if min_idx < max_idx:
-                    cand1_nonnat_costs[cand1_times == cand1_time] = 0
-                    cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx]] = 0
+                # For each initial event time
+                for cand1_time in uniq_cand1_times:
+                    min_idx = np.searchsorted(cand2_times, cand1_time + min_timedelta,
+                                              sorter=cand2_sorted_idxs)
+                    if 'maxValue' in time_constraint:
+                        max_idx = np.searchsorted(cand2_times, cand1_time + max_timedelta,
+                                                  side='right', sorter=cand2_sorted_idxs)
+                    else:
+                        max_idx = len(cand2_times)
+
+                    # If there are cand2 vertices in desired time range,
+                    # set associated costs to 0.
+                    if min_idx < max_idx:
+                        cand1_nonnat_costs[cand1_times == cand1_time] = 0
+                        cand2_nonnat_costs[cand2_sorted_idxs[min_idx:max_idx]] = 0
 
         cand1_costs[cand1_nonnat_mask] = cand1_nonnat_costs
         cand2_costs[cand2_nonnat_mask] = cand2_nonnat_costs
