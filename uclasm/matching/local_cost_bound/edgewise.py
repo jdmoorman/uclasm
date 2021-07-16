@@ -116,7 +116,7 @@ def get_edge_to_unique_attr(edgelist, src_col, dst_col, cast_to_str=False):
 
     return unique_attrs, inverse
 
-def edgewise_no_attrs(smp, changed_cands=None):
+def edgewise_no_attrs(smp, candidates, changed_cands=None):
     """Compute edgewise costs in the case where no attribute distance function
     is provided.
 
@@ -130,7 +130,6 @@ def edgewise_no_attrs(smp, changed_cands=None):
         their neighboring template nodes have to be reevaluated.
     """
     new_local_costs = np.zeros(smp.shape)
-    candidates = smp.candidates()
     for src_idx, dst_idx in smp.tmplt.nbr_idx_pairs:
         if changed_cands is not None:
             # If neither the source nor destination has changed, there is no
@@ -313,7 +312,7 @@ def verify_edgewise_cost_cache(smp, cache_by_unique_attrs=True):
         if smp._edgewise_costs_cache.shape != (n_tmplt_edges, n_world_edges):
             raise Exception("Edgewise costs cache not properly computed!")
 
-def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
+def edgewise_local_costs(smp, candidates, changed_cands=None, use_cost_cache=True,
                          cache_by_unique_attrs=True):
     """Compute edge disagreements between candidates.
 
@@ -336,10 +335,9 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
     """
 
     if smp.edge_attr_fn is None:
-        return edgewise_no_attrs(smp, changed_cands=changed_cands)
+        return edgewise_no_attrs(smp, candidates, changed_cands=changed_cands)
     else:
         new_local_costs = np.zeros(smp.shape)
-        candidates = smp.candidates()
         # Iterate over template edges and consider best matches for world edges
         if use_cost_cache:
             # Edge index -> unique attribute idx
@@ -422,13 +420,6 @@ def edgewise_local_costs(smp, changed_cands=None, use_cost_cache=True,
                     if dst_weight > 0:
                         set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, dst_weight * attr_costs)
                 new_local_costs += assignment_costs
-
-            if hasattr(smp.tmplt, 'time_constraints'):
-                add_time_costs(smp, candidates, new_local_costs)
-
-            if hasattr(smp.tmplt, 'geo_constraints'):
-                add_geo_costs(smp, candidates, new_local_costs)
-
             return new_local_costs
         else:
             src_col = smp.tmplt.source_col
@@ -498,7 +489,13 @@ def edgewise(smp, changed_cands=None):
     smp : MatchingProblem
         A subgraph matching problem on which to compute edgewise cost bounds.
     """
-    smp.local_costs = edgewise_local_costs(smp, changed_cands)
+    candidates = smp.candidates() # Avoid recomputing candidates
+    smp.local_costs = edgewise_local_costs(smp, candidates, changed_cands)
+    if hasattr(smp.tmplt, 'time_constraints'):
+        add_time_costs(smp, candidates, smp.local_costs)
+
+    if hasattr(smp.tmplt, 'geo_constraints'):
+        add_geo_costs(smp, candidates, smp.local_costs)
 
 def add_time_costs(smp, candidates, local_costs):
     """Add costs associated with time constraints
