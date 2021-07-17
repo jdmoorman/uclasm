@@ -68,11 +68,11 @@ def get_edgelist_iterator(edgelist, src_col, dst_col, attr_keys, node_as_str=Tru
 
 from numba import float64, int64, void
 
-@numba.njit(void(float64[:,:], int64, int64[:], float64[:]))
-def set_assignment_costs(assignment_costs, tmplt_idx, cand_idxs, attr_costs):
+@numba.njit(void(float64[:], int64[:], float64[:]))
+def set_assignment_costs(assignment_costs, cand_idxs, attr_costs):
     for cand_idx, attr_cost in zip(cand_idxs, attr_costs):
-        if attr_cost < assignment_costs[tmplt_idx, cand_idx]:
-            assignment_costs[tmplt_idx, cand_idx] = attr_cost
+        if attr_cost < assignment_costs[cand_idx]:
+            assignment_costs[cand_idx] = attr_cost
 
 def get_edge_to_unique_attr(edgelist, src_col, dst_col, cast_to_str=False):
     """Get a map from edge indexes to unique attribute indexes.
@@ -375,7 +375,6 @@ def edgewise_local_costs(smp, candidates, changed_cands=None, use_cost_cache=Tru
                     src_node, dst_node = str(src_node), str(dst_node)
                 # Matrix of costs of assigning template node src_idx and dst_idx
                 # to candidates row_idx and col_idx
-                assignment_costs = np.zeros(smp.shape)
                 if 'importance' in tmplt_attr_keys:
                     missing_edge_cost = smp.missing_edge_cost_fn((src_node, dst_node), tmplt_attrs_dict['importance'])
                 else:
@@ -384,9 +383,11 @@ def edgewise_local_costs(smp, candidates, changed_cands=None, use_cost_cache=Tru
                 # Only works if monotone is disabled
                 src_weight, dst_weight = get_src_dst_weights(smp, src_idx, dst_idx)
                 if src_weight > 0:
-                    assignment_costs[src_idx, :] = src_weight * missing_edge_cost
+                    src_assignment_costs = np.zeros(smp.world.n_nodes)
+                    src_assignment_costs[:] = missing_edge_cost
                 if dst_weight > 0:
-                    assignment_costs[dst_idx, :] = dst_weight * missing_edge_cost
+                    dst_assignment_costs = np.zeros(smp.world.n_nodes)
+                    dst_assignment_costs[:] = missing_edge_cost
 
                 # TODO: add some data to the graph classes to store the node indexes
                 # of the source and destination of each edge. You can then use this
@@ -416,10 +417,13 @@ def edgewise_local_costs(smp, candidates, changed_cands=None, use_cost_cache=Tru
                     else:
                         attr_costs = smp._edgewise_costs_cache[tmplt_edge_idx, cand_edge_mask]
                     if src_weight > 0:
-                        set_assignment_costs(assignment_costs, src_idx, src_cand_idxs, src_weight * attr_costs)
+                        set_assignment_costs(src_assignment_costs, src_cand_idxs, attr_costs)
                     if dst_weight > 0:
-                        set_assignment_costs(assignment_costs, dst_idx, dst_cand_idxs, dst_weight * attr_costs)
-                new_local_costs += assignment_costs
+                        set_assignment_costs(dst_assignment_costs, dst_cand_idxs, attr_costs)
+                if src_weight > 0:
+                    new_local_costs[src_idx] += src_weight * src_assignment_costs
+                if dst_weight > 0:
+                    new_local_costs[dst_idx] += dst_weight * dst_assignment_costs
             return new_local_costs
         else:
             src_col = smp.tmplt.source_col
