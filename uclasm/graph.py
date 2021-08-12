@@ -160,6 +160,18 @@ class Graph:
             edge_rows += [(self.nodes[x], self.nodes[y], channel) for x,y in zip(*adj.nonzero())]
         self.edgelist = pd.DataFrame(edge_rows, columns=[self.source_col, self.target_col, self.channel_col])
 
+    def convert_edgelist_to_adj(self):
+        if self.edgelist is None:
+            raise Exception("Edgelist undefined")
+        if self.adjs is not None:
+            raise Exception("Adjacency matrices already defined")
+        self.ch_to_adj = {}
+        for channel in self.channels:
+            self.ch_to_adj[channel] = sparse.csr_matrix((self.n_nodes, self.n_nodes))
+        for edge_idx, edge_row in self.edgelist.iterrows():
+            self.ch_to_adj[edge_row[self.channel_col]][self.node_idxs[edge_row[self.source_col]], self.node_idxs[edge_row[self.target_col]]] += 1
+        self.adjs = [self.ch_to_adj[ch] for ch in self.channels]
+
     @cached_property
     def has_loops(self):
         """bool: Indicator of whether the graph has any self-edges."""
