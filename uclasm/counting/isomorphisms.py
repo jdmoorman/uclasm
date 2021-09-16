@@ -172,10 +172,10 @@ def recursive_isomorphism_finder(smp, *,
         new_isomorphism = {}
         candidates = smp.candidates
         for tmplt_idx, tmplt_node in enumerate(smp.tmplt.nodes):
+            world_node = smp.world.nodes[candidates[tmplt_idx]]
+            if isinstance(world_node, pd.Series):
+                world_node = world_node.iloc[0]
             if verbose:
-                world_node = smp.world.nodes[candidates[tmplt_idx]]
-                if isinstance(world_node, pd.Series):
-                    world_node = world_node.iloc[0]
                 print(str(tmplt_node)+":", world_node)
             new_isomorphism[tmplt_node] = world_node
         found_isomorphisms.append(new_isomorphism)
