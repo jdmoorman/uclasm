@@ -212,12 +212,16 @@ def find_isomorphisms(smp, *, k=-1, verbose=True, **kwargs):
     unspec_node_idxs = np.where(smp.candidates.sum(axis=1) > 1)[0]
     found_isomorphisms = []
 
-    return recursive_isomorphism_finder(
-        smp, verbose=verbose,
-        unspec_node_idxs=unspec_node_idxs,
-        init_changed_cands=np.zeros(smp.tmplt.nodes.shape, dtype=np.bool),
-        found_isomorphisms=found_isomorphisms,
-        k=k, **kwargs)
+    try:
+        return recursive_isomorphism_finder(
+            smp, verbose=verbose,
+            unspec_node_idxs=unspec_node_idxs,
+            init_changed_cands=np.zeros(smp.tmplt.nodes.shape, dtype=np.bool),
+            found_isomorphisms=found_isomorphisms,
+            k=k, **kwargs)
+    except KeyboardInterrupt:
+        print("Exiting early due to keyboard interrupt")
+        return found_isomorphisms
 
 def print_isomorphisms(smp, *, verbose=True):
     """ Prints the list of isomorphisms """
