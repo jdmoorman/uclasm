@@ -380,6 +380,10 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
                 break
             else:
                 print("Updated current state cost from", old_cost, "to:", current_state.cost)
+            candidates = smp.candidates()
+            if not np.all(np.any(candidates, axis=1)):
+                print("No candidates remaining for template nodes ", list(smp.tmplt.nodes[~np.any(candidates,axis=1)]))
+                break
         # if costs_changed:
             # sort_by_cost(smp, tmplt_idx, cand_idxs)
 
