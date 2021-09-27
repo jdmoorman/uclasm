@@ -56,6 +56,9 @@ class Graph:
         Column name for target node identifiers in the edgelist.
     channel_col : str
         Column name for edge type/channel identifiers in the edgelist.
+    orig_idxs : array
+        Original indices of nodes when the graph was first created. Used to track
+        node locations when subgraphs are taken.
     """
 
     node_col = "Node"
@@ -64,7 +67,8 @@ class Graph:
     channel_col = "eType"
 
     def __init__(self, adjs=None, channels=None, nodelist=None, edgelist=None,
-                 node_col=None, source_col=None, target_col=None, channel_col=None):
+                 node_col=None, source_col=None, target_col=None, channel_col=None,
+                 orig_idxs=None):
         """Derive attributes from parameters."""
         # Reverse compatibility with old format
         if channels is not None and adjs is not None and len(adjs) != len(channels):
@@ -112,6 +116,10 @@ class Graph:
         self.nodelist = nodelist
         self.nodes = self.nodelist[self.node_col]
         self.node_idxs = index_map(self.nodes)
+        if orig_idxs is None:
+            self.orig_idxs = np.arange(self.n_nodes)
+        else:
+            self.orig_idxs = orig_idxs
 
         # TODO: Make sure nodelist is indexed in a reasonable way
         # TODO: Make sure edgelist is indexed in a reasonable way
@@ -138,7 +146,8 @@ class Graph:
                      node_col=self.node_col,
                      source_col=self.source_col,
                      target_col=self.target_col,
-                     channel_col=self.channel_col
+                     channel_col=self.channel_col,
+                     orig_idxs=self.orig_idxs
                      )
 
     def convert_adj_to_edgelist(self):
@@ -150,6 +159,18 @@ class Graph:
         for channel, adj in zip(self.channels, self.adjs):
             edge_rows += [(self.nodes[x], self.nodes[y], channel) for x,y in zip(*adj.nonzero())]
         self.edgelist = pd.DataFrame(edge_rows, columns=[self.source_col, self.target_col, self.channel_col])
+
+    def convert_edgelist_to_adj(self):
+        if self.edgelist is None:
+            raise Exception("Edgelist undefined")
+        if self.adjs is not None:
+            raise Exception("Adjacency matrices already defined")
+        self.ch_to_adj = {}
+        for channel in self.channels:
+            self.ch_to_adj[channel] = sparse.csr_matrix((self.n_nodes, self.n_nodes))
+        for edge_idx, edge_row in self.edgelist.iterrows():
+            self.ch_to_adj[edge_row[self.channel_col]][self.node_idxs[edge_row[self.source_col]], self.node_idxs[edge_row[self.target_col]]] += 1
+        self.adjs = [self.ch_to_adj[ch] for ch in self.channels]
 
     @cached_property
     def has_loops(self):
@@ -341,12 +362,16 @@ class Graph:
         else:
             edgelist = None
 
+        # Track the original node indices
+        new_orig_idxs = self.orig_idxs[node_idxs]
+
         # Return a new graph object for the induced subgraph
         subgraph = Graph(adjs, self.channels, nodelist, edgelist,
                     node_col=self.node_col,
                     source_col=self.source_col,
                     target_col=self.target_col,
-                    channel_col=self.channel_col)
+                    channel_col=self.channel_col,
+                    orig_idxs=new_orig_idxs)
         if get_edge_is_cand:
             return subgraph, edge_is_cand
         else:
@@ -383,7 +408,8 @@ class Graph:
                     node_col=self.node_col,
                     source_col=self.source_col,
                     target_col=self.target_col,
-                    channel_col=self.channel_col)
+                    channel_col=self.channel_col,
+                    orig_idxs=self.orig_idxs)
 
     def node_cover(self):
         """Get the indices of nodes for a node cover, sorted by importance.

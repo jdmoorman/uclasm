@@ -70,6 +70,8 @@ class TestGraph:
             assert (act_adj != exp_adj).nnz == 0
         assert (actual_subgraph.nodelist == node_subgraph.nodelist).all(axis=None)
         assert (actual_subgraph.edgelist == node_subgraph.edgelist).all(axis=None)
+        for i in range(actual_subgraph.n_nodes):
+            assert actual_subgraph.orig_idxs[i] == node_idxs[i]
 
     def test_node_cover(self, graph):
         """Check that the node cover is minimal for the example graph."""

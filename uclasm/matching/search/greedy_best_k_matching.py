@@ -167,7 +167,8 @@ def impose_state_assignments_on_smp(smp, tmplt_idx, state, **kwargs):
     changed_cands[tmplt_idx] = True
     changed_cands = None
     iterate_to_convergence(smp, changed_cands=changed_cands, **kwargs)
-    matching_dict = dict(state.matching)
+    matching_dict = dict(smp.matching)
+    state.matching = smp.matching
     state.cost = smp.global_costs[tmplt_idx, matching_dict[tmplt_idx]]
 
 def propagate_cost_threshold_changes(smp, child_smp, nodewise, edgewise):
@@ -188,6 +189,8 @@ def add_new_solution(smp, solution_state, tmplt_idx, solutions, k, **kwargs):
     child_smp = smp.copy(copy_graphs=False)
     impose_state_assignments_on_smp(child_smp, tmplt_idx, solution_state, **kwargs)
     old_cost = solution_state.cost
+    # Remap solution indices back to original world indices
+    solution_state.matching = tuple((tmplt_idx, smp.world.orig_idxs[world_idx]) for tmplt_idx, world_idx in solution_state.matching)
     solution_state.cost = child_smp.global_costs.min()
     print("ADDING SOLUTION WITH COST:", solution_state.cost)
     if not satisfies_cost_threshold(smp, solution_state.cost):
@@ -301,6 +304,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
               "current_cost:", current_state.cost,
               "kth cost:", kth_cost,  "max cost", smp.global_cost_threshold,
               "solutions found:", len(solutions))
+        print("Current world size: {} nodes".format(smp.world.n_nodes))
 
     # Ignore states whose cost is too high
     if not satisfies_cost_threshold(smp, current_state.cost):
@@ -353,7 +357,7 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
 
             print("Old cost:", smp.global_costs[tmplt_idx, cand_idx])
             impose_state_assignments_on_smp(child_smp, tmplt_idx, new_state,
-                                   reduce_world=False, nodewise=nodewise,
+                                   reduce_world=True, nodewise=nodewise,
                                    edgewise=edgewise)
             if not satisfies_cost_threshold(smp, new_state.cost):
                 print("Skipping state w", len(current_state.matching)+1, "matches, cost:", new_state.cost,
@@ -376,6 +380,10 @@ def _greedy_best_k_matching_recursive(smp, *, current_state, k,
                 break
             else:
                 print("Updated current state cost from", old_cost, "to:", current_state.cost)
+            candidates = smp.candidates()
+            if not np.all(np.any(candidates, axis=1)):
+                print("No candidates remaining for template nodes ", list(smp.tmplt.nodes[~np.any(candidates,axis=1)]))
+                break
         # if costs_changed:
             # sort_by_cost(smp, tmplt_idx, cand_idxs)
 
