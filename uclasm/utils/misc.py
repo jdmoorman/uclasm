@@ -52,9 +52,10 @@ def time_with_timeout(f, args=None, kwargs=None, timeout=60):
     try:
         with time_limit(timeout):
             start_time = time.time()
-            f(*args, **kwargs)
+            output = f(*args, **kwargs)
             end_time = time.time()
             tot_time = end_time - start_time
     except TimeoutException as e:
         tot_time = timeout
-    return tot_time
+        output = None
+    return tot_time, output

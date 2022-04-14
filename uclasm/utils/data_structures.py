@@ -287,7 +287,10 @@ class Graph:
         """
         with open(filename, 'w') as f:
             for i in range(self.n_nodes):
-                f.write(f'{i},\n')
+                if self.labels[i]:
+                    f.write(f'{i},,{self.labels[i]}\n')
+                else:
+                    f.write(f'{i},\n')
             for ch, adj in self.ch_to_adj.items():
                 for i in range(self.n_nodes):
                     nbrs = self.get_outgoing_neighbors(i, ch)
