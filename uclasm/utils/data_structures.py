@@ -15,7 +15,11 @@ import graphviz as gv
 
 class Graph:
     def __init__(self, nodes, channels, adjs, labels=None, name=None):
-        self.nodes = np.array(nodes)
+        if isinstance(nodes[0], str):
+            max_str_len = max(len(node) for node in nodes)
+            self.nodes = np.array(nodes, dtype=f'<U{max_str_len}')
+        else:
+            self.nodes = np.array(nodes)
         self.n_nodes = len(nodes)
         self.node_idxs = index_map(self.nodes)
         self.ch_to_adj = {ch: adj for ch, adj in zip(channels, adjs)}
@@ -296,7 +300,10 @@ class Graph:
                     nbrs = self.get_outgoing_neighbors(i, ch)
                     for nbr in nbrs:
                         for j in range(adj[i,nbr]):
-                            f.write(f'{i}>{nbr},{ch}\n')
+                            if len(self.channels) > 1:
+                                f.write(f'{i}>{nbr},{ch}\n')
+                            else:
+                                f.write(f'{i}>{nbr}\n')
 
     def write_channel_solnon(self, filename, channel):
         """
@@ -763,6 +770,87 @@ def read_solnon_graph(filename, graph_name=None):
 
     # '0' is a standin for the single channel
     return Graph(nodes, ['0'], [sparse.csr_matrix(adj_mat)], name=name)
+
+
+def read_glasgow_csv_file(filename):
+    """
+    This takes a file written in the Glasgow csv format and returns the graph
+    encoded in the file.
+
+    The file is formatted as follows. A graph with m edges will have at least
+    m lines. Each line corresponds to either an edge or a node. An undirected
+    edge will be formatted as follows:
+    <node1>,<node2>,<channel>
+    whereas a directed node is formatted in the follownig manner:
+    <source_node>,<target_node>,<channel>.
+    Note the <channel> field may be left blank if there is no corresponding
+    channel or edge label. Node lines are included to indicate if nodes have
+    labels in which case they take the following format:
+    <node>,,<node_label>.
+    """
+    with open(filename) as f:
+        nodes = set()
+        channels = []
+        # Do a first pass to identify all the nodes
+        for line in f:
+            fields = line.rstrip().replace('>',',').split(',')
+
+            # If it is an edge line
+            if fields[1]:
+                # The first two fields correspond to source and target nodes
+                nodes.add(fields[0])
+                nodes.add(fields[1])
+
+                if len(fields) > 2:
+                    if fields[2] not in channels:
+                        channels.append(fields[2])
+                else:
+                    if None not in channels:
+                        channels.append(None)
+            else:
+                # It is a node line
+                nodes.add(fields[0])
+        
+        if channels:
+            ch_to_adj = {channel: sparse.dok_matrix((len(nodes), len(nodes)), dtype=np.int32)
+                         for channel in channels}
+
+        nodes = list(nodes)
+        node_to_idx = {node:i for i, node in enumerate(nodes)}
+        node_labels = ['' for node in nodes]
+        f.seek(0)
+        for line in f:
+            fields = line.rstrip().replace('>', ',').split(',')
+            # If the second field is empty, it is a node line
+            if fields[1] == '':
+                node = fields[0]
+                node_idx = node_to_idx[node]
+                node_labels[node_idx] = fields[2]
+            else:
+                # Edge line
+                
+                if len(fields[2]) > 2:
+                    channel = fields[2]
+                else:
+                    channel = None
+
+                node1, node2 = fields[:2]
+                idx1, idx2 = node_to_idx[node1], node_to_idx[node2]
+
+                # Determine if it is directed or undirected
+                if line[len(fields[0])] == ',':
+                    # Undirected
+                    ch_to_adj[channel][idx1,idx2] += 1
+                    ch_to_adj[channel][idx2,idx1] += 1
+                else:
+                    # Directed
+                    ch_to_adj[channel][idx1,idx2] += 1
+
+    channels = list(ch_to_adj.keys())
+    adjs = [adj.tocsr() for adj in ch_to_adj.values()]
+
+    graph = Graph(nodes, channels, adjs, node_labels)
+    return graph
 
 
 def read_igraph_file(filename):
