@@ -291,6 +291,7 @@ class Graph:
         """
         with open(filename, 'w') as f:
             for i in range(self.n_nodes):
+
                 if self.labels[i]:
                     f.write(f'{i},,{self.labels[i]}\n')
                 else:
@@ -299,7 +300,7 @@ class Graph:
                 for i in range(self.n_nodes):
                     nbrs = self.get_outgoing_neighbors(i, ch)
                     for nbr in nbrs:
-                        for j in range(adj[i,nbr]):
+                        for j in range(int(adj[i,nbr])):
                             if len(self.channels) > 1:
                                 f.write(f'{i}>{nbr},{ch}\n')
                             else:
